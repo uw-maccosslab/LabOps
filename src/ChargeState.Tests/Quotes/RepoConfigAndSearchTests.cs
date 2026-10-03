@@ -97,3 +97,26 @@ public sealed class QuoteSearchTests
         found.Last().IsHistorical.ShouldBeTrue();
     }
 }
+
+public sealed class QuoteFileTests
+{
+    [Fact]
+    public void Open_pdf_prefers_the_sent_pdf_then_the_draft()
+    {
+        using var temp = new TempDirectory();
+        var quote = new QuoteSummary { QuoteNumber = "MacCoss-2026-X", Folder = "quotes/G/2026/MacCoss-2026-X" };
+        var folder = quote.FolderPath(temp.Path);
+        Directory.CreateDirectory(folder);
+
+        quote.ExistingPdf(temp.Path).ShouldBeNull();
+
+        File.WriteAllText(Path.Combine(folder, "MacCoss-2026-X-draft.pdf"), "draft");
+        quote.ExistingPdf(temp.Path).ShouldBe(Path.Combine(folder, "MacCoss-2026-X-draft.pdf"));
+
+        File.WriteAllText(Path.Combine(folder, "MacCoss-2026-X.pdf"), "sent");
+        quote.ExistingPdf(temp.Path).ShouldBe(Path.Combine(folder, "MacCoss-2026-X.pdf"));
+
+        File.WriteAllText(Path.Combine(folder, "MacCoss-2026-X-draft.xlsx"), "draft");
+        quote.ExistingSpreadsheet(temp.Path).ShouldBe(Path.Combine(folder, "MacCoss-2026-X-draft.xlsx"));
+    }
+}

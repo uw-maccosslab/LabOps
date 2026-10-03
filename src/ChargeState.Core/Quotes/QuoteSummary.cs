@@ -89,4 +89,22 @@ public sealed record QuoteSummary
 
     public string FolderPath(string repositoryPath) =>
         Path.Combine(repositoryPath, Folder.Replace('/', Path.DirectorySeparatorChar));
+
+    /// <summary>
+    /// The PDF to show: the sent one if the quote was sent, otherwise the latest draft PDF, or
+    /// null when neither exists. Checked on disk, because a draft PDF is usually made after the
+    /// list was loaded.
+    /// </summary>
+    public string? ExistingPdf(string repositoryPath) => FirstExisting(repositoryPath, ".pdf");
+
+    /// <summary>The sent spreadsheet if there is one, otherwise the draft one, or null.</summary>
+    public string? ExistingSpreadsheet(string repositoryPath) => FirstExisting(repositoryPath, ".xlsx");
+
+    private string? FirstExisting(string repositoryPath, string extension)
+    {
+        var folder = FolderPath(repositoryPath);
+        return new[] { $"{QuoteNumber}{extension}", $"{QuoteNumber}-draft{extension}" }
+            .Select(name => Path.Combine(folder, name))
+            .FirstOrDefault(File.Exists);
+    }
 }

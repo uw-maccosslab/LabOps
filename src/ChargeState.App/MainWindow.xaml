@@ -21,8 +21,10 @@
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="ChargeState" Foreground="White" FontSize="17" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,20,6" />
                     <Button Content="New quote" Command="{Binding NewQuoteCommand}" FontWeight="SemiBold" />
-                    <Button Content="Sync now" Command="{Binding SyncNowCommand}" />
-                    <Button Content="Reload" Command="{Binding RefreshCommand}" />
+                    <Button Content="Sync now" Command="{Binding SyncNowCommand}"
+                            ToolTip="Get other people's changes from GitHub and share yours. This also happens on its own every few minutes and after every action." />
+                    <Button Content="Reload" Command="{Binding RefreshCommand}"
+                            ToolTip="Re-read the quotes on this computer without contacting GitHub, for example after editing a file outside the app." />
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -113,9 +115,12 @@
                                 Visibility="{Binding IsAcceptedSelected, Converter={StaticResource BoolToVisibility}}" />
                         <Button Content="Declined" Command="{Binding MarkDeclinedCommand}" />
                         <Button Content="Make a revision" Command="{Binding ReviseCommand}" />
-                        <Button Content="Draft PDF" Command="{Binding DraftPdfCommand}" />
-                        <Button Content="Open PDF" Command="{Binding OpenPdfCommand}" />
-                        <Button Content="Spreadsheet" Command="{Binding OpenSpreadsheetCommand}" />
+                        <Button Content="Draft PDF" Command="{Binding DraftPdfCommand}"
+                                ToolTip="Make a new draft PDF from the quote as it is now, and open it. Draft PDFs stay on this computer." ToolTipService.ShowOnDisabled="True" />
+                        <Button Content="Open PDF" Command="{Binding OpenPdfCommand}"
+                                ToolTip="Open the PDF in the quote folder: the one that was sent, or for a draft the latest draft PDF." ToolTipService.ShowOnDisabled="True" />
+                        <Button Content="Spreadsheet" Command="{Binding OpenSpreadsheetCommand}"
+                                ToolTip="Open the admin spreadsheet: the one written when the quote was sent, or for a draft the latest draft." ToolTipService.ShowOnDisabled="True" />
                         <Button Content="Folder" Command="{Binding OpenFolderCommand}" />
                         <Button Content="On GitHub" Command="{Binding OpenOnGitHubCommand}" />
                     </WrapPanel>

@@ -481,27 +481,27 @@ public sealed partial class MainViewModel : ObservableObject
         {
             Shell.Open(path);
         }
+
+        // The new draft PDF exists now; Open PDF can use it.
+        OpenPdfCommand.NotifyCanExecuteChanged();
     }
 
-    private bool CanDraftPdf() => !IsWorking && Selected is { IsHistorical: false, Error: null };
+    /// <summary>Drafts only: a sent quote's PDF is final and is opened with Open PDF.</summary>
+    private bool CanDraftPdf() => !IsWorking && Selected is { IsDraft: true, Error: null };
 
     [RelayCommand(CanExecute = nameof(HasSelection))]
     private void OpenFolder() => Shell.Open(Selected!.FolderPath(_workspace.RepositoryPath!));
 
+    /// <summary>The sent PDF, or for a draft the latest draft PDF.</summary>
     [RelayCommand(CanExecute = nameof(CanOpenPdf))]
-    private void OpenPdf() => Shell.Open(Path.Combine(Selected!.FolderPath(_workspace.RepositoryPath!), $"{Selected.QuoteNumber}.pdf"));
+    private void OpenPdf() => Shell.Open(Selected!.ExistingPdf(_workspace.RepositoryPath!)!);
 
-    private bool CanOpenPdf() => Selected?.Files?.Pdf == true;
+    private bool CanOpenPdf() => _workspace.RepositoryPath is not null && Selected?.ExistingPdf(_workspace.RepositoryPath) is not null;
 
     [RelayCommand(CanExecute = nameof(CanOpenSpreadsheet))]
-    private void OpenSpreadsheet()
-    {
-        var folder = Selected!.FolderPath(_workspace.RepositoryPath!);
-        var final = Path.Combine(folder, $"{Selected.QuoteNumber}.xlsx");
-        Shell.Open(File.Exists(final) ? final : Path.Combine(folder, $"{Selected.QuoteNumber}-draft.xlsx"));
-    }
+    private void OpenSpreadsheet() => Shell.Open(Selected!.ExistingSpreadsheet(_workspace.RepositoryPath!)!);
 
-    private bool CanOpenSpreadsheet() => Selected?.Files is { } f && (f.Xlsx || f.DraftXlsx);
+    private bool CanOpenSpreadsheet() => _workspace.RepositoryPath is not null && Selected?.ExistingSpreadsheet(_workspace.RepositoryPath) is not null;
 
     [RelayCommand(CanExecute = nameof(HasSelection))]
     private void OpenOnGitHub() =>
