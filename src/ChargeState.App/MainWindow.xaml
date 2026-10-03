@@ -1,0 +1,136 @@
+<Window x:Class="ChargeState.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="clr-namespace:ChargeState.App.Views"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        Title="ChargeState" Width="1500" Height="900" MinWidth="1000" MinHeight="600"
+        FontFamily="Segoe UI" FontSize="13" Foreground="{StaticResource TextBrush}"
+        Icon="pack://application:,,,/Assets/app.ico" WindowStartupLocation="CenterScreen">
+    <DockPanel>
+        <!-- Toolbar -->
+        <Border DockPanel.Dock="Top" Background="{StaticResource AccentBrush}" Padding="12,10,12,4">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="{Binding UpdateText}" Command="{Binding ApplyUpdateCommand}" Style="{StaticResource PrimaryButton}"
+                            Background="#067647" BorderBrush="#067647"
+                            Visibility="{Binding UpdateReady, Converter={StaticResource BoolToVisibility}}" />
+                    <TextBlock Text="{Binding UserText}" Foreground="#D9E2EC" VerticalAlignment="Center" Margin="8,0,12,6" />
+                    <Button Content="Setup" Command="{Binding OpenSetupCommand}" />
+                    <Button Content="Logs" Command="{Binding OpenLogsCommand}" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="ChargeState" Foreground="White" FontSize="17" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,20,6" />
+                    <Button Content="New quote" Command="{Binding NewQuoteCommand}" FontWeight="SemiBold" />
+                    <Button Content="Sync now" Command="{Binding SyncNowCommand}" />
+                    <Button Content="Reload" Command="{Binding RefreshCommand}" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Banner -->
+        <Border DockPanel.Dock="Top" Background="{StaticResource WarnLightBrush}" BorderBrush="#F79009" BorderThickness="0,0,0,1"
+                Padding="12,8" Visibility="{Binding Banner, Converter={StaticResource NullToVisibility}}">
+            <TextBlock Text="{Binding Banner}" TextWrapping="Wrap" />
+        </Border>
+
+        <!-- Status bar -->
+        <Border DockPanel.Dock="Bottom" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="12,5">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Content="{Binding CheckText}" Command="{Binding OpenCheckCommand}"
+                        Visibility="{Binding CheckText, Converter={StaticResource NullToVisibility}}" />
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{Binding SyncText}">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SyncProblem}" Value="True">
+                                        <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <TextBlock Text="{Binding WorkingText}" Margin="24,0,0,0" FontStyle="Italic" Foreground="{StaticResource MutedBrush}" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="470" MinWidth="320" />
+                <ColumnDefinition Width="5" />
+                <ColumnDefinition Width="*" MinWidth="380" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Quote list -->
+            <DockPanel Grid.Column="0" Margin="10,10,4,10">
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                    <ComboBox DockPanel.Dock="Right" Width="110" Margin="6,0,0,0" ItemsSource="{Binding Filters}" SelectedItem="{Binding Filter}" />
+                    <TextBox x:Name="SearchBox" Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}" ToolTip="Search by number, client, project, or any word in the quote" />
+                </DockPanel>
+                <ListView ItemsSource="{Binding Quotes}" SelectedItem="{Binding Selected}" BorderBrush="{StaticResource BorderBrush}">
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Header="Quote" Width="185" DisplayMemberBinding="{Binding QuoteNumber}" />
+                            <GridViewColumn Header="Client" Width="112" DisplayMemberBinding="{Binding Client}" />
+                            <GridViewColumn Header="Status" Width="68" DisplayMemberBinding="{Binding Status}" />
+                            <GridViewColumn Header="Total" Width="80">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Total, StringFormat={}{0:C0}, ConverterCulture=en-US}" TextAlignment="Right" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </DockPanel>
+
+            <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" Background="{StaticResource BorderBrush}" />
+
+            <!-- Selected quote -->
+            <DockPanel Grid.Column="2" Margin="10,10,10,10">
+                <StackPanel DockPanel.Dock="Top" Visibility="{Binding HasSelection, Converter={StaticResource BoolToVisibility}}">
+                    <TextBlock Text="{Binding SelectedHeadline}" Style="{StaticResource Heading}" />
+                    <TextBlock Text="{Binding SelectedDetail}" Style="{StaticResource Muted}" Margin="0,4,0,8" />
+                    <ItemsControl ItemsSource="{Binding SelectedIssues}" Margin="0,0,0,8">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="{StaticResource DangerLightBrush}" CornerRadius="3" Padding="8,4" Margin="0,0,0,4">
+                                    <TextBlock Text="{Binding}" TextWrapping="Wrap" Foreground="{StaticResource DangerBrush}" />
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <WrapPanel>
+                        <Button Content="Ask Claude to change it" Command="{Binding AskClaudeCommand}" Style="{StaticResource PrimaryButton}" />
+                        <Button Content="Send" Command="{Binding SendCommand}"
+                                Visibility="{Binding CanSendSelected, Converter={StaticResource BoolToVisibility}}" />
+                        <Button Content="PO received" Command="{Binding MarkAcceptedCommand}"
+                                Visibility="{Binding IsSentSelected, Converter={StaticResource BoolToVisibility}}" />
+                        <Button Content="Invoiced" Command="{Binding MarkInvoicedCommand}"
+                                Visibility="{Binding IsAcceptedSelected, Converter={StaticResource BoolToVisibility}}" />
+                        <Button Content="Declined" Command="{Binding MarkDeclinedCommand}" />
+                        <Button Content="Make a revision" Command="{Binding ReviseCommand}" />
+                        <Button Content="Draft PDF" Command="{Binding DraftPdfCommand}" />
+                        <Button Content="Open PDF" Command="{Binding OpenPdfCommand}" />
+                        <Button Content="Spreadsheet" Command="{Binding OpenSpreadsheetCommand}" />
+                        <Button Content="Folder" Command="{Binding OpenFolderCommand}" />
+                        <Button Content="On GitHub" Command="{Binding OpenOnGitHubCommand}" />
+                    </WrapPanel>
+                    <CheckBox Content="Show the calculation instead of the quote text" IsChecked="{Binding ShowCalculation}" Margin="0,2,0,8" />
+                </StackPanel>
+                <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                    <wv2:WebView2 x:Name="Preview" DefaultBackgroundColor="White" />
+                </Border>
+            </DockPanel>
+
+            <!-- Claude -->
+            <Border Grid.Column="3" Width="460" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1,0,0,0"
+                    Visibility="{Binding Chat.IsOpen, Converter={StaticResource BoolToVisibility}}">
+                <views:ChatPanel DataContext="{Binding Chat}" />
+            </Border>
+        </Grid>
+    </DockPanel>
+</Window>

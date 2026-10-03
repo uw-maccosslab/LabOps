@@ -1,4 +1,4 @@
-# Services Quotes app: guide for AI-assisted development
+# ChargeState app: guide for AI-assisted development
 
 A Windows desktop app (.NET 10, WPF) for MacCoss Lab Proteomics Services quotes. It keeps a clone
 of [services-quotes](https://github.com/uw-maccosslab/services-quotes) in sync with GitHub, lists
@@ -29,26 +29,26 @@ text alike.
 Directory.Build.props        single <Version> (CalVer YY.feature.patch), warnings as errors
 global.json                  .NET 10 SDK; opts dotnet test into Microsoft Testing Platform
 release-notes/               one file per version; becomes the GitHub Release body
-src/ServicesQuotes.Core/     all logic, no UI types                     net10.0
+src/ChargeState.Core/     all logic, no UI types                     net10.0
   Claude/                    stream-json session, parser, in-app MCP server (AppTools)
   Quotes/                    QuoteEngine (quote.py), RepoConfig, QuoteSearch
   Sync/                      GitClient, SyncService
   Setup/, GitHub/            first-run checks; the gh CLI
-src/ServicesQuotes.App/      WPF shell (MVVM with CommunityToolkit.Mvvm) net10.0-windows
-src/ServicesQuotes.Tests/    xUnit v3 + Shouldly                        net10.0-windows
+src/ChargeState.App/      WPF shell (MVVM with CommunityToolkit.Mvvm) net10.0-windows
+src/ChargeState.Tests/    xUnit v3 + Shouldly                        net10.0-windows
 ```
 
 ## Building, testing, running
 
 ```bash
-dotnet build ServicesQuotes.sln -c Debug
-dotnet test --project src/ServicesQuotes.Tests/ServicesQuotes.Tests.csproj
+dotnet build ChargeState.sln -c Debug
+dotnet test --project src/ChargeState.Tests/ChargeState.Tests.csproj
 ```
 
 - `SERVICES_QUOTES_REPO=<clone of services-quotes>` also runs the real quote engine in a test.
 - The sync tests run real git against a temporary bare repository.
-- `SERVICES_QUOTES_DATA=<folder>` runs the app with its settings and logs in that folder instead
-  of `%LOCALAPPDATA%\ServicesQuotes`. Put a `settings.json` with `RepositoryPath` pointing at a
+- `CHARGESTATE_DATA=<folder>` runs the app with its settings and logs in that folder instead
+  of `%LOCALAPPDATA%\ChargeState`. Put a `settings.json` with `RepositoryPath` pointing at a
   scratch clone there to try the app without touching your own setup. A scratch clone still
   pushes to GitHub; repoint its `origin` to a local bare repository for anything that saves.
 - Screenshot the running app with `PrintWindow(hwnd, hdc, PW_RENDERFULLCONTENT)`; a plain screen

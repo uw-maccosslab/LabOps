@@ -1,4 +1,4 @@
-# Services Quotes
+# ChargeState
 
 A Windows app for MacCoss Lab Proteomics Services quotes. It keeps the
 [services-quotes](https://github.com/uw-maccosslab/services-quotes) repository in sync with
@@ -6,8 +6,8 @@ GitHub, lists and searches every quote, and drafts and revises quotes with Claud
 
 ## Installing
 
-Download `MacCossLab.ServicesQuotes-win-Setup.exe` from the latest
-[release](https://github.com/uw-maccosslab/services-quotes-app/releases) and run it. No
+Download `MacCossLab.ChargeState-win-Setup.exe` from the latest
+[release](https://github.com/uw-maccosslab/ChargeState/releases) and run it. No
 administrator rights are needed. The first time it starts, Setup walks through:
 
 1. Installing Git (with Windows' own installer, winget).

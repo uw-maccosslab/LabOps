@@ -75,14 +75,14 @@ jobs:
           echo "notes=$NOTES" >> "$GITHUB_OUTPUT"
 
       - name: Test
-        run: dotnet test --project src/ServicesQuotes.Tests/ServicesQuotes.Tests.csproj -c Release
+        run: dotnet test --project src/ChargeState.Tests/ChargeState.Tests.csproj -c Release
 
       # Each download is checked against the checksum its project publishes, so a tampered or
       # truncated file fails the release instead of reaching users.
       - name: Download uv and gh
         shell: pwsh
         run: |
-          $tools = 'src/ServicesQuotes.App/tools'
+          $tools = 'src/ChargeState.App/tools'
           New-Item -ItemType Directory -Force $tools, "$env:RUNNER_TEMP/dl" | Out-Null
 
           $uvZip = "$env:RUNNER_TEMP/dl/uv.zip"
@@ -106,7 +106,7 @@ jobs:
 
       - name: Publish
         run: >
-          dotnet publish src/ServicesQuotes.App/ServicesQuotes.App.csproj
+          dotnet publish src/ChargeState.App/ChargeState.App.csproj
           -c Release -r win-x64 --self-contained true
           -p:PublishReadyToRun=true
           -o artifacts/publish
@@ -137,13 +137,13 @@ jobs:
             Write-Warning "No signing certificate configured; this build is unsigned and will trigger SmartScreen."
           }
           vpk pack `
-            --packId MacCossLab.ServicesQuotes `
+            --packId MacCossLab.ChargeState `
             --packVersion ${{ steps.meta.outputs.version }} `
             --packDir artifacts/publish `
-            --mainExe ServicesQuotes.exe `
-            --packTitle "Services Quotes" `
+            --mainExe ChargeState.exe `
+            --packTitle "ChargeState" `
             --packAuthors "MacCoss Lab, University of Washington" `
-            --icon src/ServicesQuotes.App/Assets/app.ico `
+            --icon src/ChargeState.App/Assets/app.ico `
             --releaseNotes ${{ steps.notes.outputs.notes }} `
             --channel ${{ steps.meta.outputs.channel }} `
             --outputDir artifacts/releases `
@@ -173,7 +173,7 @@ jobs:
             '--outputDir',   'artifacts/releases',
             '--channel',     '${{ steps.meta.outputs.channel }}',
             '--tag',         'v${{ steps.meta.outputs.version }}',
-            '--releaseName', 'Services Quotes ${{ steps.meta.outputs.version }}',
+            '--releaseName', 'ChargeState ${{ steps.meta.outputs.version }}',
             '--merge',
             '--publish'
           )

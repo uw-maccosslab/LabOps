@@ -1,11 +1,11 @@
 # Release notes
 
-One file per version of Services Quotes, following the PanoramaBridge process.
+One file per version of ChargeState, following the PanoramaBridge process.
 
 ## Versioning
 
-`YY.feature.patch`, the same CalVer as PanoramaBridge: `26.10.0` is the first release, `26.10.1`
-a bug-fix release, `26.11.0` the next feature release. The version lives only in
+`YY.feature.patch`, the same CalVer as PanoramaBridge: `26.1.0` is the first feature release of
+2026, `26.1.1` a bug-fix release of it, and `26.2.0` the next feature release. The version lives only in
 `Directory.Build.props`; `release.yml` refuses to publish when the tag disagrees with it.
 
 ## Files
@@ -14,7 +14,7 @@ a bug-fix release, `26.11.0` the next feature release. The version lives only in
 release-notes/
   README.md                  this file
   RELEASE_NOTES_next.md      working draft for the next release
-  RELEASE_NOTES_v26.10.0.md  one per published version
+  RELEASE_NOTES_v26.1.0.md  one per published version
 ```
 
 ## Writing them
@@ -24,7 +24,7 @@ message someone reads, a setting, or performance. Refactors, tests and documenta
 say so in the commit message instead.
 
 ```markdown
-# Services Quotes v{version}
+# ChargeState v{version}
 
 One-sentence summary.
 
@@ -50,7 +50,7 @@ people reading the Releases page.
 
 A tag containing `alpha`, `beta` or `rc` is marked a prerelease. A tag containing `beta` also goes
 to the `win-beta` update channel, for trying a release on one computer before everyone gets it
-(set `"BetaUpdates": true` in `%LOCALAPPDATA%\ServicesQuotes\settings.json` on that computer).
+(set `"BetaUpdates": true` in `%LOCALAPPDATA%\ChargeState\settings.json` on that computer).
 
 If a release changes what the app needs from the quotes repository, raise `min_app_version` in
 that repository's `config/app.yaml` after the release is out; older copies then tell their users
@@ -60,9 +60,9 @@ to update.
 
 | Asset | Purpose |
 |---|---|
-| `MacCossLab.ServicesQuotes-win-Setup.exe` | Per-user installer; no administrator rights needed |
-| `MacCossLab.ServicesQuotes-{version}-full.nupkg` | Full package, for first installs and as a delta base |
-| `MacCossLab.ServicesQuotes-{version}-delta.nupkg` | Difference from the previous release |
+| `MacCossLab.ChargeState-win-Setup.exe` | Per-user installer; no administrator rights needed |
+| `MacCossLab.ChargeState-{version}-full.nupkg` | Full package, for first installs and as a delta base |
+| `MacCossLab.ChargeState-{version}-delta.nupkg` | Difference from the previous release |
 | `releases.win.json` | The update feed installed copies read |
 | `SHA256SUMS.txt` | Checksums for every asset |
 

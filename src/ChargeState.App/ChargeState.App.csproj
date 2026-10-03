@@ -1,0 +1,68 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>ChargeState.App</RootNamespace>
+    <AssemblyName>ChargeState</AssemblyName>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+
+    <!--
+      Velopack requires VelopackApp.Build().Run() to be the first thing that executes, so the app
+      supplies its own Program.Main and App.xaml is demoted from ApplicationDefinition to Page
+      (below), as in PanoramaBridge. DISABLE_XAML_GENERATED_MAIN alone is not enough: the WPF
+      markup-compile project does not inherit DefineConstants.
+    -->
+    <StartupObject>ChargeState.App.Program</StartupObject>
+
+    <!-- Velopack packs a folder publish; single-file would defeat delta updates. -->
+    <PublishSingleFile>false</PublishSingleFile>
+    <PublishTrimmed>false</PublishTrimmed>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Velopack" Version="1.2.161" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
+    <PackageReference Include="Serilog" Version="4.4.0" />
+    <PackageReference Include="Serilog.Extensions.Logging" Version="10.0.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+    <PackageReference Include="Markdig" Version="1.4.0" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4258.31" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      UseWPF drops System.IO from the implicit usings because its Path collides with
+      System.Windows.Shapes.Path. This app draws no shapes, and works with files everywhere.
+    -->
+    <Using Include="System.IO" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ChargeState.Core\ChargeState.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ApplicationDefinition Remove="App.xaml" />
+    <Page Include="App.xaml" SubType="Designer" Generator="MSBuild:Compile" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\app.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Tools shipped inside the app. release.yml downloads pinned uv and gh builds into tools\
+      before packing; a development build finds them on the PATH instead (see ToolLocator).
+    -->
+    <None Include="tools\**\*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="ChargeState.Tests" />
+  </ItemGroup>
+
+</Project>
