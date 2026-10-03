@@ -1,0 +1,69 @@
+{
+  "ok": true,
+  "quotes": [
+    {
+      "quote_number": "MacCoss-2026-NWU-SC",
+      "folder": "quotes/Northwind-Park/2026/MacCoss-2026-NWU-SC",
+      "status": "draft",
+      "year": "2026",
+      "group": "Northwind-Park",
+      "institution": "Northwind University",
+      "pi": "Jordan Park, Ph.D.",
+      "prepared_for": "Jordan Park, Ph.D., Northwind University (cc: Sam Lee, Alex Kim)",
+      "title": "Bulk DIA Proteomics of Human Spinal Cord and Meninges",
+      "short": "Bulk DIA proteomics, human spinal cord and meninges",
+      "service": "tissue_bulk",
+      "issued": "2026-10-02",
+      "valid_until": "2026-12-31",
+      "sent": null,
+      "accepted": null,
+      "invoiced": null,
+      "declined": null,
+      "po": null,
+      "study_samples": 30,
+      "total": 12345.67,
+      "per_sample": 411.52,
+      "matches_tab": null,
+      "needs_review": false,
+      "issues": [],
+      "files": {
+        "pdf": false,
+        "xlsx": false,
+        "draft_pdf": false,
+        "draft_xlsx": true
+      }
+    },
+    {
+      "quote_number": "MacCoss-2025-UW-FENWICK-ABC",
+      "folder": "quotes/UW-Fenwick/2025/MacCoss-2025-UW-FENWICK-ABC",
+      "status": "historical",
+      "year": "2025",
+      "group": "UW-Fenwick",
+      "institution": "UW",
+      "pi": null,
+      "prepared_for": null,
+      "title": "ABC samples Mag-Net",
+      "short": "ABC samples Mag-Net",
+      "service": null,
+      "issued": null,
+      "valid_until": null,
+      "sent": null,
+      "accepted": null,
+      "invoiced": null,
+      "declined": null,
+      "po": null,
+      "study_samples": 200,
+      "total": 27000.00,
+      "per_sample": 135.00,
+      "matches_tab": true,
+      "needs_review": false,
+      "issues": [],
+      "files": {
+        "pdf": false,
+        "xlsx": false,
+        "draft_pdf": false,
+        "draft_xlsx": false
+      }
+    }
+  ]
+}

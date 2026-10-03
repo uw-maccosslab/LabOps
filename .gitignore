@@ -1,0 +1,10 @@
+bin/
+obj/
+.vs/
+*.user
+*.suo
+artifacts/
+TestResults/
+*.DotSettings.user
+# Tools downloaded by release.yml and shipped inside the app; never committed.
+src/ServicesQuotes.App/tools/
