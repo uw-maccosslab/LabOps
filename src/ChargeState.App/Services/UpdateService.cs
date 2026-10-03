@@ -44,12 +44,34 @@ public sealed class UpdateService
         _log = log;
     }
 
+    /// <summary>How often a running copy looks for a new release, as in PanoramaBridge.</summary>
+    public static readonly TimeSpan CheckInterval = TimeSpan.FromHours(4);
+
     public event Action<UpdateStatus>? StatusChanged;
 
     public UpdateStatus Status { get; private set; } = new(UpdateStage.Idle);
 
+    /// <summary>When the last check started, or null before the first.</summary>
+    public DateTimeOffset? LastChecked { get; private set; }
+
+    /// <summary>
+    /// Whether a periodic check should run now. Never while one is running or downloading, never
+    /// once an update is staged (it waits for the user's restart, and checking again would only
+    /// download it a second time), and never for a copy Velopack does not manage, such as a
+    /// development build.
+    /// </summary>
+    public static bool IsCheckDue(UpdateStatus status, DateTimeOffset? lastChecked, DateTimeOffset now, TimeSpan interval) =>
+        status.Stage is not (UpdateStage.Checking or UpdateStage.Downloading or UpdateStage.ReadyToApply or UpdateStage.NotInstalled)
+        && (lastChecked is null || now - lastChecked.Value >= interval);
+
     public async Task<UpdateStatus> CheckAsync(CancellationToken cancellationToken = default)
     {
+        if (Status.Stage == UpdateStage.ReadyToApply)
+        {
+            return Status;
+        }
+
+        LastChecked = DateTimeOffset.Now;
         try
         {
             var token = await _gh.GetTokenAsync(cancellationToken).ConfigureAwait(false);

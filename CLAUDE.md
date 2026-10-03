@@ -47,6 +47,19 @@ dotnet test --project src/ChargeState.Tests/ChargeState.Tests.csproj
 
 - `SERVICES_QUOTES_REPO=<clone of services-quotes>` also runs the real quote engine in a test.
 - The sync tests run real git against a temporary bare repository.
+- CI (`ci.yml`) builds and runs every test on Windows for each push; `release.yml` runs them again
+  before packaging, so a failing test stops a release. The real-engine test runs in CI only when a
+  read-only deploy key for the quotes repository is stored as the `QUOTES_REPO_DEPLOY_KEY` secret.
+  To set it up once (the private key goes straight into the secret and is then deleted):
+
+  ```bash
+  ssh-keygen -t ed25519 -N "" -C "ChargeState CI (read-only)" -f chargestate-ci
+  gh repo deploy-key add chargestate-ci.pub --repo uw-maccosslab/services-quotes --title "ChargeState CI (read-only)"
+  gh secret set QUOTES_REPO_DEPLOY_KEY --repo uw-maccosslab/ChargeState < chargestate-ci
+  rm chargestate-ci chargestate-ci.pub
+  ```
+- The engine's side of the app's JSON contract is tested in the quotes repository
+  (`tests/test_contract.py`); change the two together.
 - `CHARGESTATE_DATA=<folder>` runs the app with its settings and logs in that folder instead
   of `%LOCALAPPDATA%\ChargeState`. Put a `settings.json` with `RepositoryPath` pointing at a
   scratch clone there to try the app without touching your own setup. A scratch clone still
@@ -78,10 +91,20 @@ update changes the stream format.
 
 ## Releasing
 
-See `release-notes/README.md`. In short: finalize the notes, set `<Version>`, push, then push tag
-`v{version}`. `release.yml` downloads pinned uv and gh (checked against their published SHA-256),
-packs with Velopack, and publishes the Release the app's update check reads. The update check
-authenticates with the user's gh token because this repository is not public.
+**`release-notes/README.md` is the canonical convention**, the same one Skyline-PRISM uses. Add the
+release-note entry to `release-notes/RELEASE_NOTES_next.md` **in the same commit** as any change a
+user can notice; the draft is seeded with `## New Features / ## Bug Fixes / ## Performance /
+## Breaking Changes`. Past tense, lead with user impact, include numbers, name buttons and
+settings as the user sees them.
+
+To release: rename the draft to `RELEASE_NOTES_v{version}.md` and **delete its empty headings** (the
+file is published verbatim as the Release description), seed a fresh draft, set `<Version>`, push,
+let CI go green, then push tag `v{version}`. `release.yml` runs the tests, downloads pinned uv and gh
+(checked against their published SHA-256), packs with Velopack, and publishes the Release the app's
+update check reads. The update check authenticates with the user's gh token because this
+repository is not public. Installed copies check at startup and every four hours.
+
+Engine changes have their own notes and `engine-v{version}` tags in the quotes repository.
 
 ## House style (from PanoramaBridge)
 

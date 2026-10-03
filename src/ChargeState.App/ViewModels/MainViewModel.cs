@@ -198,9 +198,26 @@ public sealed partial class MainViewModel : ObservableObject
     private DispatcherTimer CreateTimer()
     {
         var timer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(Math.Max(1, _workspace.Settings.FetchIntervalMinutes)) };
-        timer.Tick += async (_, _) => await BackgroundSyncAsync().ConfigureAwait(true);
+        timer.Tick += async (_, _) =>
+        {
+            CheckForUpdatesIfDue();
+            await BackgroundSyncAsync().ConfigureAwait(true);
+        };
         timer.Start();
         return timer;
+    }
+
+    /// <summary>
+    /// Every few hours, look for a new release. Riding on the sync timer costs one comparison per
+    /// tick; the download runs in the background, and installing still waits for the user.
+    /// Checked even while the user is busy, because nothing it does interrupts them.
+    /// </summary>
+    private void CheckForUpdatesIfDue()
+    {
+        if (UpdateService.IsCheckDue(_updates.Status, _updates.LastChecked, DateTimeOffset.Now, UpdateService.CheckInterval))
+        {
+            _ = _updates.CheckAsync();
+        }
     }
 
     /// <summary>Brings in others' work quietly, unless the user is in the middle of something.</summary>
