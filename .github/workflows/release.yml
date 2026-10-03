@@ -88,7 +88,10 @@ jobs:
           $uvZip = "$env:RUNNER_TEMP/dl/uv.zip"
           $uvBase = "https://github.com/astral-sh/uv/releases/download/$env:UV_VERSION/uv-x86_64-pc-windows-msvc.zip"
           Invoke-WebRequest $uvBase -OutFile $uvZip
-          $uvExpected = ((Invoke-WebRequest "$uvBase.sha256").Content.ToString().Trim() -split '\s+')[0]
+          # Checksum files are saved and read as text: GitHub serves them as binary, so
+          # Invoke-WebRequest's .Content would be a byte array, not the hash.
+          Invoke-WebRequest "$uvBase.sha256" -OutFile "$env:RUNNER_TEMP/dl/uv.sha256"
+          $uvExpected = ((Get-Content "$env:RUNNER_TEMP/dl/uv.sha256" -Raw).Trim() -split '\s+')[0]
           if ((Get-FileHash $uvZip -Algorithm SHA256).Hash -ne $uvExpected.ToUpper()) { throw "uv checksum mismatch" }
           Expand-Archive $uvZip "$env:RUNNER_TEMP/dl/uv" -Force
           Copy-Item (Get-ChildItem "$env:RUNNER_TEMP/dl/uv" -Recurse -Filter uv.exe | Select-Object -First 1).FullName $tools
@@ -96,7 +99,8 @@ jobs:
           $ghName = "gh_$($env:GH_VERSION)_windows_amd64.zip"
           $ghZip = "$env:RUNNER_TEMP/dl/$ghName"
           Invoke-WebRequest "https://github.com/cli/cli/releases/download/v$env:GH_VERSION/$ghName" -OutFile $ghZip
-          $sums = (Invoke-WebRequest "https://github.com/cli/cli/releases/download/v$env:GH_VERSION/gh_$($env:GH_VERSION)_checksums.txt").Content.ToString()
+          Invoke-WebRequest "https://github.com/cli/cli/releases/download/v$env:GH_VERSION/gh_$($env:GH_VERSION)_checksums.txt" -OutFile "$env:RUNNER_TEMP/dl/gh-sums.txt"
+          $sums = Get-Content "$env:RUNNER_TEMP/dl/gh-sums.txt" -Raw
           $ghExpected = ($sums -split "`n" | Where-Object { $_ -match [regex]::Escape($ghName) } | ForEach-Object { ($_ -split '\s+')[0] })
           if (-not $ghExpected -or (Get-FileHash $ghZip -Algorithm SHA256).Hash -ne $ghExpected.ToUpper()) { throw "gh checksum mismatch" }
           Expand-Archive $ghZip "$env:RUNNER_TEMP/dl/gh" -Force
