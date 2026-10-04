@@ -163,6 +163,19 @@ public sealed class ProjectsAreaTests
         ProjectsViewModel.PanoramaUrl(folder).ShouldBe(url);
 
     [Fact]
+    public void Only_links_recorded_on_the_project_or_experiment_can_be_removed_there()
+    {
+        var raw = new LinkItem("Raw data on Panorama: /MacCoss/maccoss/2026-Marten", "https://panoramaweb.org/x",
+            "2026-10-Marten-DIA", "panorama", "/MacCoss/maccoss/2026-Marten", "projects/ClearwaterZoo-Cole/Marten-Plasma");
+        raw.CanRemove.ShouldBeTrue();
+        new LinkItem("ELN notebook ELN-1", "https://panoramaweb.org/n").CanRemove.ShouldBeFalse();  // the lab's
+        new LinkItem("Quote MacCoss-2026-CWZG-MARTEN", null).CanRemove.ShouldBeFalse();
+        ProjectsViewModel.PanoramaKindLabel("raw").ShouldBe("Raw data");
+        ProjectsViewModel.PanoramaKindLabel("results").ShouldBe("Results");
+        ProjectsViewModel.PanoramaKindLabel(null).ShouldBe("Folder");
+    }
+
+    [Fact]
     public void New_project_prompt_carries_the_form_and_marks_email_as_data()
     {
         var form = new NewProjectViewModel

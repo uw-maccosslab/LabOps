@@ -90,6 +90,9 @@ public sealed class TimelineSection
     /// <summary>The project or experiment, by name, which the engine's commands take.</summary>
     public string Item { get; }
 
+    /// <summary>An experiment's timeline (rather than the samples'), which can have Panorama folders.</summary>
+    public bool IsExperiment { get; init; }
+
     /// <summary>A person's name from their GitHub login.</summary>
     public Func<string, string> NameOf { get; }
 
@@ -170,9 +173,16 @@ public sealed class StageRowViewModel(TimelineSection section, StageEntry entry,
 }
 
 /// <summary>A link shown for a project or experiment; with no URL it is shown as text only.</summary>
-public sealed record LinkItem(string Label, string? Url)
+/// <param name="Item">The project or experiment it is recorded on, when it can be removed there.</param>
+/// <param name="What">panorama or notebook, for project.py unlink; null for links kept elsewhere.</param>
+/// <param name="Value">What unlink takes: the folder, or the notebook's ID or link.</param>
+/// <param name="Folder">The folder to save after removing it.</param>
+public sealed record LinkItem(string Label, string? Url, string? Item = null, string? What = null, string? Value = null, string? Folder = null)
 {
     public bool HasUrl => Url is not null;
 
     public bool IsText => Url is null;
+
+    /// <summary>Panorama folders and notebooks recorded on this project or experiment.</summary>
+    public bool CanRemove => Item is not null && What is not null && Value is not null;
 }

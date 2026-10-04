@@ -198,7 +198,7 @@ public sealed partial class ProjectsViewModel : ObservableObject
 
         var p = row.Project;
         var lab = row.Lab;
-        foreach (var link in NotebookLinks(p.Notebooks.Concat(lab.Notebooks)))
+        foreach (var link in NotebookLinks(p.Notebooks, p.Project, p.Folder).Concat(NotebookLinks(lab.Notebooks)))
         {
             Links.Add(link);
         }
@@ -223,9 +223,9 @@ public sealed partial class ProjectsViewModel : ObservableObject
                     e.FundingInherited ? null : $"Funding: {e.Funding.Text}",
                     e.LabContact is null || e.LabContact == p.LabContact ? null : $"Lab contact: {e.LabContact}"),
             }.Where(s => !string.IsNullOrWhiteSpace(s));
-            var links = NotebookLinks(e.Notebooks).ToList();
-            links.AddRange(e.Panorama.Where(f => !string.IsNullOrWhiteSpace(f.Folder)).Select(f =>
-                new LinkItem($"Panorama{(f.Kind is null ? "" : $" ({f.Kind})")}: {f.Folder}", PanoramaUrl(f.Folder!))));
+            var links = NotebookLinks(e.Notebooks, e.Experiment, p.Folder).ToList();
+            links.AddRange(e.Panorama.Where(f => !string.IsNullOrWhiteSpace(f.Folder)).Select(f => new LinkItem(
+                $"{PanoramaKindLabel(f.Kind)} on Panorama: {f.Folder}", PanoramaUrl(f.Folder!), e.Experiment, "panorama", f.Folder, p.Folder)));
             if ((e.Analysis.Repo ?? e.Analysis.Folder) is not null
                 && AnalysisLink(e.Analysis, p.Analysis.Repo ?? lab.AnalysisRepo) is { } analysisLink)
             {
@@ -239,7 +239,7 @@ public sealed partial class ProjectsViewModel : ObservableObject
 
             var status = e.Status is null or "active" ? "" : $"  ({e.Status})";
             Sections.Add(new TimelineSection(e, p.Folder, $"{ProjectSummary.ShortName(e)}: {e.Experiment}{status}",
-                string.Join("\n", detail), links, e.Issues.Select(i => i.ToString()), NameOf));
+                string.Join("\n", detail), links, e.Issues.Select(i => i.ToString()), NameOf) { IsExperiment = true });
         }
 
         OnPropertyChanged(nameof(HasLinks));
@@ -249,8 +249,17 @@ public sealed partial class ProjectsViewModel : ObservableObject
     private string NameOf(string login) =>
         _people.FirstOrDefault(p => string.Equals(p.Login, login, StringComparison.OrdinalIgnoreCase))?.DisplayName ?? login;
 
-    private static IEnumerable<LinkItem> NotebookLinks(IEnumerable<Notebook> notebooks) =>
-        notebooks.Select(n => new LinkItem($"ELN notebook {n.Id ?? n.Url}", n.Url ?? NotebooksUrl));
+    /// <summary>Notebooks as links; with an item and folder, ones that can be removed there.</summary>
+    private static IEnumerable<LinkItem> NotebookLinks(IEnumerable<Notebook> notebooks, string? item = null, string? folder = null) =>
+        notebooks.Select(n => new LinkItem($"ELN notebook {n.Id ?? n.Url}", n.Url ?? NotebooksUrl,
+            item, item is null ? null : "notebook", n.Id ?? n.Url, folder));
+
+    internal static string PanoramaKindLabel(string? kind) => kind switch
+    {
+        "raw" => "Raw data",
+        "results" => "Results",
+        _ => "Folder",
+    };
 
     /// <summary>The analysis folder on GitHub; a folder alone is in the lab's (or project's) repository.</summary>
     private static LinkItem? AnalysisLink(AnalysisLocation analysis, string? fallbackRepo)
@@ -402,6 +411,63 @@ public sealed partial class ProjectsViewModel : ObservableObject
         }).ConfigureAwait(true);
         await ReloadAsync(project).ConfigureAwait(true);
     }
+
+    /// <summary>Records a Panorama folder (raw data or results) or a notebook on an experiment.</summary>
+    [RelayCommand(CanExecute = nameof(CanAddStep))]
+    private Task AddLinkAsync(TimelineSection section) => AddLinkToAsync(section.Item, section.Folder, panorama: section.IsExperiment);
+
+    /// <summary>Records a notebook on the project (its Panorama folders are on its experiments).</summary>
+    [RelayCommand(CanExecute = nameof(CanEditSelected))]
+    private Task AddProjectLinkAsync() => AddLinkToAsync(Selected!.Name, Selected.Project.Folder, panorama: false);
+
+    private async Task AddLinkToAsync(string item, string folder, bool panorama)
+    {
+        var project = Selected!.Name;
+        var answer = AddLinkWindow.Ask(Application.Current.MainWindow, $"Add a link: {item}", panorama);
+        if (answer is null)
+        {
+            return;
+        }
+
+        var what = answer.PanoramaKind is { } kind ? $"{PanoramaKindLabel(kind).ToLowerInvariant()} on Panorama" : "ELN notebook";
+        await _work.RunAsync("Adding the link...", async () =>
+        {
+            await PullFirstAsync().ConfigureAwait(true);
+            if (answer.PanoramaKind is { } k)
+            {
+                await _engine.LinkPanoramaAsync(item, answer.Address!, k).ConfigureAwait(true);
+            }
+            else
+            {
+                await _engine.LinkNotebookAsync(item, answer.Address, answer.NotebookId).ConfigureAwait(true);
+            }
+
+            await SaveAsync([folder], $"{item}: {what}").ConfigureAwait(true);
+        }).ConfigureAwait(true);
+        await ReloadAsync(project).ConfigureAwait(true);
+    }
+
+    /// <summary>Removes a Panorama folder or a notebook recorded by mistake or moved.</summary>
+    [RelayCommand(CanExecute = nameof(CanRemoveLink))]
+    private async Task RemoveLinkAsync(LinkItem link)
+    {
+        var project = Selected!.Name;
+        if (MessageBox.Show($"Remove {link.Label} from {link.Item}? Nothing changes on Panorama.", AppInfo.ProductName,
+                MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK)
+        {
+            return;
+        }
+
+        await _work.RunAsync("Removing the link...", async () =>
+        {
+            await PullFirstAsync().ConfigureAwait(true);
+            await _engine.UnlinkAsync(link.Item!, link.What!, link.Value!).ConfigureAwait(true);
+            await SaveAsync([link.Folder!], $"{link.Item}: removed {link.Value}").ConfigureAwait(true);
+        }).ConfigureAwait(true);
+        await ReloadAsync(project).ConfigureAwait(true);
+    }
+
+    private bool CanRemoveLink(LinkItem? link) => CanEditSelected() && link is { CanRemove: true, Folder: not null };
 
     /// <summary>Adds a step to the samples' or an experiment's timeline, for work it does not show yet.</summary>
     [RelayCommand(CanExecute = nameof(CanAddStep))]
@@ -585,7 +651,8 @@ public sealed partial class ProjectsViewModel : ObservableObject
         foreach (var command in new IRelayCommand[]
                  {
                      NewProjectCommand, NewExperimentCommand, AskClaudeCommand, StartStageCommand, FinishStageCommand,
-                     SkipStageCommand, ReopenStageCommand, AssignCommand, AddStepCommand, RemoveStepCommand, OrganizeMetadataCommand,
+                     SkipStageCommand, ReopenStageCommand, AssignCommand, AddStepCommand, RemoveStepCommand,
+                     AddLinkCommand, AddProjectLinkCommand, RemoveLinkCommand, OrganizeMetadataCommand,
                      OpenInOctopusCommand, ImportLayoutCommand, OpenFolderCommand, OpenOnGitHubCommand,
                  })
         {

@@ -109,6 +109,41 @@ public sealed class ProjectEngine : IPreCommitCheck
         using var doc = await RunAsync(args, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>Records an experiment's Panorama folder; any Panorama address is kept as the folder path.</summary>
+    /// <param name="experiment">The experiment, by name.</param>
+    /// <param name="folder">The folder path, or any address for it copied from the browser.</param>
+    /// <param name="kind">raw (the raw data) or results (results shared there).</param>
+    public async Task LinkPanoramaAsync(string experiment, string folder, string kind, CancellationToken cancellationToken = default)
+    {
+        using var doc = await RunAsync(["link", experiment, "panorama", folder.Trim(), "--kind", kind], cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>Records a project's or an experiment's ELN notebook: its link, its ID, or both.</summary>
+    public async Task LinkNotebookAsync(string item, string? url, string? id, CancellationToken cancellationToken = default)
+    {
+        var args = new List<string> { "link", item, "notebook" };
+        if (!string.IsNullOrWhiteSpace(url))
+        {
+            args.Add(url.Trim());
+        }
+
+        if (!string.IsNullOrWhiteSpace(id))
+        {
+            args.AddRange(["--id", id.Trim()]);
+        }
+
+        using var doc = await RunAsync(args, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Removes a Panorama folder or a notebook.</summary>
+    /// <param name="what">panorama or notebook.</param>
+    /// <param name="value">The folder, or the notebook's ID or link.</param>
+    public async Task UnlinkAsync(string item, string what, string value, CancellationToken cancellationToken = default)
+    {
+        using var doc = await RunAsync(["unlink", item, what, value], cancellationToken).ConfigureAwait(false);
+    }
+
     /// <summary>Removes a step that has not started.</summary>
     public async Task RemoveStepAsync(string item, string stage, CancellationToken cancellationToken = default)
     {

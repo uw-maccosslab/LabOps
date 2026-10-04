@@ -5,13 +5,20 @@
     <UserControl.Resources>
         <!-- A link (a button) or, without a URL, plain text -->
         <DataTemplate x:Key="LinkTemplate">
-            <Grid Margin="0,0,0,3">
-                <Button Style="{StaticResource LinkButton}" Content="{Binding Label}" CommandParameter="{Binding}"
-                        Command="{Binding DataContext.OpenLinkCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                        HorizontalAlignment="Left"
-                        Visibility="{Binding HasUrl, Converter={StaticResource BoolToVisibility}}" />
-                <TextBlock Text="{Binding Label}" Visibility="{Binding IsText, Converter={StaticResource BoolToVisibility}}" />
-            </Grid>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,3">
+                <Grid>
+                    <Button Style="{StaticResource LinkButton}" Content="{Binding Label}" CommandParameter="{Binding}"
+                            Command="{Binding DataContext.OpenLinkCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            HorizontalAlignment="Left"
+                            Visibility="{Binding HasUrl, Converter={StaticResource BoolToVisibility}}" />
+                    <TextBlock Text="{Binding Label}" Visibility="{Binding IsText, Converter={StaticResource BoolToVisibility}}" />
+                </Grid>
+                <Button Style="{StaticResource LinkButton}" Content="Remove" CommandParameter="{Binding}" Margin="12,0,0,0"
+                        Foreground="{StaticResource MutedBrush}" FontSize="11" VerticalAlignment="Center"
+                        Command="{Binding DataContext.RemoveLinkCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                        Visibility="{Binding CanRemove, Converter={StaticResource BoolToVisibility}}"
+                        ToolTip="Stop listing this here. Nothing changes on Panorama." />
+            </StackPanel>
         </DataTemplate>
 
         <DataTemplate x:Key="IssueTemplate">
@@ -152,6 +159,8 @@
                                     ToolTip="Write the sample table for Octopus and open Octopus, to lay the samples out on plates. Needs the organized sample table." ToolTipService.ShowOnDisabled="True" />
                             <Button Content="Import Octopus layout" Command="{Binding ImportLayoutCommand}"
                                     ToolTip="Keep the layout file exported from Octopus with the project, and mark the plate layout done." ToolTipService.ShowOnDisabled="True" />
+                            <Button Content="Add link" Command="{Binding AddProjectLinkCommand}"
+                                    ToolTip="Record the project's ELN notebook on Panorama. Panorama folders go on each experiment." />
                             <Button Content="Folder" Command="{Binding OpenFolderCommand}" />
                             <Button Content="On GitHub" Command="{Binding OpenOnGitHubCommand}" />
                         </WrapPanel>
@@ -171,6 +180,10 @@
                                                 <Button DockPanel.Dock="Right" Content="Add a step" CommandParameter="{Binding}" Margin="0"
                                                         Command="{Binding DataContext.AddStepCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                         ToolTip="For work this timeline does not show yet: a second shipment, unblinded metadata, assay development, another analysis." />
+                                                <Button DockPanel.Dock="Right" Content="Add link" CommandParameter="{Binding}"
+                                                        Command="{Binding DataContext.AddLinkCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        Visibility="{Binding IsExperiment, Converter={StaticResource BoolToVisibility}}"
+                                                        ToolTip="Record where this experiment's raw data and results are on Panorama, or its ELN notebook." />
                                                 <TextBlock Text="{Binding Heading}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" TextWrapping="Wrap" />
                                             </DockPanel>
                                         </Border>
