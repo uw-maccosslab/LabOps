@@ -353,9 +353,9 @@ public sealed partial class ProjectsViewModel : ObservableObject
             var found = string.Join("\n- ", scan.Findings.Where(f => f.IsError).Select(f => f.ToString()));
             if (MessageBox.Show(
                     $"The check found information in {Path.GetFileName(target)} that could identify people:\n\n- {found}\n\n"
-                    + "Claude will not read the file until this is fixed. Remove those columns (or keep only the year of a date, "
-                    + "or write ages of 90 and over as 90+), save, and choose Organize metadata again. If a finding is wrong, "
-                    + "for example a column called Owner that holds a lab name, rename the column.\n\n"
+                    + "Claude will not read the file until this is fixed. Remove those columns, or replace them with a study "
+                    + "code, save, and choose Organize metadata again. If a finding is wrong, for example a column called "
+                    + "Owner that holds a lab name, rename the column.\n\n"
                     + "Open the copy in the experiment's inbox folder now? (That folder is never shared.)",
                     AppInfo.ProductName, MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
             {

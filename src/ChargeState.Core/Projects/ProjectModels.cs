@@ -193,7 +193,7 @@ public sealed record ScanFinding(string Level, string File, string? Column, stri
 }
 
 /// <summary>What <c>project.py scan</c> reports about a collaborator's file.</summary>
-public sealed record ScanResult(bool HumanRules, IReadOnlyList<ScanSheet> Sheets, IReadOnlyList<ScanFinding> Findings, int Errors)
+public sealed record ScanResult(IReadOnlyList<ScanSheet> Sheets, IReadOnlyList<ScanFinding> Findings, int Errors)
 {
     public IEnumerable<ScanFinding> Warnings => Findings.Where(f => !f.IsError);
 }

@@ -73,10 +73,10 @@ public sealed class ProjectEngineTests
         using var doc = ProjectEngine.Parse(new ProcessResult(0, json, ""));
         var scan = doc.RootElement.Deserialize<ScanResult>(EngineJson.Options)!;
 
-        scan.HumanRules.ShouldBeTrue();
-        scan.Errors.ShouldBe(2);
+        scan.Errors.ShouldBe(1);
         scan.Sheets.Single().Columns.ShouldBe(["Sample_ID", "Patient Name", "Collection date", "Notes"]);
-        scan.Findings.Where(f => f.IsError).Select(f => f.Column).ShouldBe(["Patient Name", "Collection date"]);
+        // Collection dates are kept (lab-projects engine 26.2.0); a name is still an error.
+        scan.Findings.Where(f => f.IsError).Select(f => f.Column).ShouldBe(["Patient Name"]);
         scan.Warnings.Single().Column.ShouldBe("Notes");
         json.ShouldNotContain("Pat Doe");
     }
