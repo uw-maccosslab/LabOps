@@ -111,7 +111,8 @@ public sealed partial class MainViewModel : ObservableObject
         nameof(CanSendSelected), nameof(IsSentSelected), nameof(IsAcceptedSelected))]
     [NotifyCanExecuteChangedFor(nameof(AskClaudeCommand), nameof(SendCommand), nameof(MarkAcceptedCommand),
         nameof(MarkInvoicedCommand), nameof(MarkDeclinedCommand), nameof(ReviseCommand), nameof(DraftPdfCommand),
-        nameof(OpenFolderCommand), nameof(OpenPdfCommand), nameof(OpenSpreadsheetCommand), nameof(OpenOnGitHubCommand))]
+        nameof(OpenFolderCommand), nameof(OpenPdfCommand), nameof(OpenSpreadsheetCommand), nameof(OpenOnGitHubCommand),
+        nameof(StatementOfWorkCommand))]
     public partial QuoteSummary? Selected { get; set; }
 
     [ObservableProperty] public partial bool ShowCalculation { get; set; }
@@ -139,7 +140,7 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(NewQuoteCommand), nameof(AskClaudeCommand), nameof(SendCommand),
         nameof(MarkAcceptedCommand), nameof(MarkInvoicedCommand), nameof(MarkDeclinedCommand), nameof(ReviseCommand),
-        nameof(DraftPdfCommand), nameof(SyncNowCommand))]
+        nameof(DraftPdfCommand), nameof(SyncNowCommand), nameof(StatementOfWorkCommand))]
     public partial bool IsWorking { get; set; }
 
     [ObservableProperty] public partial string? WorkingText { get; set; }
@@ -607,6 +608,69 @@ public sealed partial class MainViewModel : ObservableObject
 
     /// <summary>Drafts only: a sent quote's PDF is final and is opened with Open PDF.</summary>
     private bool CanDraftPdf() => !IsWorking && Selected is { IsDraft: true, Error: null };
+
+    /// <summary>
+    /// Makes the statement of work (Exhibit A) priced at the sample counts the user confirms,
+    /// saves and shares it with the quote, and opens it.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanMakeStatementOfWork))]
+    private async Task StatementOfWorkAsync()
+    {
+        var quote = Selected!;
+        var replaces = QuotesPath is not null && quote.ExistingSow(QuotesPath) is not null
+            ? " It replaces the statement of work already in the quote folder." : "";
+        var answer = InputWindow.Ask(Application.Current.MainWindow, "Statement of work",
+            $"Price {quote.QuoteNumber} at these sample counts (up to six, separated by commas). The quote's own count, "
+            + $"{quote.StudySamples:0.##}, prices exactly as the quote; other counts keep its scope.{replaces}",
+            string.Join(", ", quote.DefaultSowCounts()), "Make it");
+        if (answer is null)
+        {
+            return;
+        }
+
+        var counts = ParseCounts(answer);
+        if (counts is null)
+        {
+            MessageBox.Show("Give whole numbers of samples separated by commas, for example 20, 40, 60, 80.",
+                AppInfo.ProductName, MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        string? path = null;
+        await _work.RunAsync($"Making the statement of work for {quote.QuoteNumber}...", async () =>
+        {
+            await PullFirstAsync().ConfigureAwait(true);
+            path = await _engine.StatementOfWorkAsync(quote.QuoteNumber, counts).ConfigureAwait(true);
+            await SaveAsync([quote.Folder], $"{quote.QuoteNumber}: statement of work").ConfigureAwait(true);
+        }).ConfigureAwait(true);
+
+        await ReloadQuotesAsync(quote.QuoteNumber).ConfigureAwait(true);
+        if (path is not null)
+        {
+            Shell.Open(path);
+        }
+    }
+
+    /// <summary>Not for historical estimates, which are records rather than quotes.</summary>
+    private bool CanMakeStatementOfWork() => CanEdit() && Selected is { IsHistorical: false, HasErrors: false };
+
+    /// <summary>"20, 40 60" as [20, 40, 60]; null when anything is not a positive whole number.</summary>
+    internal static IReadOnlyList<int>? ParseCounts(string text)
+    {
+        var parts = text.Split([',', ' ', ';', '\t'], StringSplitOptions.RemoveEmptyEntries);
+        var counts = new List<int>();
+        foreach (var part in parts)
+        {
+            if (!int.TryParse(part, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var n) || n < 1)
+            {
+                return null;
+            }
+
+            counts.Add(n);
+        }
+
+        return counts.Count == 0 ? null : [.. counts.Distinct().Order()];
+    }
 
     [RelayCommand(CanExecute = nameof(HasSelection))]
     private void OpenFolder() => Shell.Open(Selected!.FolderPath(QuotesPath!));

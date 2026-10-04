@@ -151,6 +151,8 @@
                                     ToolTip="Open the PDF in the quote folder: the one that was sent, or for a draft the latest draft PDF." ToolTipService.ShowOnDisabled="True" />
                             <Button Content="Spreadsheet" Command="{Binding OpenSpreadsheetCommand}"
                                     ToolTip="Open the admin spreadsheet: the one written when the quote was sent, or for a draft the latest draft." ToolTipService.ShowOnDisabled="True" />
+                            <Button Content="Statement of work" Command="{Binding StatementOfWorkCommand}"
+                                    ToolTip="Make Exhibit A of the Services Agreement from this quote, priced at the sample counts you choose, and open it in Word. It is saved with the quote." ToolTipService.ShowOnDisabled="True" />
                             <Button Content="Folder" Command="{Binding OpenFolderCommand}" />
                             <Button Content="On GitHub" Command="{Binding OpenOnGitHubCommand}" />
                         </WrapPanel>

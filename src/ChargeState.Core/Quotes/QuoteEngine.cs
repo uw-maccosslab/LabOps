@@ -100,6 +100,17 @@ public sealed class QuoteEngine
         return ToLocalPath(doc.RootElement.GetProperty("files")[0].GetString()!);
     }
 
+    /// <summary>
+    /// Writes the statement of work (Exhibit A) priced at <paramref name="sampleCounts"/>, which
+    /// quote.py also saves in quote.yaml, and returns the document's full path.
+    /// </summary>
+    public async Task<string> StatementOfWorkAsync(string quote, IEnumerable<int> sampleCounts, CancellationToken cancellationToken = default)
+    {
+        var counts = string.Join(',', sampleCounts.Select(n => n.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+        using var doc = await RunAsync(["sow", quote, "--samples", counts], cancellationToken).ConfigureAwait(false);
+        return ToLocalPath(doc.RootElement.GetProperty("file").GetString()!);
+    }
+
     /// <summary>Prepares the Python environment (first run downloads it). Safe to repeat.</summary>
     public Task EnsureEnvironmentAsync(CancellationToken cancellationToken = default) =>
         EngineJson.EnsureEnvironmentAsync(_runner, _tools, RequireRepository(), m => new QuoteEngineException(m), cancellationToken);

@@ -7,7 +7,7 @@ public sealed record QuoteIssue(string Level, string Message)
 }
 
 /// <summary>Which output files exist in the quote's folder.</summary>
-public sealed record QuoteFiles(bool Pdf, bool Xlsx, bool DraftPdf, bool DraftXlsx);
+public sealed record QuoteFiles(bool Pdf, bool Xlsx, bool DraftPdf, bool DraftXlsx, bool Sow = false);
 
 /// <summary>
 /// One quote as <c>quote.py list --json</c> reports it. Totals come from the engine; the app
@@ -66,6 +66,9 @@ public sealed record QuoteSummary
 
     public QuoteFiles? Files { get; init; }
 
+    /// <summary>The sample counts of the last statement of work (sow.sample_counts), if one was made.</summary>
+    public IReadOnlyList<int>? SowSampleCounts { get; init; }
+
     /// <summary>Set instead of the fields above when quote.yaml could not be read.</summary>
     public string? Error { get; init; }
 
@@ -92,6 +95,28 @@ public sealed record QuoteSummary
 
     /// <summary>The most recent lifecycle date, for sorting and display.</summary>
     public string? LatestDate => Invoiced ?? Accepted ?? Declined ?? Sent ?? Issued;
+
+    /// <summary>
+    /// The sample counts to offer for a statement of work: the last ones used, else the quote's
+    /// own count with 20, 40, 60 and 80 (the lab's usual columns), at most six.
+    /// </summary>
+    public IReadOnlyList<int> DefaultSowCounts()
+    {
+        if (SowSampleCounts is { Count: > 0 } saved)
+        {
+            return saved;
+        }
+
+        var own = (int)Math.Round(StudySamples);
+        return [.. new[] { 20, 40, 60, 80 }.Append(own).Where(n => n > 0).Distinct().Order().Take(6)];
+    }
+
+    /// <summary>The statement of work in the quote folder, or null.</summary>
+    public string? ExistingSow(string repositoryPath)
+    {
+        var path = Path.Combine(FolderPath(repositoryPath), $"{QuoteNumber}-SOW.docx");
+        return File.Exists(path) ? path : null;
+    }
 
     public string FolderPath(string repositoryPath) =>
         Path.Combine(repositoryPath, Folder.Replace('/', Path.DirectorySeparatorChar));

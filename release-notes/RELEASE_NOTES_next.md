@@ -29,6 +29,15 @@ the GitHub Release description and fails if it is missing.
   dates or ages over 89, nothing is committed and the app says what to fix. After a Claude
   conversation, the message box is filled in asking Claude to fix it.
 
+### Quotes
+
+- **Statement of work.** The new **Statement of work** button makes Exhibit A of the Genome
+  Sciences Services Agreement from the selected quote, on the lab's Word template, priced at the
+  sample counts you choose (it offers the quote's own count with 20, 40, 60 and 80, or the counts
+  used last time). The quote's own count prices exactly as the quote. The document is saved and
+  shared with the quote and opens in Word. Needs the quote engine's `sow` command (pushed to the
+  quotes repository with this release).
+
 ### Both areas
 
 - **Projects | Quotes tabs.** The Quotes area appears only for people with a copy of the quotes;

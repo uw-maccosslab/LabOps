@@ -22,9 +22,11 @@ public partial class InputWindow : Window
     }
 
     /// <summary>Returns the text entered (possibly empty), or null if cancelled.</summary>
-    public static string? Ask(Window? owner, string heading, string message)
+    public static string? Ask(Window? owner, string heading, string message, string initial = "", string okText = "OK")
     {
-        var window = new InputWindow(owner, heading, message, withInput: true, "OK");
+        var window = new InputWindow(owner, heading, message, withInput: true, okText);
+        window.Answer.Text = initial;
+        window.Answer.SelectAll();
         return window.ShowDialog() == true ? window.Answer.Text.Trim() : null;
     }
 
