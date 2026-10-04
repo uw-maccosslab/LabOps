@@ -1,6 +1,6 @@
-# ChargeState documentation
+# LabOps documentation
 
-- [How ChargeState fits together](architecture.md): the app, the two repositories and their
+- [How LabOps fits together](architecture.md): the app, the two repositories and their
   engines, Claude Code, GitHub and Panorama, with what lives where and how changes reach people.
 - [How it works, step by step](flows.md): saving a change, syncing and conflicts, a conversation
   with Claude, organizing a sample sheet, choosing a Panorama folder or notebook, and first-run

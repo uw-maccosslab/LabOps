@@ -13,11 +13,11 @@
   -->
   <PropertyGroup>
     <Version>26.6.0</Version>
-    <Product>ChargeState</Product>
+    <Product>LabOps</Product>
     <Company>MacCoss Lab, University of Washington</Company>
     <Authors>MacCoss Lab, University of Washington</Authors>
     <Copyright>Copyright (c) MacCoss Lab, University of Washington</Copyright>
-    <RepositoryUrl>https://github.com/uw-maccosslab/ChargeState</RepositoryUrl>
+    <RepositoryUrl>https://github.com/uw-maccosslab/LabOps</RepositoryUrl>
   </PropertyGroup>
 
   <PropertyGroup>

@@ -1,4 +1,4 @@
-# ChargeState
+# LabOps
 
 A Windows app for the MacCoss Lab. Its **Projects** area tracks the lab's work in
 [lab-projects](https://github.com/uw-maccosslab/lab-projects): labs, their projects (one set of
@@ -8,13 +8,13 @@ sample metadata, Octopus plate layouts, and links to the data and notebooks on P
 [services-quotes](https://github.com/uw-maccosslab/services-quotes). Claude Code does the
 paperwork in both, and everything stays in sync with GitHub.
 
-[How ChargeState fits together](docs/architecture.md) explains, with figures, how the app works
+[How LabOps fits together](docs/architecture.md) explains, with figures, how the app works
 with the repositories, their engines, Claude Code, GitHub and Panorama.
 
 ## Installing
 
-Download `MacCossLab.ChargeState-win-Setup.exe` from the latest
-[release](https://github.com/uw-maccosslab/ChargeState/releases) and run it. No
+Download the `MacCossLab.LabOps-...-Setup.exe` from the latest
+[release](https://github.com/uw-maccosslab/LabOps/releases) and run it. No
 administrator rights are needed. The first time it starts, Setup walks through:
 
 1. Installing Git (with Windows' own installer, winget).
@@ -25,6 +25,13 @@ administrator rights are needed. The first time it starts, Setup walks through:
 5. Preparing the engines (downloads Python once; nothing to install yourself).
 
 The app updates itself: when a new version is ready it shows "Update ready: restart to install".
+
+### Coming from ChargeState
+
+LabOps was called ChargeState until 26.7.0, and ChargeState does not update to it: install LabOps
+once as above. The first time it starts it takes over ChargeState's settings (your copies of the
+lab projects and quotes, and Claude conversations to resume) and its Panorama sign-in, so Setup has
+nothing to ask. It then offers to open Windows' Installed apps, where you uninstall ChargeState.
 
 ## Using it
 

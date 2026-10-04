@@ -1,7 +1,7 @@
 # How it works, step by step
 
 These follow the main actions through the app, the engines, git, GitHub, Claude and Panorama.
-[How ChargeState fits together](architecture.md) introduces the pieces.
+[How LabOps fits together](architecture.md) introduces the pieces.
 
 - [Saving a change](#saving-a-change)
 - [Staying in sync, and what happens on a conflict](#staying-in-sync-and-what-happens-on-a-conflict)
@@ -19,7 +19,7 @@ Here, marking a step done in the Projects area:
 ```mermaid
 sequenceDiagram
     actor You
-    participant App as ChargeState
+    participant App as LabOps
     participant Git as git, in the clone
     participant Engine as project.py
     participant GitHub
@@ -59,13 +59,13 @@ sequenceDiagram
   because the previous change was just shared), the action starts at once; the rebase before
   sharing still brings in anything newer.
 - **lab-projects checks every commit.** The app runs `check --staged` before it commits and tells
-  the repository's pre-commit hook which staged tree it checked (`CHARGESTATE_CHECKED_TREE`). The
+  the repository's pre-commit hook which staged tree it checked (`LABOPS_CHECKED_TREE`). The
   hook skips only that exact tree and checks anything else, including every commit made outside
   the app. A refusal leaves the files changed but uncommitted.
 - **After a Claude turn,** the app saves and waits for GitHub before saying "Saved and shared".
 - **The Quotes area is the same,** without the identifier check: for example Send runs
   `quote.py send`, then saves `"<number>: sent"`.
-- **Timings are in the log** (`%LOCALAPPDATA%\ChargeState\logs`): each engine command, each commit
+- **Timings are in the log** (`%LOCALAPPDATA%\LabOps\logs`): each engine command, each commit
   and each sync with GitHub, with how long it took.
 
 ## Staying in sync, and what happens on a conflict
@@ -108,7 +108,7 @@ It never guesses between two people's versions of the same file.
 ```mermaid
 sequenceDiagram
     actor You
-    participant App as ChargeState
+    participant App as LabOps
     participant Tools as App tool server, on 127.0.0.1
     participant Claude as Claude Code
     participant Clone as Clone folder
@@ -137,7 +137,7 @@ sequenceDiagram
   engine, and look at files with `git status`, `git diff`, `git log`, `git show`, `cat`, `head`,
   `tail`, `sed -n`, `wc` and `ls`. It may never commit, push, pull, rebase, reset, check out or
   stash, and it has no web access.
-- **Anything else asks you.** Choosing "Allow ... until ChargeState closes" remembers that program
+- **Anything else asks you.** Choosing "Allow ... until LabOps closes" remembers that program
   for this repository until you close the app. A command that hides another one inside `$(...)` is
   asked about every time.
 - **The conversation belongs to one item.** Its id is kept in `settings.json`, so Ask Claude can
@@ -152,7 +152,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     actor You
-    participant App as ChargeState
+    participant App as LabOps
     participant Inbox as inbox/MNRF-BioTRACK/<br/>ignored by git
     participant Engine as project.py
     participant Claude as Claude Code
@@ -188,20 +188,20 @@ PanoramaBridge is.
 ```mermaid
 sequenceDiagram
     actor You
-    participant App as ChargeState
+    participant App as LabOps
     participant Creds as Credential Manager
     participant Panorama as panoramaweb.org
     participant Engine as project.py
 
     You->>App: Add raw data folder, Browse...
-    App->>Creds: PanoramaBridge:https://panoramaweb.org, then ChargeState:https://panoramaweb.org
+    App->>Creds: PanoramaBridge:https://panoramaweb.org, then LabOps:https://panoramaweb.org
     loop each saved sign-in, until one works
         App->>Panorama: GET /_webdav/?method=json
     end
     opt none saved, or none accepted
         App-->>You: Sign in: an API key, or a user name and password
         App->>Panorama: checked the same way
-        App->>Creds: kept as ChargeState:https://panoramaweb.org
+        App->>Creds: kept as LabOps:https://panoramaweb.org
     end
     alt a folder
         App->>Panorama: GET /_webdav/MacCoss/?method=json, then each folder you open
@@ -259,7 +259,7 @@ collaborators of that collaboration included; a lab member decides who that is, 
 ```mermaid
 sequenceDiagram
     actor You
-    participant App as ChargeState
+    participant App as LabOps
     participant Engine as project.py
     participant Claude as Claude Code
     participant Panorama as panoramaweb.org
@@ -285,7 +285,7 @@ sequenceDiagram
 
 - **Kept up to date:** after each change saved in the app (a step, a link, Claude's work), the app
   rebuilds and republishes the page in the background, and says so in the status bar. It does so
-  only for a page whose footer marks it as ChargeState's, that nobody has edited on Panorama since,
+  only for a page whose footer marks it as LabOps's, that nobody has edited on Panorama since,
   and only while the written parts (`wiki.yaml`) are the ones last published; new text, and a page
   edited on Panorama, wait in the Wiki page window for a person.
 - **Written parts:** the summary, plan, description of the samples and a sentence per data folder

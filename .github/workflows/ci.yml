@@ -39,11 +39,11 @@ jobs:
         uses: astral-sh/setup-uv@v10.2.0
 
       - name: Build
-        run: dotnet build ChargeState.sln -c Release
+        run: dotnet build LabOps.sln -c Release
 
       # The sync tests run real git against a local bare repository.
       - name: Test
         shell: pwsh
         run: |
           if ($env:HAS_QUOTES_KEY -eq 'true') { $env:SERVICES_QUOTES_REPO = "$env:GITHUB_WORKSPACE\services-quotes" }
-          dotnet test --project src/ChargeState.Tests/ChargeState.Tests.csproj -c Release --no-build
+          dotnet test --project src/LabOps.Tests/LabOps.Tests.csproj -c Release --no-build

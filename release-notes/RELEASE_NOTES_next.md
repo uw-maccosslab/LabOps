@@ -1,8 +1,18 @@
-# ChargeState vNEXT Release Notes
+# LabOps vNEXT Release Notes
 
 Working draft for the next release. Append entries in the same commit as each user-visible change;
 rename to `RELEASE_NOTES_v{version}.md` at release time. The release workflow publishes this file as
 the GitHub Release description and fails if it is missing.
+
+## ChargeState is now LabOps
+
+The app has a new name, because "charge state" means something else in a mass spectrometry lab.
+LabOps is installed as a new app, so ChargeState does not update to it: download LabOps' Setup
+from this release once. The first time LabOps starts, it takes over ChargeState's settings (the
+copies of lab-projects and services-quotes, the Claude conversations to resume) and its Panorama
+sign-in, then offers to open Windows' Installed apps to uninstall ChargeState. Close ChargeState
+before using LabOps, so the two do not both sync the same folders. The repository is now
+github.com/uw-maccosslab/LabOps; the old links lead there.
 
 ## New Features
 
@@ -19,7 +29,7 @@ the GitHub Release description and fails if it is missing.
     hand is replaced only after a question, and Panorama keeps the earlier version.
 
   After that, every change saved in the app republishes the page in the background (the status
-  bar says so), as long as the page is ChargeState's, nobody has edited it on Panorama since, and
+  bar says so), as long as the page is LabOps's, nobody has edited it on Panorama since, and
   its written text is the one last published; new text, and a page edited on Panorama, wait in the
   window to be looked at first. Everyone who can open the
   folder can read the page, the collaborators of that collaboration included. Needs the

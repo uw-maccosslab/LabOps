@@ -1,4 +1,4 @@
-# ChargeState app: guide for AI-assisted development
+# LabOps app: guide for AI-assisted development
 
 A Windows desktop app (.NET 10, WPF) for the MacCoss Lab, with two areas over two repositories:
 
@@ -48,7 +48,7 @@ text alike.
 Directory.Build.props        single <Version> (CalVer YY.feature.patch), warnings as errors
 global.json                  .NET 10 SDK; opts dotnet test into Microsoft Testing Platform
 release-notes/               one file per version; becomes the GitHub Release body
-src/ChargeState.Core/     all logic, no UI types                     net10.0
+src/LabOps.Core/     all logic, no UI types                     net10.0
   Claude/                    stream-json session, parser, in-app MCP server (AppTools), PermissionMemory
   Engines/                   what both engines share: uv run, JSON answers, EngineException
   Projects/                  ProjectEngine (project.py), lab, project and experiment models
@@ -57,16 +57,16 @@ src/ChargeState.Core/     all logic, no UI types                     net10.0
   Repositories/              RepositoryProfile, Repository, RepositoryFactory
   Sync/                      GitClient, SyncService, ItemHistory (the Modified column)
   Setup/, GitHub/            first-run checks; the gh CLI
-src/ChargeState.App/      WPF shell (MVVM with CommunityToolkit.Mvvm) net10.0-windows
-src/ChargeState.Tests/    xUnit v3 + Shouldly                        net10.0-windows
+src/LabOps.App/      WPF shell (MVVM with CommunityToolkit.Mvvm) net10.0-windows
+src/LabOps.Tests/    xUnit v3 + Shouldly                        net10.0-windows
 docs/                        how the app, repositories, engines, Claude and Panorama fit together
 ```
 
 ## Building, testing, running
 
 ```bash
-dotnet build ChargeState.sln -c Debug
-dotnet test --project src/ChargeState.Tests/ChargeState.Tests.csproj
+dotnet build LabOps.sln -c Debug
+dotnet test --project src/LabOps.Tests/LabOps.Tests.csproj
 ```
 
 - `SERVICES_QUOTES_REPO=<clone of services-quotes>` also runs the real quote engine in a test,
@@ -81,19 +81,19 @@ dotnet test --project src/ChargeState.Tests/ChargeState.Tests.csproj
   To set it up once (the private key goes straight into the secret and is then deleted):
 
   ```bash
-  ssh-keygen -t ed25519 -N "" -C "ChargeState CI (read-only)" -f chargestate-ci
-  gh repo deploy-key add chargestate-ci.pub --repo uw-maccosslab/services-quotes --title "ChargeState CI (read-only)"
-  gh secret set QUOTES_REPO_DEPLOY_KEY --repo uw-maccosslab/ChargeState < chargestate-ci
-  rm chargestate-ci chargestate-ci.pub
+  ssh-keygen -t ed25519 -N "" -C "LabOps CI (read-only)" -f labops-ci
+  gh repo deploy-key add labops-ci.pub --repo uw-maccosslab/services-quotes --title "LabOps CI (read-only)"
+  gh secret set QUOTES_REPO_DEPLOY_KEY --repo uw-maccosslab/LabOps < labops-ci
+  rm labops-ci labops-ci.pub
   ```
 - The engine's side of the app's JSON contract is tested in the quotes repository
   (`tests/test_contract.py`); change the two together.
-- `CHARGESTATE_DATA=<folder>` runs the app with its settings and logs in that folder instead
-  of `%LOCALAPPDATA%\ChargeState`. Put a `settings.json` with `ProjectsRepositoryPath` (and
+- `LABOPS_DATA=<folder>` runs the app with its settings and logs in that folder instead
+  of `%LOCALAPPDATA%\LabOps`. Put a `settings.json` with `ProjectsRepositoryPath` (and
   `RepositoryPath` for quotes) pointing at scratch clones there to try the app without touching
   your own setup. It runs beside your installed copy: the single-instance lock is per data folder. A scratch clone still
   pushes to GitHub; repoint its `origin` to a local bare repository for anything that saves.
-- `CHARGESTATE_PANORAMA=<server>` points Panorama browsing at another server, for example a local
+- `LABOPS_PANORAMA=<server>` points Panorama browsing at another server, for example a local
   stand-in; sign-ins are kept per server, so a test server never sees the real one's.
 - Screenshot the running app with `PrintWindow(hwnd, hdc, PW_RENDERFULLCONTENT)`; a plain screen
   capture misses WPF and WebView2 content.

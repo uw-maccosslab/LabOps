@@ -1,6 +1,6 @@
-# How ChargeState fits together
+# How LabOps fits together
 
-ChargeState is a Windows app, but most of what it shows and changes lives somewhere else: in two
+LabOps is a Windows app, but most of what it shows and changes lives somewhere else: in two
 git repositories on GitHub, in the Python engines inside those repositories, in Claude Code, and
 on Panorama. This page explains those pieces and how they connect. [How it works, step by
 step](flows.md) follows the main actions through them.
@@ -28,7 +28,7 @@ flowchart LR
     you(["You"]) --> app
 
     subgraph computer["Your Windows computer"]
-        app["ChargeState"]
+        app["LabOps"]
         claude["Claude Code"]
         subgraph clone["A clone: lab-projects or services-quotes"]
             records["Records<br/>projects/ or quotes/"]
@@ -74,17 +74,17 @@ flowchart LR
         folder["Folder<br/>.../2026-09-BioTRACK-Quant"]
         eln["ELN notebooks<br/>in the MacCoss project"]
     end
-    rawFiles --> browse["ChargeState: Add raw data folder, Browse<br/>lists them, read-only"]
+    rawFiles --> browse["LabOps: Add raw data folder, Browse<br/>lists them, read-only"]
     folder --> browse
     eln --> browse
     creds["Windows Credential Manager<br/>PanoramaBridge's saved sign-in"] -.-> browse
     browse -->|"records your choice"| experiment["lab-projects<br/>experiment.yaml"]
-    folder -->|"Skyline documents counted"| wikiBuild["ChargeState: Wiki page<br/>project.py wiki builds it"]
+    folder -->|"Skyline documents counted"| wikiBuild["LabOps: Wiki page<br/>project.py wiki builds it"]
     wikiBuild -->|"publishes"| wikiPage["Wiki page<br/>.../BioTRACK, page default"]
     creds -.-> wikiBuild
 ```
 
-ChargeState signs in to Panorama with the sign-in PanoramaBridge saved on the computer (an API key
+LabOps signs in to Panorama with the sign-in PanoramaBridge saved on the computer (an API key
 or a user name and password). Only if there is none, or Panorama no longer accepts it, does it ask
 for one and keep it under its own name.
 
@@ -103,7 +103,7 @@ flowchart LR
 
 | Piece | What it is | Where it runs | How it changes for everyone |
 |---|---|---|---|
-| ChargeState | This app: .NET 10, WPF | Each person's Windows computer | A release (`v26.x.0` tag); installed copies update themselves |
+| LabOps | This app: .NET 10, WPF | Each person's Windows computer | A release (`v26.x.0` tag); installed copies update themselves |
 | lab-projects | Labs, projects, experiments, deidentified sample tables, plate layouts. Open to the lab. | GitHub, plus a clone on each computer | A push to `main`; others get it on their next sync |
 | services-quotes | Quotes, rates, templates. Private to the people who prepare quotes. | GitHub, plus a clone where needed | A push to `main` |
 | `project.py`, `quote.py` | The engines: every rule, command and generated file | Inside each clone, run with uv and Python | Pushed with the repository; tagged `engine-v...` for release notes |
@@ -111,7 +111,7 @@ flowchart LR
 | `config/app.yaml` | `min_app_version`, and for quotes the `approvers` who may send | Inside each clone | Pushed with the repository |
 | Claude Code | `claude.exe`, one process per conversation | Started by the app in the clone's folder | Its own updates |
 | GitHub Actions | `check` (tests and validation), `index` (README table), `release` | GitHub | Workflow files in each repository |
-| Panorama | Raw data (WebDAV file areas), Skyline documents, the lab's ELN | panoramaweb.org | Not changed by ChargeState |
+| Panorama | Raw data (WebDAV file areas), Skyline documents, the lab's ELN | panoramaweb.org | Not changed by LabOps |
 
 The quotes repository is optional. A lab member without access to it sees only the Projects area.
 
@@ -119,14 +119,14 @@ The quotes repository is optional. A lab member without access to it sees only t
 
 ```mermaid
 flowchart LR
-    subgraph appProj["ChargeState.App: windows"]
+    subgraph appProj["LabOps.App: windows"]
         main["MainWindow<br/>Quotes area"]
         projects["ProjectsView<br/>Projects area"]
         chat["ChatPanel<br/>Claude conversation"]
         dialogs["Dialogs<br/>Setup, New quote, New project,<br/>Step, Assign, Add step, Add link,<br/>Panorama browser, Notebook picker,<br/>Sign-in, Permission"]
     end
 
-    subgraph core["ChargeState.Core: the logic, no windows"]
+    subgraph core["LabOps.Core: the logic, no windows"]
         sync["Sync<br/>SyncService, GitClient, ItemHistory"]
         setup["Setup<br/>SetupService, GitHubCli"]
         engine["Engines<br/>ProjectEngine, QuoteEngine, RepoConfig"]
@@ -168,7 +168,7 @@ flowchart LR
   (`wiki-saveWiki.api`), built by `project.py wiki`. LabKey wants a CSRF token on every POST, even
   with an API key, so the save first gets one from `login-whoami.api` and sends it with that
   session's cookies. The app republishes a page on its own only when the page's footer marks it as
-  ChargeState's, nobody has edited it on Panorama since (the footer fingerprints the page), and its
+  LabOps's, nobody has edited it on Panorama since (the footer fingerprints the page), and its
   written parts are the ones published last; replacing a page written or edited by hand, and
   publishing new text from Claude, are done in the Wiki page window. What you choose when browsing is written to lab-projects by `project.py link`.
 - **The bundled tools.** The installer carries pinned copies of `uv` and `gh` in its `tools`
@@ -245,16 +245,16 @@ people who use git directly; the app sets `core.hooksPath` to it.
 | What | Where |
 |---|---|
 | The app | Installed per user by Velopack, with `tools\uv.exe` and `tools\gh.exe` beside it |
-| Settings | `%LOCALAPPDATA%\ChargeState\settings.json`: the two clone folders, Claude conversation ids per item, the sync interval (5 minutes), window size, beta updates. No passwords. |
-| Logs | `%LOCALAPPDATA%\ChargeState\logs\`, one file a day, kept 14 days, secrets removed |
-| Claude's tool server address | `%LOCALAPPDATA%\ChargeState\claude\mcp-*.json`, written each run |
+| Settings | `%LOCALAPPDATA%\LabOps\settings.json`: the two clone folders, Claude conversation ids per item, the sync interval (5 minutes), window size, beta updates. No passwords. |
+| Logs | `%LOCALAPPDATA%\LabOps\logs\`, one file a day, kept 14 days, secrets removed |
+| Claude's tool server address | `%LOCALAPPDATA%\LabOps\claude\mcp-*.json`, written each run |
 | Clones | `Documents\lab-projects`, `Documents\services-quotes` (or folders you choose) |
 | Engine environment | `.venv` inside each clone, made by `uv sync` |
-| Panorama sign-in | Windows Credential Manager: `PanoramaBridge:https://panoramaweb.org` (PanoramaBridge's, only read) and `ChargeState:https://panoramaweb.org` (ChargeState's own, only when needed) |
+| Panorama sign-in | Windows Credential Manager: `PanoramaBridge:https://panoramaweb.org` (PanoramaBridge's, only read) and `LabOps:https://panoramaweb.org` (LabOps's own, only when needed) |
 | GitHub sign-in | The gh CLI's, set up during Setup |
 
-`CHARGESTATE_DATA` moves the app's folder elsewhere, which is how a test copy runs beside the
-real one. `CHARGESTATE_PANORAMA` points Panorama browsing at another server, for testing.
+`LABOPS_DATA` moves the app's folder elsewhere, which is how a test copy runs beside the
+real one. `LABOPS_PANORAMA` points Panorama browsing at another server, for testing.
 
 ## How changes reach people
 
@@ -264,7 +264,7 @@ flowchart LR
         edit["Edit scripts/, templates/,<br/>CLAUDE.md or skills"] --> push["Push to main"] --> sync["Everyone's next sync"]
     end
     subgraph appChange["A change to the app"]
-        code["Change ChargeState"] --> tag["Tag v26.x.0"] --> velopack["Release workflow builds<br/>the installer and update feed"] --> update["Installed apps download it;<br/>Update ready: restart"]
+        code["Change LabOps"] --> tag["Tag v26.x.0"] --> velopack["Release workflow builds<br/>the installer and update feed"] --> update["Installed apps download it;<br/>Update ready: restart"]
     end
     gate{{"config/app.yaml<br/>min_app_version"}}
     sync -.-> gate

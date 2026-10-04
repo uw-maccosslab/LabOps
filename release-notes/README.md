@@ -1,11 +1,11 @@
 # Release Notes
 
-This directory contains per-version release notes for ChargeState. The convention is the one
+This directory contains per-version release notes for LabOps. The convention is the one
 Skyline-PRISM uses; this file is the canonical description of it for this repository.
 
 ## Versioning Scheme
 
-ChargeState uses a `YY.feature.patch` versioning convention:
+LabOps uses a `YY.feature.patch` versioning convention:
 
 - **YY**: Two-digit year (e.g., `26` for 2026)
 - **feature**: Incremented for each release containing new features
@@ -50,7 +50,7 @@ functionality lands).
 ### Content Structure
 
 ```markdown
-# ChargeState v{version}
+# LabOps v{version}
 
 One-sentence summary of the release.
 
@@ -97,13 +97,13 @@ Sections can be omitted if empty. For patch releases, a flat list is sufficient.
    `RELEASE_NOTES_next.md` seeded with the four headings
 2. Bump `<Version>` in `Directory.Build.props` to `{version}`
 3. Commit and push to `main`, and let CI go green
-4. Tag: `git tag -a v{version} -m "ChargeState {version}"`
+4. Tag: `git tag -a v{version} -m "LabOps {version}"`
 5. Push the tag: `git push origin v{version}`. **Pushing the tag both builds the installer and
    creates the GitHub Release** (`.github/workflows/release.yml`). Do not hand-create the Release.
 
 A tag containing `alpha`, `beta`, or `rc` is published as a GitHub prerelease. A tag containing
 `beta` also goes to the `win-beta` update channel, for trying a release on one computer before
-everyone gets it (set `"BetaUpdates": true` in `%LOCALAPPDATA%\ChargeState\settings.json` there);
+everyone gets it (set `"BetaUpdates": true` in `%LOCALAPPDATA%\LabOps\settings.json` there);
 every other tag goes to the stable `win` channel.
 
 If a release changes what the app needs from the quotes repository, raise `min_app_version` in
@@ -126,10 +126,10 @@ Velopack packs the publish folder into:
 
 | Asset | Purpose |
 |---|---|
-| `MacCossLab.ChargeState-win-Setup.exe` | Per-user installer; no administrator rights needed |
-| `MacCossLab.ChargeState-{version}-full.nupkg` | Full package, for first installs and as a delta base |
-| `MacCossLab.ChargeState-{version}-delta.nupkg` | Difference from the previous release (270 KB for v26.1.1) |
-| `MacCossLab.ChargeState-win-Portable.zip` | Portable copy for computers where installing is not an option |
+| `MacCossLab.LabOps-win-Setup.exe` | Per-user installer; no administrator rights needed |
+| `MacCossLab.LabOps-{version}-full.nupkg` | Full package, for first installs and as a delta base |
+| `MacCossLab.LabOps-{version}-delta.nupkg` | Difference from the previous release (270 KB for v26.1.1) |
+| `MacCossLab.LabOps-win-Portable.zip` | Portable copy for computers where installing is not an option |
 | `releases.win.json` | The update feed installed copies read |
 | `SHA256SUMS.txt` | Checksums for every asset |
 
