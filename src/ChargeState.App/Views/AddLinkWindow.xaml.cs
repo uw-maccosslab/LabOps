@@ -17,17 +17,19 @@ public partial class AddLinkWindow : Window
     private const string PanoramaHome = "https://panoramaweb.org/MacCoss/maccoss/project-begin.view";
     private const string NotebooksUrl = "https://panoramaweb.org/MacCoss/samplemanager-app.view#/notebooks";
 
+    private readonly Func<Window, Task<string?>>? _browse;
     private AddLinkAnswer? _answer;
 
-    private AddLinkWindow(Window? owner, string heading, bool panorama)
+    private AddLinkWindow(Window? owner, string heading, bool panorama, Func<Window, Task<string?>>? browse)
     {
+        _browse = browse;
         InitializeComponent();
         Owner = owner;
         Title = AppInfo.ProductName;
         Heading.Text = heading;
         Message.Text = panorama
-            ? "Paste the address of the Panorama folder from your browser, or type its path, for example "
-              + "/MacCoss/maccoss/2026-BioTRACK. For a notebook, paste its link and its ID."
+            ? "Choose the Panorama folder with Browse, paste its address from your browser, or type its path, "
+              + "for example /MacCoss/maccoss/@files/2026-BioTRACK. For a notebook, paste its link and its ID."
             : "Paste the notebook's link from your browser and its ID. Panorama folders go on each experiment.";
         List<Choice> choices = panorama
             ? [new("raw", "Raw data on Panorama"), new("results", "Results on Panorama"), new(null, "ELN notebook")]
@@ -40,9 +42,10 @@ public partial class AddLinkWindow : Window
 
     /// <summary>The link to add, or null if cancelled.</summary>
     /// <param name="panorama">True for an experiment, which can have Panorama folders.</param>
-    public static AddLinkAnswer? Ask(Window? owner, string heading, bool panorama)
+    /// <param name="browse">Chooses a folder on Panorama; returns its path, or null.</param>
+    public static AddLinkAnswer? Ask(Window? owner, string heading, bool panorama, Func<Window, Task<string?>>? browse = null)
     {
-        var window = new AddLinkWindow(owner, heading, panorama);
+        var window = new AddLinkWindow(owner, heading, panorama, browse);
         return window.ShowDialog() == true ? window._answer : null;
     }
 
@@ -57,6 +60,23 @@ public partial class AddLinkWindow : Window
             : "The folder's address copied from your browser, or its path, for example /MacCoss/maccoss/2026-BioTRACK";
         var notebook = IsNotebook ? Visibility.Visible : Visibility.Collapsed;
         IdLabel.Visibility = NotebookId.Visibility = notebook;
+        Browse.Visibility = IsNotebook || _browse is null ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    private async void OnBrowse(object sender, RoutedEventArgs e)
+    {
+        Browse.IsEnabled = false;
+        try
+        {
+            if (await _browse!(this).ConfigureAwait(true) is { } folder)
+            {
+                Address.Text = folder;
+            }
+        }
+        finally
+        {
+            Browse.IsEnabled = true;
+        }
     }
 
     private void OnFindIt(object sender, RoutedEventArgs e) => Shell.Open(IsNotebook ? NotebooksUrl : PanoramaHome);

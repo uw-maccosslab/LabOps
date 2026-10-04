@@ -8,6 +8,7 @@ using ChargeState.Core.Claude;
 using ChargeState.Core.GitHub;
 using ChargeState.Core.Infrastructure;
 using ChargeState.Core.Processes;
+using ChargeState.Core.Panorama;
 using ChargeState.Core.Projects;
 using ChargeState.Core.Quotes;
 using ChargeState.Core.Repositories;
@@ -139,6 +140,10 @@ public static class Program
         services.AddSingleton<IProcessRunner>(provider => provider.GetRequiredService<ProcessRunner>());
         services.AddSingleton<QuoteEngine>();
         services.AddSingleton<ProjectEngine>();
+        services.AddSingleton<ICredentialStore, WindowsCredentialStore>();
+        // CHARGESTATE_PANORAMA points Panorama browsing at another server, for testing.
+        services.AddSingleton(provider => new PanoramaSignIn(provider.GetRequiredService<ICredentialStore>(),
+            Environment.GetEnvironmentVariable("CHARGESTATE_PANORAMA") is { Length: > 0 } server ? new Uri(server) : PanoramaPaths.DefaultServer));
         // Each open repository gets its own git client and sync service from the factory.
         services.AddSingleton(provider => new RepositoryFactory(
             provider.GetRequiredService<IProcessRunner>(), provider.GetRequiredService<ToolLocator>(),

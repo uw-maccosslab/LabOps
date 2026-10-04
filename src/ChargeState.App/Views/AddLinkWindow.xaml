@@ -17,7 +17,11 @@
             <TextBlock Grid.Row="0" Text="What" VerticalAlignment="Center" />
             <ComboBox x:Name="What" Grid.Row="0" Grid.Column="1" DisplayMemberPath="Label" Margin="0,2,0,6" SelectionChanged="OnWhatChanged" />
             <TextBlock x:Name="AddressLabel" Grid.Row="1" Text="Address" VerticalAlignment="Center" />
-            <TextBox x:Name="Address" Grid.Row="1" Grid.Column="1" Margin="0,2,0,2" />
+            <DockPanel Grid.Row="1" Grid.Column="1" Margin="0,2,0,2">
+                <Button x:Name="Browse" DockPanel.Dock="Right" Content="Browse..." Margin="6,0,0,0" Click="OnBrowse"
+                        ToolTip="Choose the folder on Panorama, signed in the way PanoramaBridge is" />
+                <TextBox x:Name="Address" />
+            </DockPanel>
             <Button x:Name="FindIt" Grid.Row="2" Grid.Column="1" Style="{StaticResource LinkButton}" HorizontalAlignment="Left"
                     Margin="0,0,0,6" Click="OnFindIt" />
             <TextBlock x:Name="IdLabel" Grid.Row="3" Text="Notebook ID" VerticalAlignment="Center" />
