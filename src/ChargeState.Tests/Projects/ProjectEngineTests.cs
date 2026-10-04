@@ -15,45 +15,77 @@ public sealed class ProjectEngineTests
     private static string Fixture(string name) => File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", name));
 
     [Fact]
-    public void Real_list_output_is_read_into_projects_and_experiments()
+    public void Real_list_output_is_read_into_labs_projects_and_experiments()
     {
         using var doc = ProjectEngine.Parse(new ProcessResult(0, Fixture("project-list.json"), ""));
         var list = ProjectEngine.ReadList(doc.RootElement);
 
         list.Problems.ShouldBeEmpty();
-        var zoo = list.Projects.Single(p => p.Group == "ClearwaterZoo-Cole");
+        list.People.ShouldBe([new Person("maccoss", "Michael MacCoss", "PI")]);
+        var zoo = list.Labs.Single(l => l.Lab == "ClearwaterZoo-Cole");
         zoo.Pi.ShouldBe("Ella Cole, Ph.D.");
         zoo.Institution.ShouldBe("Clearwater Zoo and Botanical Garden");
 
-        var marten = zoo.Experiments.Single();
-        marten.Experiment.ShouldBe("2026-10-Marten-Plasma");
-        marten.Folder.ShouldBe("projects/ClearwaterZoo-Cole/2026-10-Marten-Plasma");
+        // The project: funding, the samples and their steps.
+        var marten = zoo.Projects.Single();
+        marten.Project.ShouldBe("Marten-Plasma");
+        marten.Lab.ShouldBe("ClearwaterZoo-Cole");
+        marten.Folder.ShouldBe("projects/ClearwaterZoo-Cole/Marten-Plasma");
         marten.Funding.Type.ShouldBe("quote");
         marten.Funding.Quotes.ShouldBe(["MacCoss-2026-CWZG-MARTEN"]);
-        marten.FundingText.ShouldBe("quote MacCoss-2026-CWZG-MARTEN");
+        marten.Funding.Text.ShouldBe("quote MacCoss-2026-CWZG-MARTEN");
         marten.ExpectedSamples.ShouldBe(10);
         marten.Species.ShouldBe("American marten");
         marten.Notebooks.Single().Id.ShouldBe("ELN-4485-20230314-179");
-        marten.Panorama.Single().ShouldBe(new PanoramaFolder("/MacCoss/maccoss/2026-Marten", "raw"));
         marten.Layout.ShouldNotBeNull().Plates.ShouldBe(1);
-        marten.Files.ShouldBe(new ExperimentFiles(true, true));
+        marten.Files.ShouldBe(new ProjectFiles(true, true));
         marten.CurrentStage.ShouldBe("sample_prep");
-        marten.CurrentStageLabel.ShouldBe("Sample prep");
-        marten.Progress.ShouldBe(3);
-        marten.Stages.Select(s => s.Stage).ShouldBe(StageNames.All);
+        marten.Stages.Select(s => s.Stage).ShouldBe(["samples_received", "metadata_organized", "plate_layout", "sample_prep"]);
         marten.Stages[0].ShouldBe(new StageEntry
         {
-            Stage = "samples_received", Status = "done", Started = "2026-10-01", Finished = "2026-10-01", By = "maccoss",
-            Note = "10 tubes on dry ice",
+            Stage = "samples_received", Kind = "samples_received", Label = "Samples received", Status = "done",
+            Started = "2026-10-01", Finished = "2026-10-01", By = "maccoss", Note = "10 tubes on dry ice",
         });
+        // Starting a step nobody had assigns it to whoever started it.
         marten.Stages[3].IsInProgress.ShouldBeTrue();
+        marten.Stages[3].Assigned.ShouldBe("maccoss");
+        marten.Progress.ShouldBe("Samples: Sample prep");
+        marten.Assigned.ShouldBe("maccoss");
 
-        var internalWork = list.Projects.Single(p => p.Group == "UW-Example").Experiments.Single();
-        internalWork.Human.ShouldBeTrue();
-        internalWork.Funding.Type.ShouldBe("internal");
-        internalWork.FundingText.ShouldBe("internal");
-        internalWork.CurrentStage.ShouldBe("samples_received");
-        internalWork.Layout.ShouldBeNull();
+        // Its experiment: instrument, Panorama, the measurement steps, the project's funding.
+        var dia = marten.Experiments.Single();
+        dia.Experiment.ShouldBe("2026-10-Marten-DIA");
+        dia.Folder.ShouldBe("projects/ClearwaterZoo-Cole/Marten-Plasma/2026-10-Marten-DIA");
+        dia.Project.ShouldBe("Marten-Plasma");
+        dia.Instrument.ShouldBe("Orbitrap Astral");
+        dia.Panorama.Single().ShouldBe(new PanoramaFolder("/MacCoss/maccoss/2026-Marten", "raw"));
+        dia.FundingInherited.ShouldBeTrue();
+        dia.Funding.Text.ShouldBe("quote MacCoss-2026-CWZG-MARTEN");
+        dia.CurrentStage.ShouldBe("data_acquisition");
+        dia.Current.ShouldNotBeNull().Assigned.ShouldBe("maccoss");
+        dia.Stages.Select(s => s.DisplayLabel).ShouldBe(
+            ["Data acquisition", "Data deposited to Panorama", "Signal processing", "Data analysis", "Results returned"]);
+
+        // The lab's own project: samples not yet in, then DIA, then PRM on a grant after unblinding.
+        var gradient = list.Labs.Single(l => l.Lab == "UW-MacCoss").Projects.Single();
+        gradient.Human.ShouldBeTrue();
+        gradient.Funding.Text.ShouldBe("internal");
+        gradient.CurrentStage.ShouldBe("samples_received");
+        gradient.Layout.ShouldBeNull();
+        gradient.Assigned.ShouldBeNull();
+        var prm = gradient.Experiments.Single(e => e.Experiment == "2026-12-Gradient-PRM");
+        prm.FundingInherited.ShouldBeFalse();
+        prm.Funding.Text.ShouldBe("grant R01 GM000000");
+        prm.Stages.Take(2).Select(s => (s.Kind, s.DisplayLabel)).ShouldBe(
+            [("metadata_organized", "Unblinded metadata"), ("assay_development", "Assay development")]);
+    }
+
+    [Fact]
+    public void A_repository_from_before_labs_asks_for_a_sync_instead_of_showing_nothing()
+    {
+        using var doc = ProjectEngine.Parse(new ProcessResult(0, """{"ok": true, "projects": [], "problems": []}""", ""));
+
+        Should.Throw<EngineException>(() => ProjectEngine.ReadList(doc.RootElement)).Message.ShouldContain("older than this app");
     }
 
     [Fact]

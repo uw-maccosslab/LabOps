@@ -13,9 +13,9 @@ namespace ChargeState.App.ViewModels;
 
 /// <summary>What the main window needs to know when Claude finishes a turn.</summary>
 /// <param name="Repository">The repository the conversation works in; its changes are saved there.</param>
-/// <param name="Item">The quote number or experiment the conversation is about, when known.</param>
+/// <param name="Item">The quote number or project the conversation is about, when known.</param>
 /// <param name="Report">Claude's quote summary, if it gave one this turn.</param>
-/// <param name="IsNew">True when the conversation started a new quote or experiment.</param>
+/// <param name="IsNew">True when the conversation started a new quote or project.</param>
 public sealed record ChatTurnResult(Repository Repository, string? Item, QuoteReport? Report, bool IsNew);
 
 /// <summary>
@@ -72,7 +72,7 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
     [ObservableProperty]
     public partial bool IsOpen { get; set; }
 
-    /// <summary>The quote or experiment this conversation is about; a report names a new quote.</summary>
+    /// <summary>The quote or project this conversation is about; a report names a new quote.</summary>
     public string? Item { get; private set; }
 
     /// <summary>The repository this conversation works in.</summary>
@@ -87,9 +87,9 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
     /// <summary>Starts a conversation in <paramref name="repository"/>, replacing any previous one.</summary>
     /// <param name="repository">Where Claude works, and where its changes are saved.</param>
     /// <param name="title">The chat pane's title.</param>
-    /// <param name="item">The quote number or experiment, when known.</param>
+    /// <param name="item">The quote number or project, when known.</param>
     /// <param name="prompt">The first message, not shown in the pane.</param>
-    /// <param name="isNew">True when the conversation creates a new quote or experiment.</param>
+    /// <param name="isNew">True when the conversation creates a new quote or project.</param>
     /// <param name="resume">Continue the last conversation about the item.</param>
     public async Task StartAsync(Repository repository, string title, string? item, string prompt, bool isNew, bool resume = false)
     {
@@ -143,7 +143,7 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
         Input = "";
         if (_session is null || _session.HasEnded)
         {
-            Items.Add(new NoticeItem("This conversation has ended. Start a new one from the quote or experiment.", isError: true));
+            Items.Add(new NoticeItem("This conversation has ended. Start a new one from the quote or project.", isError: true));
             return;
         }
 
@@ -160,7 +160,7 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
     }
 
     /// <summary>
-    /// Names the item a conversation turned out to be about (a new experiment once Claude has
+    /// Names the item a conversation turned out to be about (a new project once Claude has
     /// created it), so it can be continued later.
     /// </summary>
     public void AdoptItem(string item)
@@ -229,7 +229,7 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
         catch (Exception ex) when (ex is IOException or ObjectDisposedException)
         {
             IsBusy = false;
-            Items.Add(new NoticeItem("Claude is no longer running. Start a new conversation from the quote or experiment.", isError: true));
+            Items.Add(new NoticeItem("Claude is no longer running. Start a new conversation from the quote or project.", isError: true));
         }
     }
 

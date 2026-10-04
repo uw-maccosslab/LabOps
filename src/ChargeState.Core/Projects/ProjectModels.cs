@@ -8,40 +8,54 @@ public sealed record ProjectIssue(string Level, string Message)
     public override string ToString() => $"{Level}: {Message}";
 }
 
-/// <summary>The stages of an experiment, in order, as project.py names them.</summary>
+/// <summary>The kinds of step project.py knows, and how they read.</summary>
 public static class StageNames
 {
-    public static IReadOnlyList<string> All { get; } =
+    /// <summary>The kinds a person can add, in the order a timeline usually runs.</summary>
+    public static IReadOnlyList<string> Kinds { get; } =
     [
-        "samples_received", "metadata_organized", "plate_layout", "sample_prep", "data_acquisition",
-        "data_deposited", "signal_processing", "data_analysis", "results_returned",
+        "samples_received", "metadata_organized", "plate_layout", "sample_prep", "assay_development",
+        "data_acquisition", "data_deposited", "signal_processing", "data_analysis", "results_returned", "other",
     ];
 
     /// <summary>"plate_layout" as a person reads it: "Plate layout".</summary>
-    public static string Label(string stage) => stage switch
+    public static string Label(string kind) => kind switch
     {
         "data_deposited" => "Data deposited to Panorama",
         "results_returned" => "Results returned",
-        _ => char.ToUpperInvariant(stage[0]) + stage[1..].Replace('_', ' '),
+        "" => "",
+        _ => char.ToUpperInvariant(kind[0]) + kind[1..].Replace('_', ' '),
     };
 }
 
-/// <summary>One stage of an experiment's timeline.</summary>
+/// <summary>One step of a project's or an experiment's timeline.</summary>
 public sealed record StageEntry
 {
+    /// <summary>The step's id, which commands use.</summary>
     public string Stage { get; init; } = "";
+
+    /// <summary>What the step is: one of <see cref="StageNames.Kinds"/>.</summary>
+    public string? Kind { get; init; }
+
+    /// <summary>How it reads (project.py fills it in from the kind when there is no label).</summary>
+    public string? Label { get; init; }
 
     /// <summary>pending, in_progress, done or skipped.</summary>
     public string Status { get; init; } = "pending";
+
+    /// <summary>GitHub login of who does it.</summary>
+    public string? Assigned { get; init; }
 
     public string? Started { get; init; }
 
     public string? Finished { get; init; }
 
-    /// <summary>GitHub login of who did it.</summary>
+    /// <summary>GitHub login of who recorded it.</summary>
     public string? By { get; init; }
 
     public string? Note { get; init; }
+
+    public string DisplayLabel => Label ?? StageNames.Label(Kind ?? Stage);
 
     public bool IsPending => Status == "pending";
 
@@ -52,7 +66,7 @@ public sealed record StageEntry
     public bool IsSkipped => Status == "skipped";
 }
 
-/// <summary>How an experiment is paid for. Quote numbers only; prices stay in the quotes repository.</summary>
+/// <summary>How work is paid for. Quote numbers only; prices stay in the quotes repository.</summary>
 public sealed record Funding
 {
     /// <summary>quote, grant or internal.</summary>
@@ -61,6 +75,15 @@ public sealed record Funding
     public IReadOnlyList<string> Quotes { get; init; } = [];
 
     public string? Grant { get; init; }
+
+    /// <summary>"quote MacCoss-2026-X", "grant R01 ...", "internal".</summary>
+    public string Text => Type switch
+    {
+        "quote" when Quotes.Count > 0 => "quote " + string.Join(", ", Quotes),
+        "grant" when !string.IsNullOrWhiteSpace(Grant) => "grant " + Grant,
+        null => "",
+        var t => t,
+    };
 }
 
 /// <summary>An ELN notebook (the LabKey ELN has no API, so it is an ID and a link).</summary>
@@ -75,11 +98,23 @@ public sealed record AnalysisLocation(string? Repo, string? Folder);
 /// <summary>The plate layout imported from Octopus.</summary>
 public sealed record LayoutInfo(int? Plates, int? Samples, string? Imported, string? OctopusVersion);
 
-/// <summary>Which of an experiment's working files exist.</summary>
-public sealed record ExperimentFiles(bool Samples, bool Layout);
+/// <summary>Which of a project's sample files exist.</summary>
+public sealed record ProjectFiles(bool Samples, bool Layout);
 
-/// <summary>One experiment as <c>project.py list --json</c> reports it.</summary>
-public sealed record ExperimentSummary
+/// <summary>What a project and an experiment share: a timeline of steps.</summary>
+public interface ITimeline
+{
+    /// <summary>The folder name, which commands use.</summary>
+    string Name { get; }
+
+    /// <summary>The first step neither done nor skipped; null when every step is.</summary>
+    string? CurrentStage { get; }
+
+    IReadOnlyList<StageEntry> Stages { get; }
+}
+
+/// <summary>One experiment, a measurement and analysis of its project's samples, as project.py reports it.</summary>
+public sealed record ExperimentSummary : ITimeline
 {
     /// <summary>The folder name, YYYY-MM-Topic, which is the experiment's ID.</summary>
     public string Experiment { get; init; } = "";
@@ -87,11 +122,54 @@ public sealed record ExperimentSummary
     /// <summary>Folder relative to the repository root, with forward slashes.</summary>
     public string Folder { get; init; } = "";
 
-    public string Group { get; init; } = "";
+    public string Project { get; init; } = "";
+
+    public string Lab { get; init; } = "";
 
     public string? Title { get; init; }
 
     /// <summary>active, on_hold or closed.</summary>
+    public string? Status { get; init; }
+
+    public string? LabContact { get; init; }
+
+    public string? Instrument { get; init; }
+
+    /// <summary>The experiment's own funding, or its project's when <see cref="FundingInherited"/>.</summary>
+    public Funding Funding { get; init; } = new();
+
+    public bool FundingInherited { get; init; }
+
+    public IReadOnlyList<Notebook> Notebooks { get; init; } = [];
+
+    public IReadOnlyList<PanoramaFolder> Panorama { get; init; } = [];
+
+    public AnalysisLocation Analysis { get; init; } = new(null, null);
+
+    public string? CurrentStage { get; init; }
+
+    public IReadOnlyList<StageEntry> Stages { get; init; } = [];
+
+    public IReadOnlyList<ProjectIssue> Issues { get; init; } = [];
+
+    public string Name => Experiment;
+
+    public bool IsClosed => Status == "closed";
+
+    public StageEntry? Current => Stages.FirstOrDefault(s => s.Stage == CurrentStage);
+}
+
+/// <summary>One project, a body of work with one set of samples, with its experiments.</summary>
+public sealed record ProjectSummary : ITimeline
+{
+    public string Project { get; init; } = "";
+
+    public string Folder { get; init; } = "";
+
+    public string Lab { get; init; } = "";
+
+    public string? Title { get; init; }
+
     public string? Status { get; init; }
 
     public string? Series { get; init; }
@@ -108,53 +186,86 @@ public sealed record ExperimentSummary
 
     public int? ExpectedSamples { get; init; }
 
-    public string? Instrument { get; init; }
-
     public IReadOnlyList<Notebook> Notebooks { get; init; } = [];
-
-    public IReadOnlyList<PanoramaFolder> Panorama { get; init; } = [];
 
     public AnalysisLocation Analysis { get; init; } = new(null, null);
 
     public LayoutInfo? Layout { get; init; }
 
-    /// <summary>The first stage neither done nor skipped; null when every stage is.</summary>
+    /// <summary>The samples' current step.</summary>
     public string? CurrentStage { get; init; }
 
+    /// <summary>The samples' steps.</summary>
     public IReadOnlyList<StageEntry> Stages { get; init; } = [];
 
-    public ExperimentFiles Files { get; init; } = new(false, false);
+    public ProjectFiles Files { get; init; } = new(false, false);
 
     public IReadOnlyList<ProjectIssue> Issues { get; init; } = [];
 
+    public IReadOnlyList<ExperimentSummary> Experiments { get; init; } = [];
+
+    public string Name => Project;
+
     public bool IsClosed => Status == "closed";
 
-    public bool HasErrors => Issues.Any(i => i.IsError);
+    public bool HasErrors => Issues.Any(i => i.IsError) || Experiments.Any(e => e.Issues.Any(i => i.IsError));
 
-    /// <summary>"Plate layout", or "Complete".</summary>
-    public string CurrentStageLabel => CurrentStage is null ? "Complete" : StageNames.Label(CurrentStage);
+    /// <summary>
+    /// Where the project stands, in a few words: the samples' current step while the samples are
+    /// still in hand, then the first open experiment's ("DIA: Data acquisition"), else Complete.
+    /// </summary>
+    public string Progress => ProgressStep is var (where, step) && step is not null ? $"{where}: {step.DisplayLabel}" : "Complete";
 
-    /// <summary>Stages done or skipped, out of all of them.</summary>
-    public int Progress => Stages.Count(s => s.IsDone || s.IsSkipped);
+    /// <summary>GitHub login of who has the step <see cref="Progress"/> names.</summary>
+    public string? Assigned => ProgressStep.Step?.Assigned;
 
-    /// <summary>"quote MacCoss-2026-X", "grant R01 ...", "internal".</summary>
-    public string FundingText => Funding.Type switch
+    /// <summary>The step <see cref="Progress"/> names, and whose it is ("Samples" or the experiment's short name).</summary>
+    private (string Where, StageEntry? Step) ProgressStep
     {
-        "quote" when Funding.Quotes.Count > 0 => "quote " + string.Join(", ", Funding.Quotes),
-        "grant" when !string.IsNullOrWhiteSpace(Funding.Grant) => "grant " + Funding.Grant,
-        null => "",
-        var t => t,
-    };
+        get
+        {
+            if (Stages.FirstOrDefault(s => s.Stage == CurrentStage) is { } sample)
+            {
+                return ("Samples", sample);
+            }
+
+            var open = Experiments.FirstOrDefault(e => !e.IsClosed && e.Current is not null);
+            return open is null ? ("", null) : (ShortName(open), open.Current);
+        }
+    }
+
+    /// <summary>For sorting by progress: samples first, then experiments in order, complete last.</summary>
+    public int ProgressRank
+    {
+        get
+        {
+            var sample = Stages.ToList().FindIndex(s => s.Stage == CurrentStage);
+            if (sample >= 0)
+            {
+                return sample;
+            }
+
+            var open = Experiments.Select((e, i) => (e, i)).FirstOrDefault(x => !x.e.IsClosed && x.e.Current is not null);
+            return open.e is null ? 1000 : 100 + (open.i * 100) + open.e.Stages.ToList().IndexOf(open.e.Current!);
+        }
+    }
+
+    /// <summary>"2026-09-BioTRACK-DIA" read as "DIA": the part after the project's own words.</summary>
+    public static string ShortName(ExperimentSummary e)
+    {
+        var parts = e.Experiment.Split('-');
+        return parts.Length > 2 ? parts[^1] : e.Experiment;
+    }
 
     /// <summary>The folder on disk.</summary>
     public string FolderPath(string repositoryPath) =>
         Path.Combine(repositoryPath, Folder.Replace('/', Path.DirectorySeparatorChar));
 }
 
-/// <summary>One collaboration with its experiments.</summary>
-public sealed record ProjectSummary
+/// <summary>A lab we work with, with its projects.</summary>
+public sealed record LabSummary
 {
-    public string Group { get; init; } = "";
+    public string Lab { get; init; } = "";
 
     public string Folder { get; init; } = "";
 
@@ -174,11 +285,18 @@ public sealed record ProjectSummary
 
     public IReadOnlyList<ProjectIssue> Issues { get; init; } = [];
 
-    public IReadOnlyList<ExperimentSummary> Experiments { get; init; } = [];
+    public IReadOnlyList<ProjectSummary> Projects { get; init; } = [];
+}
+
+/// <summary>Someone in config/people.yaml, who can be assigned steps.</summary>
+public sealed record Person(string Login, string? Name, string? Role)
+{
+    /// <summary>The name, or the login when there is none.</summary>
+    public string DisplayName => string.IsNullOrWhiteSpace(Name) ? Login : Name!;
 }
 
 /// <summary>Everything <c>project.py list</c> returns.</summary>
-public sealed record ProjectList(IReadOnlyList<ProjectSummary> Projects, IReadOnlyList<ProjectIssue> Problems);
+public sealed record ProjectList(IReadOnlyList<LabSummary> Labs, IReadOnlyList<Person> People, IReadOnlyList<ProjectIssue> Problems);
 
 /// <summary>One sheet the scan read: its name, row count and column headers (never its values).</summary>
 public sealed record ScanSheet(string Sheet, int Rows, IReadOnlyList<string> Columns);
@@ -198,10 +316,10 @@ public sealed record ScanResult(IReadOnlyList<ScanSheet> Sheets, IReadOnlyList<S
     public IEnumerable<ScanFinding> Warnings => Findings.Where(f => !f.IsError);
 }
 
-/// <summary>The Octopus input file written for an experiment.</summary>
+/// <summary>The Octopus input file written for a project.</summary>
 public sealed record OctopusInput(string File, int Samples, IReadOnlyList<string> Warnings);
 
-/// <summary>What a stage button does.</summary>
+/// <summary>What a step button does.</summary>
 public enum StageAction
 {
     Start,

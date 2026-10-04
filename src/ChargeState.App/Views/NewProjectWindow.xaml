@@ -1,14 +1,14 @@
-<Window x:Class="ChargeState.App.Views.NewExperimentWindow"
+<Window x:Class="ChargeState.App.Views.NewProjectWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:ChargeState.App.ViewModels"
-        Title="New experiment" Width="820" Height="720" WindowStartupLocation="CenterOwner"
+        Title="New project" Width="820" Height="720" WindowStartupLocation="CenterOwner"
         FontFamily="Segoe UI" FontSize="13" Foreground="{StaticResource TextBrush}" ShowInTaskbar="False">
     <DockPanel Margin="20">
         <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
-            <TextBlock Text="New experiment" Style="{StaticResource Heading}" />
+            <TextBlock Text="New project" Style="{StaticResource Heading}" />
             <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,0"
-                       Text="Describe the work, or paste an email about it, and fill in anything you already know. Claude creates the experiment (and the collaboration, if it is new) and asks about anything missing. Leave sample sheets for Organize metadata: do not paste names or other details about the people the samples came from." />
+                       Text="Describe the work, or paste an email about it, and fill in anything you already know. Claude creates the project (and the lab, if it is new) with an experiment for each measurement of the samples, and asks about anything missing. To measure an existing project's samples again, select the project and choose New experiment instead. Leave sample sheets for Organize metadata: do not paste names or other details about the people the samples came from." />
         </StackPanel>
         <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
             <Button Content="Cancel" IsCancel="True" />
@@ -38,19 +38,19 @@
                     </Style>
                 </Grid.Resources>
 
-                <TextBlock Grid.Row="0" Text="The experiment" />
+                <TextBlock Grid.Row="0" Text="The project" />
                 <TextBox x:Name="DescriptionBox" Grid.Row="0" Grid.Column="1" Text="{Binding Description}" AcceptsReturn="True" TextWrapping="Wrap" Height="60"
-                         ToolTip="For example: Mag-Net EV proteomics on 92 marten plasma samples" />
+                         ToolTip="For example: MNRF BioTRACK plasma, DIA on the Astral, then PRM on the Stellar with an assay built from the DIA results" />
                 <TextBlock Grid.Row="1" Text="Collaborator (PI)" />
                 <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Collaborator}" />
                 <TextBlock Grid.Row="2" Text="Institution" />
                 <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Institution}" />
                 <TextBlock Grid.Row="3" Text="Funding" />
-                <ComboBox Grid.Row="3" Grid.Column="1" ItemsSource="{x:Static vm:NewExperimentViewModel.FundingChoices}" SelectedItem="{Binding Funding}" />
+                <ComboBox Grid.Row="3" Grid.Column="1" ItemsSource="{x:Static vm:NewProjectViewModel.FundingChoices}" SelectedItem="{Binding Funding}" />
                 <TextBlock Grid.Row="4" Text="Quote number or grant" />
                 <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding FundingDetail}" ToolTip="For example: MacCoss-2026-CWZG-MARTEN, or R01 AG012345" />
                 <TextBlock Grid.Row="5" Text="Human subjects" />
-                <ComboBox Grid.Row="5" Grid.Column="1" ItemsSource="{x:Static vm:NewExperimentViewModel.HumanChoices}" SelectedItem="{Binding Human}" />
+                <ComboBox Grid.Row="5" Grid.Column="1" ItemsSource="{x:Static vm:NewProjectViewModel.HumanChoices}" SelectedItem="{Binding Human}" />
                 <TextBlock Grid.Row="6" Text="Species" />
                 <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding Species}" />
                 <TextBlock Grid.Row="7" Text="Sample type" />

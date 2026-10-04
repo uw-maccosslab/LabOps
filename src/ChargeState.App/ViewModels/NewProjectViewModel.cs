@@ -3,10 +3,10 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace ChargeState.App.ViewModels;
 
-/// <summary>The "New experiment" form. Everything is optional except some way to know what the work is.</summary>
-public sealed partial class NewExperimentViewModel : ObservableObject
+/// <summary>The "New project" form. Everything is optional except some way to know what the work is.</summary>
+public sealed partial class NewProjectViewModel : ObservableObject
 {
-    public NewExperimentViewModel()
+    public NewProjectViewModel()
     {
         Collaborator = Institution = Description = FundingDetail = Species = SampleType = Samples = Notes = EmailText = "";
         Funding = FundingChoices[0];
@@ -33,18 +33,19 @@ public sealed partial class NewExperimentViewModel : ObservableObject
     public bool IsComplete => !string.IsNullOrWhiteSpace(Description) || !string.IsNullOrWhiteSpace(EmailText);
 
     /// <summary>A short title for the chat pane.</summary>
-    public string Title => string.IsNullOrWhiteSpace(Collaborator) ? "New experiment" : $"New experiment with {Collaborator.Trim()}";
+    public string Title => string.IsNullOrWhiteSpace(Collaborator) ? "New project" : $"New project with {Collaborator.Trim()}";
 
     /// <summary>The message that starts Claude on the new-experiment skill.</summary>
     public string BuildPrompt()
     {
         var text = new StringBuilder();
-        text.AppendLine("Use the new-experiment skill to start tracking a new experiment from this information.");
+        text.AppendLine("Use the new-experiment skill to start tracking new work from this information: the lab if it is new, "
+            + "the project, and an experiment for each measurement of its samples.");
         text.AppendLine();
 
         var fields = new (string Label, string Value)[]
         {
-            ("Collaborator (PI)", Collaborator), ("Institution", Institution), ("The experiment", Description),
+            ("Collaborator (PI)", Collaborator), ("Institution", Institution), ("The project", Description),
             ("Funding", Funding == FundingChoices[0] ? "" : Funding.ToLowerInvariant()),
             ("Quote number or grant", FundingDetail),
             ("Human subjects", Human == HumanChoices[0] ? "" : Human),

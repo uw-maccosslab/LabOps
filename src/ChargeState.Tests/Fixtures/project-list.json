@@ -1,11 +1,11 @@
 {
   "ok": true,
   "engine_version": "26.1.0",
-  "projects": [
+  "labs": [
     {
-      "group": "ClearwaterZoo-Cole",
+      "lab": "ClearwaterZoo-Cole",
       "folder": "projects/ClearwaterZoo-Cole",
-      "title": "Marten plasma extracellular vesicles",
+      "title": "Clearwater Zoo reproductive biology",
       "pi": "Ella Cole, Ph.D.",
       "institution": "Clearwater Zoo and Botanical Garden",
       "status": "active",
@@ -13,12 +13,12 @@
       "analysis_repo": null,
       "notebooks": [],
       "issues": [],
-      "experiments": [
+      "projects": [
         {
-          "experiment": "2026-10-Marten-Plasma",
-          "folder": "projects/ClearwaterZoo-Cole/2026-10-Marten-Plasma",
-          "group": "ClearwaterZoo-Cole",
-          "title": "Mag-Net EV proteomics of marten plasma",
+          "project": "Marten-Plasma",
+          "folder": "projects/ClearwaterZoo-Cole/Marten-Plasma",
+          "lab": "ClearwaterZoo-Cole",
+          "title": "Marten plasma extracellular vesicles",
           "status": "active",
           "series": null,
           "lab_contact": "maccoss",
@@ -33,17 +33,10 @@
           "species": "American marten",
           "sample_type": "plasma",
           "expected_samples": 10,
-          "instrument": "Orbitrap Astral",
           "notebooks": [
             {
               "id": "ELN-4485-20230314-179",
               "url": "https://panoramaweb.org/MacCoss/samplemanager-app.view#/notebooks"
-            }
-          ],
-          "panorama": [
-            {
-              "folder": "/MacCoss/maccoss/2026-Marten",
-              "kind": "raw"
             }
           ],
           "analysis": {
@@ -60,7 +53,10 @@
           "stages": [
             {
               "stage": "samples_received",
+              "kind": "samples_received",
+              "label": "Samples received",
               "status": "done",
+              "assigned": null,
               "started": "2026-10-01",
               "finished": "2026-10-01",
               "by": "maccoss",
@@ -68,7 +64,10 @@
             },
             {
               "stage": "metadata_organized",
+              "kind": "metadata_organized",
+              "label": "Metadata organized",
               "status": "done",
+              "assigned": null,
               "started": "2026-10-02",
               "finished": "2026-10-02",
               "by": "maccoss",
@@ -76,7 +75,10 @@
             },
             {
               "stage": "plate_layout",
+              "kind": "plate_layout",
+              "label": "Plate layout",
               "status": "done",
+              "assigned": null,
               "started": "2026-10-03",
               "finished": "2026-10-03",
               "by": "maccoss",
@@ -84,50 +86,13 @@
             },
             {
               "stage": "sample_prep",
+              "kind": "sample_prep",
+              "label": "Sample prep",
               "status": "in_progress",
+              "assigned": "maccoss",
               "started": "2026-10-03",
               "finished": null,
               "by": "maccoss",
-              "note": null
-            },
-            {
-              "stage": "data_acquisition",
-              "status": "pending",
-              "started": null,
-              "finished": null,
-              "by": null,
-              "note": null
-            },
-            {
-              "stage": "data_deposited",
-              "status": "pending",
-              "started": null,
-              "finished": null,
-              "by": null,
-              "note": null
-            },
-            {
-              "stage": "signal_processing",
-              "status": "pending",
-              "started": null,
-              "finished": null,
-              "by": null,
-              "note": null
-            },
-            {
-              "stage": "data_analysis",
-              "status": "pending",
-              "started": null,
-              "finished": null,
-              "by": null,
-              "note": null
-            },
-            {
-              "stage": "results_returned",
-              "status": "pending",
-              "started": null,
-              "finished": null,
-              "by": null,
               "note": null
             }
           ],
@@ -135,14 +100,104 @@
             "samples": true,
             "layout": true
           },
-          "issues": []
+          "issues": [],
+          "experiments": [
+            {
+              "experiment": "2026-10-Marten-DIA",
+              "folder": "projects/ClearwaterZoo-Cole/Marten-Plasma/2026-10-Marten-DIA",
+              "project": "Marten-Plasma",
+              "lab": "ClearwaterZoo-Cole",
+              "title": "Mag-Net EV proteomics, DIA",
+              "status": "active",
+              "lab_contact": "maccoss",
+              "instrument": "Orbitrap Astral",
+              "funding": {
+                "type": "quote",
+                "quotes": [
+                  "MacCoss-2026-CWZG-MARTEN"
+                ],
+                "grant": null
+              },
+              "funding_inherited": true,
+              "notebooks": [],
+              "panorama": [
+                {
+                  "folder": "/MacCoss/maccoss/2026-Marten",
+                  "kind": "raw"
+                }
+              ],
+              "analysis": {
+                "repo": null,
+                "folder": null
+              },
+              "current_stage": "data_acquisition",
+              "stages": [
+                {
+                  "stage": "data_acquisition",
+                  "kind": "data_acquisition",
+                  "label": "Data acquisition",
+                  "status": "pending",
+                  "assigned": "maccoss",
+                  "started": null,
+                  "finished": null,
+                  "by": null,
+                  "note": null
+                },
+                {
+                  "stage": "data_deposited",
+                  "kind": "data_deposited",
+                  "label": "Data deposited to Panorama",
+                  "status": "pending",
+                  "assigned": "maccoss",
+                  "started": null,
+                  "finished": null,
+                  "by": null,
+                  "note": null
+                },
+                {
+                  "stage": "signal_processing",
+                  "kind": "signal_processing",
+                  "label": "Signal processing",
+                  "status": "pending",
+                  "assigned": null,
+                  "started": null,
+                  "finished": null,
+                  "by": null,
+                  "note": null
+                },
+                {
+                  "stage": "data_analysis",
+                  "kind": "data_analysis",
+                  "label": "Data analysis",
+                  "status": "pending",
+                  "assigned": null,
+                  "started": null,
+                  "finished": null,
+                  "by": null,
+                  "note": null
+                },
+                {
+                  "stage": "results_returned",
+                  "kind": "results_returned",
+                  "label": "Results returned",
+                  "status": "pending",
+                  "assigned": null,
+                  "started": null,
+                  "finished": null,
+                  "by": null,
+                  "note": null
+                }
+              ],
+              "issues": []
+            }
+          ]
         }
       ]
     },
     {
-      "group": "UW-Example",
-      "folder": "projects/UW-Example",
-      "title": "Internal method development",
+      "lab": "UW-MacCoss",
+      "folder": "projects/UW-MacCoss",
+      "title": "MacCoss lab",
       "pi": "Michael MacCoss, Ph.D.",
       "institution": "University of Washington",
       "status": "active",
@@ -150,12 +205,12 @@
       "analysis_repo": null,
       "notebooks": [],
       "issues": [],
-      "experiments": [
+      "projects": [
         {
-          "experiment": "2026-09-Gradient-Test",
-          "folder": "projects/UW-Example/2026-09-Gradient-Test",
-          "group": "UW-Example",
-          "title": "Short gradient test",
+          "project": "Gradient-Test",
+          "folder": "projects/UW-MacCoss/Gradient-Test",
+          "lab": "UW-MacCoss",
+          "title": "Internal method development",
           "status": "active",
           "series": null,
           "lab_contact": "maccoss",
@@ -168,9 +223,7 @@
           "species": null,
           "sample_type": null,
           "expected_samples": null,
-          "instrument": null,
           "notebooks": [],
-          "panorama": [],
           "analysis": {
             "repo": null,
             "folder": null
@@ -180,7 +233,10 @@
           "stages": [
             {
               "stage": "samples_received",
+              "kind": "samples_received",
+              "label": "Samples received",
               "status": "pending",
+              "assigned": null,
               "started": null,
               "finished": null,
               "by": null,
@@ -188,7 +244,10 @@
             },
             {
               "stage": "metadata_organized",
+              "kind": "metadata_organized",
+              "label": "Metadata organized",
               "status": "pending",
+              "assigned": null,
               "started": null,
               "finished": null,
               "by": null,
@@ -196,7 +255,10 @@
             },
             {
               "stage": "plate_layout",
+              "kind": "plate_layout",
+              "label": "Plate layout",
               "status": "pending",
+              "assigned": null,
               "started": null,
               "finished": null,
               "by": null,
@@ -204,47 +266,10 @@
             },
             {
               "stage": "sample_prep",
+              "kind": "sample_prep",
+              "label": "Sample prep",
               "status": "pending",
-              "started": null,
-              "finished": null,
-              "by": null,
-              "note": null
-            },
-            {
-              "stage": "data_acquisition",
-              "status": "pending",
-              "started": null,
-              "finished": null,
-              "by": null,
-              "note": null
-            },
-            {
-              "stage": "data_deposited",
-              "status": "pending",
-              "started": null,
-              "finished": null,
-              "by": null,
-              "note": null
-            },
-            {
-              "stage": "signal_processing",
-              "status": "pending",
-              "started": null,
-              "finished": null,
-              "by": null,
-              "note": null
-            },
-            {
-              "stage": "data_analysis",
-              "status": "pending",
-              "started": null,
-              "finished": null,
-              "by": null,
-              "note": null
-            },
-            {
-              "stage": "results_returned",
-              "status": "pending",
+              "assigned": null,
               "started": null,
               "finished": null,
               "by": null,
@@ -255,9 +280,203 @@
             "samples": false,
             "layout": false
           },
-          "issues": []
+          "issues": [],
+          "experiments": [
+            {
+              "experiment": "2026-09-Gradient-DIA",
+              "folder": "projects/UW-MacCoss/Gradient-Test/2026-09-Gradient-DIA",
+              "project": "Gradient-Test",
+              "lab": "UW-MacCoss",
+              "title": "Short gradient DIA",
+              "status": "active",
+              "lab_contact": "maccoss",
+              "instrument": null,
+              "funding": {
+                "type": "internal",
+                "quotes": [],
+                "grant": null
+              },
+              "funding_inherited": true,
+              "notebooks": [],
+              "panorama": [],
+              "analysis": {
+                "repo": null,
+                "folder": null
+              },
+              "current_stage": "data_acquisition",
+              "stages": [
+                {
+                  "stage": "data_acquisition",
+                  "kind": "data_acquisition",
+                  "label": "Data acquisition",
+                  "status": "pending",
+                  "assigned": null,
+                  "started": null,
+                  "finished": null,
+                  "by": null,
+                  "note": null
+                },
+                {
+                  "stage": "data_deposited",
+                  "kind": "data_deposited",
+                  "label": "Data deposited to Panorama",
+                  "status": "pending",
+                  "assigned": null,
+                  "started": null,
+                  "finished": null,
+                  "by": null,
+                  "note": null
+                },
+                {
+                  "stage": "signal_processing",
+                  "kind": "signal_processing",
+                  "label": "Signal processing",
+                  "status": "pending",
+                  "assigned": null,
+                  "started": null,
+                  "finished": null,
+                  "by": null,
+                  "note": null
+                },
+                {
+                  "stage": "data_analysis",
+                  "kind": "data_analysis",
+                  "label": "Data analysis",
+                  "status": "pending",
+                  "assigned": null,
+                  "started": null,
+                  "finished": null,
+                  "by": null,
+                  "note": null
+                },
+                {
+                  "stage": "results_returned",
+                  "kind": "results_returned",
+                  "label": "Results returned",
+                  "status": "pending",
+                  "assigned": null,
+                  "started": null,
+                  "finished": null,
+                  "by": null,
+                  "note": null
+                }
+              ],
+              "issues": []
+            },
+            {
+              "experiment": "2026-12-Gradient-PRM",
+              "folder": "projects/UW-MacCoss/Gradient-Test/2026-12-Gradient-PRM",
+              "project": "Gradient-Test",
+              "lab": "UW-MacCoss",
+              "title": "Targeted follow-up on the Stellar",
+              "status": "active",
+              "lab_contact": "maccoss",
+              "instrument": "Stellar",
+              "funding": {
+                "type": "grant",
+                "quotes": [],
+                "grant": "R01 GM000000"
+              },
+              "funding_inherited": false,
+              "notebooks": [],
+              "panorama": [],
+              "analysis": {
+                "repo": null,
+                "folder": null
+              },
+              "current_stage": "metadata_organized",
+              "stages": [
+                {
+                  "stage": "metadata_organized",
+                  "kind": "metadata_organized",
+                  "label": "Unblinded metadata",
+                  "status": "pending",
+                  "assigned": null,
+                  "started": null,
+                  "finished": null,
+                  "by": null,
+                  "note": null
+                },
+                {
+                  "stage": "assay_development",
+                  "kind": "assay_development",
+                  "label": "Assay development",
+                  "status": "pending",
+                  "assigned": null,
+                  "started": null,
+                  "finished": null,
+                  "by": null,
+                  "note": null
+                },
+                {
+                  "stage": "data_acquisition",
+                  "kind": "data_acquisition",
+                  "label": "Data acquisition",
+                  "status": "pending",
+                  "assigned": null,
+                  "started": null,
+                  "finished": null,
+                  "by": null,
+                  "note": null
+                },
+                {
+                  "stage": "data_deposited",
+                  "kind": "data_deposited",
+                  "label": "Data deposited to Panorama",
+                  "status": "pending",
+                  "assigned": null,
+                  "started": null,
+                  "finished": null,
+                  "by": null,
+                  "note": null
+                },
+                {
+                  "stage": "signal_processing",
+                  "kind": "signal_processing",
+                  "label": "Signal processing",
+                  "status": "pending",
+                  "assigned": null,
+                  "started": null,
+                  "finished": null,
+                  "by": null,
+                  "note": null
+                },
+                {
+                  "stage": "data_analysis",
+                  "kind": "data_analysis",
+                  "label": "Data analysis",
+                  "status": "pending",
+                  "assigned": null,
+                  "started": null,
+                  "finished": null,
+                  "by": null,
+                  "note": null
+                },
+                {
+                  "stage": "results_returned",
+                  "kind": "results_returned",
+                  "label": "Results returned",
+                  "status": "pending",
+                  "assigned": null,
+                  "started": null,
+                  "finished": null,
+                  "by": null,
+                  "note": null
+                }
+              ],
+              "issues": []
+            }
+          ]
         }
       ]
+    }
+  ],
+  "projects": [],
+  "people": [
+    {
+      "login": "maccoss",
+      "name": "Michael MacCoss",
+      "role": "PI"
     }
   ],
   "problems": []

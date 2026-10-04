@@ -31,9 +31,9 @@ public sealed record SyncStatus(
     public IReadOnlyList<string> Changes => LocalChanges ?? [];
 }
 
-/// <summary>Someone else changed the same quote or experiment. Nothing was lost; the user's commit is kept locally.</summary>
+/// <summary>Someone else changed the same quote or project. Nothing was lost; the user's commit is kept locally.</summary>
 /// <param name="Files">The files in conflict.</param>
-/// <param name="Items">The quote numbers or experiment names they belong to.</param>
+/// <param name="Items">The quote numbers or project names they belong to.</param>
 /// <param name="OtherAuthor">Who made the change on GitHub, when known.</param>
 public sealed record SyncConflict(IReadOnlyList<string> Files, IReadOnlyList<string> Items, string? OtherAuthor)
 {
@@ -108,7 +108,7 @@ public sealed class CommitRefusedException(IReadOnlyList<string> problems)
 /// </summary>
 /// <remarks>
 /// <para>
-/// Quotes and experiments live in separate folders, so two people working on different ones
+/// Quotes and projects live in separate folders, so two people working on different ones
 /// touch different files and a rebase replays one person's commit on top of the other's with no
 /// conflict at all. That is the normal case, and it needs nothing from the user.
 /// </para>
@@ -120,7 +120,7 @@ public sealed class CommitRefusedException(IReadOnlyList<string> problems)
 /// regenerates it.
 /// </para>
 /// <para>
-/// A conflict in anything a person edits, quote.yaml or experiment.yaml above all, is real, and
+/// A conflict in anything a person edits, quote.yaml or project.yaml above all, is real, and
 /// guessing would lose someone's work. The rebase is aborted, the user's commit stays on this
 /// computer, and the user is told who changed it.
 /// </para>

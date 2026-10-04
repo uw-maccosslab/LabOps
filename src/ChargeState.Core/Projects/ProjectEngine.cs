@@ -40,18 +40,18 @@ public sealed class ProjectEngine : IPreCommitCheck
         return ReadList(doc.RootElement);
     }
 
-    /// <summary>Starts, finishes or skips a stage.</summary>
-    /// <param name="experiment">The experiment's name.</param>
-    /// <param name="stage">One of <see cref="StageNames.All"/>.</param>
+    /// <summary>Starts, finishes or skips a step.</summary>
+    /// <param name="item">The project (its sample steps) or experiment, by name.</param>
+    /// <param name="stage">The step's id.</param>
     /// <param name="action">What to record.</param>
     /// <param name="date">When it happened; today when null.</param>
     /// <param name="by">GitHub login of who did it.</param>
     /// <param name="note">A short note; null leaves any existing note alone.</param>
-    public async Task<ExperimentSummary> StageAsync(
-        string experiment, string stage, StageAction action, DateOnly? date = null, string? by = null, string? note = null,
+    public async Task StageAsync(
+        string item, string stage, StageAction action, DateOnly? date = null, string? by = null, string? note = null,
         CancellationToken cancellationToken = default)
     {
-        var args = new List<string> { "stage", experiment, stage, action.ToString().ToLowerInvariant() };
+        var args = new List<string> { "stage", item, stage, action.ToString().ToLowerInvariant() };
         if (date is { } d)
         {
             args.AddRange(["--date", d.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)]);
@@ -68,7 +68,51 @@ public sealed class ProjectEngine : IPreCommitCheck
         }
 
         using var doc = await RunAsync(args, cancellationToken).ConfigureAwait(false);
-        return ReadExperiment(doc.RootElement.GetProperty("experiment"));
+    }
+
+    /// <summary>Adds a step to a project's or an experiment's timeline.</summary>
+    /// <param name="item">The project or experiment, by name.</param>
+    /// <param name="kind">One of <see cref="StageNames.Kinds"/>.</param>
+    /// <param name="label">How it reads; needed for kind other.</param>
+    /// <param name="after">The step to put it after.</param>
+    /// <param name="before">The step to put it before. With neither, it goes at the end.</param>
+    public async Task AddStepAsync(
+        string item, string kind, string? label, string? after, string? before = null, CancellationToken cancellationToken = default)
+    {
+        var args = new List<string> { "add-step", item, kind };
+        if (!string.IsNullOrWhiteSpace(label))
+        {
+            args.AddRange(["--label", label.Trim()]);
+        }
+
+        if (!string.IsNullOrWhiteSpace(after))
+        {
+            args.AddRange(["--after", after]);
+        }
+        else if (!string.IsNullOrWhiteSpace(before))
+        {
+            args.AddRange(["--before", before]);
+        }
+
+        using var doc = await RunAsync(args, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Assigns steps to a person, or to nobody when <paramref name="login"/> is null.</summary>
+    /// <param name="item">The project or experiment, by name.</param>
+    /// <param name="stages">The steps' ids.</param>
+    /// <param name="login">GitHub login of who does them.</param>
+    public async Task AssignAsync(string item, IReadOnlyList<string> stages, string? login, CancellationToken cancellationToken = default)
+    {
+        var args = new List<string> { "assign", item };
+        args.AddRange(stages);
+        args.AddRange(login is null ? ["--nobody"] : ["--to", login]);
+        using var doc = await RunAsync(args, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Removes a step that has not started.</summary>
+    public async Task RemoveStepAsync(string item, string stage, CancellationToken cancellationToken = default)
+    {
+        using var doc = await RunAsync(["remove-step", item, stage], cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Looks for identifiers in a collaborator's file. Reports columns and problems, never values.</summary>
@@ -79,10 +123,10 @@ public sealed class ProjectEngine : IPreCommitCheck
             ?? throw new EngineException("The project engine returned an empty scan.");
     }
 
-    /// <summary>Writes the experiment's Octopus input to inbox/ and returns its full path.</summary>
-    public async Task<OctopusInput> OctopusInputAsync(string experiment, CancellationToken cancellationToken = default)
+    /// <summary>Writes the project's Octopus input to inbox/ and returns its full path.</summary>
+    public async Task<OctopusInput> OctopusInputAsync(string project, CancellationToken cancellationToken = default)
     {
-        using var doc = await RunAsync(["octopus-input", experiment], cancellationToken).ConfigureAwait(false);
+        using var doc = await RunAsync(["octopus-input", project], cancellationToken).ConfigureAwait(false);
         var root = doc.RootElement;
         return new OctopusInput(
             ToLocalPath(root.GetProperty("file").GetString()!),
@@ -91,17 +135,16 @@ public sealed class ProjectEngine : IPreCommitCheck
     }
 
     /// <summary>Keeps an Octopus layout export with the input that produced it, and marks the layout done.</summary>
-    public async Task<ExperimentSummary> ImportLayoutAsync(
-        string experiment, string layoutFile, string? by, CancellationToken cancellationToken = default)
+    public async Task ImportLayoutAsync(
+        string project, string layoutFile, string? by, CancellationToken cancellationToken = default)
     {
-        var args = new List<string> { "import-layout", experiment, layoutFile };
+        var args = new List<string> { "import-layout", project, layoutFile };
         if (!string.IsNullOrWhiteSpace(by))
         {
             args.AddRange(["--by", by.Trim()]);
         }
 
         using var doc = await RunAsync(args, cancellationToken).ConfigureAwait(false);
-        return ReadExperiment(doc.RootElement.GetProperty("experiment"));
     }
 
     /// <summary>The identifier check on what is staged: the repository's pre-commit check.</summary>
@@ -115,12 +158,18 @@ public sealed class ProjectEngine : IPreCommitCheck
     public Task EnsureEnvironmentAsync(CancellationToken cancellationToken = default) =>
         EngineJson.EnsureEnvironmentAsync(_runner, _tools, RequireRepository(), m => new EngineException(m), cancellationToken);
 
-    internal static ProjectList ReadList(JsonElement root) =>
-        new(root.GetProperty("projects").Deserialize<List<ProjectSummary>>(EngineJson.Options) ?? [], ReadProblems(root));
+    internal static ProjectList ReadList(JsonElement root)
+    {
+        // Labs came with project engine 26.2.0; before that the top level was "projects". A
+        // repository that old needs its own update, which config/app.yaml's version tells people.
+        if (!root.TryGetProperty("labs", out var labs))
+        {
+            throw new EngineException("This copy of the lab projects is older than this app. Sync it, or ask Mike to update the repository.");
+        }
 
-    internal static ExperimentSummary ReadExperiment(JsonElement element) =>
-        element.Deserialize<ExperimentSummary>(EngineJson.Options)
-        ?? throw new EngineException("The project engine returned an empty experiment.");
+        var people = root.TryGetProperty("people", out var list) ? list.Deserialize<List<Person>>(EngineJson.Options) ?? [] : [];
+        return new(labs.Deserialize<List<LabSummary>>(EngineJson.Options) ?? [], people, ReadProblems(root));
+    }
 
     private static List<ProjectIssue> ReadProblems(JsonElement root) =>
         root.TryGetProperty("problems", out var p) ? p.Deserialize<List<ProjectIssue>>(EngineJson.Options) ?? [] : [];

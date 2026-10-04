@@ -26,7 +26,7 @@
                     <Button Content="Quotes" Command="{Binding ShowQuotesCommand}" Tag="{Binding IsQuotesArea}" Style="{StaticResource AreaTab}"
                             VerticalAlignment="Center" Margin="0,0,18,6"
                             Visibility="{Binding HasQuotes, Converter={StaticResource BoolToVisibility}}" />
-                    <Button Content="New experiment" Command="{Binding Projects.NewExperimentCommand}" FontWeight="SemiBold"
+                    <Button Content="New project" Command="{Binding Projects.NewProjectCommand}" FontWeight="SemiBold"
                             Visibility="{Binding IsProjectsArea, Converter={StaticResource BoolToVisibility}}" />
                     <Button Content="New quote" Command="{Binding NewQuoteCommand}" FontWeight="SemiBold"
                             Visibility="{Binding IsQuotesArea, Converter={StaticResource BoolToVisibility}}" />

@@ -41,9 +41,10 @@ public sealed class SyncParsingTests
 
     [Theory]
     [InlineData("README.md", true)]
-    [InlineData("projects/Lab/2026-10-Pilot/experiment.yaml", false)]
-    [InlineData("projects/Lab/2026-10-Pilot/metadata/samples.csv", false)]
-    [InlineData("projects/Lab/2026-10-Pilot/calculation.md", false)]
+    [InlineData("projects/Lab/Pilot/project.yaml", false)]
+    [InlineData("projects/Lab/Pilot/2026-10-Pilot-DIA/experiment.yaml", false)]
+    [InlineData("projects/Lab/Pilot/metadata/samples.csv", false)]
+    [InlineData("projects/Lab/Pilot/calculation.md", false)]
     public void Projects_have_no_generated_files_but_the_index(string path, bool generated) =>
         RepositoryProfile.Projects.IsGenerated(path).ShouldBe(generated);
 
@@ -53,12 +54,14 @@ public sealed class SyncParsingTests
             .ShouldBe("quotes/UW-Alder/2026/MacCoss-2026-UW-ALDER-GCF15");
 
     [Fact]
-    public void Experiment_folder_is_the_first_three_path_segments()
+    public void Project_folder_is_the_first_three_path_segments_and_holds_its_experiments()
     {
-        RepositoryProfile.Projects.ItemFolder("projects/Lab/2026-10-Pilot/metadata/received/manifest.csv")
-            .ShouldBe("projects/Lab/2026-10-Pilot");
-        RepositoryProfile.Projects.IsItemPath("projects/Lab/2026-10-Pilot/experiment.yaml").ShouldBeTrue();
-        RepositoryProfile.Projects.IsItemPath("projects/Lab/project.yaml").ShouldBeFalse();
+        RepositoryProfile.Projects.ItemFolder("projects/Lab/Pilot/metadata/received/manifest.csv")
+            .ShouldBe("projects/Lab/Pilot");
+        RepositoryProfile.Projects.ItemFolder("projects/Lab/Pilot/2026-10-Pilot-DIA/experiment.yaml")
+            .ShouldBe("projects/Lab/Pilot");
+        RepositoryProfile.Projects.IsItemPath("projects/Lab/Pilot/project.yaml").ShouldBeTrue();
+        RepositoryProfile.Projects.IsItemPath("projects/Lab/lab.yaml").ShouldBeFalse();
         RepositoryProfile.Projects.IsItemPath("config/people.yaml").ShouldBeFalse();
     }
 

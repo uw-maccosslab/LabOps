@@ -17,7 +17,7 @@ public sealed class AppSettings
 
     /// <summary>
     /// Claude Code session per item, so "continue" picks up the conversation: keyed by quote
-    /// number, or <c>projects:</c> plus the experiment name.
+    /// number, or <c>projects:</c> plus the project name.
     /// </summary>
     public Dictionary<string, string> ClaudeSessions { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 

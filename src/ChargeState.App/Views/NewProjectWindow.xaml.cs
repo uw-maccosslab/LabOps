@@ -4,11 +4,11 @@ using ChargeState.Core.Infrastructure;
 
 namespace ChargeState.App.Views;
 
-public partial class NewExperimentWindow : Window
+public partial class NewProjectWindow : Window
 {
-    private readonly NewExperimentViewModel _vm = new();
+    private readonly NewProjectViewModel _vm = new();
 
-    private NewExperimentWindow()
+    private NewProjectWindow()
     {
         InitializeComponent();
         DataContext = _vm;
@@ -16,9 +16,9 @@ public partial class NewExperimentWindow : Window
     }
 
     /// <summary>Shows the form; returns what was filled in, or null if cancelled.</summary>
-    public static NewExperimentViewModel? Ask(Window? owner)
+    public static NewProjectViewModel? Ask(Window? owner)
     {
-        var window = new NewExperimentWindow { Owner = owner };
+        var window = new NewProjectWindow { Owner = owner };
         return window.ShowDialog() == true ? window._vm : null;
     }
 
@@ -26,7 +26,7 @@ public partial class NewExperimentWindow : Window
     {
         if (!_vm.IsComplete)
         {
-            MessageBox.Show(this, "Describe the experiment, or paste an email about it.",
+            MessageBox.Show(this, "Describe the project, or paste an email about it.",
                 AppInfo.ProductName, MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }

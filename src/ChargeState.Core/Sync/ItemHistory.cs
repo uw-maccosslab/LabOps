@@ -3,7 +3,7 @@ using ChargeState.Core.Repositories;
 
 namespace ChargeState.Core.Sync;
 
-/// <summary>When each quote or experiment folder last changed, from git history.</summary>
+/// <summary>When each quote or project folder (with its experiments) last changed, from git history.</summary>
 /// <remarks>
 /// File times on disk are no use for this: a sync rewrites every file it brings in, so they show
 /// when this computer got a change, not when anyone made it. The last commit touching a folder is

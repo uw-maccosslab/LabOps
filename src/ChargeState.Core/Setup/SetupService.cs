@@ -95,7 +95,7 @@ public sealed class SetupService
 
         var claude = _tools.Find(Tool.Claude);
         items.Add(new(SetupStep.Claude, "Claude Code", claude is not null,
-            claude is not null ? "Installed." : "Claude organizes sample metadata, updates experiments, and drafts quotes.", "Install Claude Code"));
+            claude is not null ? "Installed." : "Claude organizes sample metadata, updates projects and experiments, and drafts quotes.", "Install Claude Code"));
 
         var claudeAuth = claude is not null ? await ClaudeStatusAsync(claude, cancellationToken).ConfigureAwait(false) : null;
         items.Add(new(SetupStep.ClaudeSignIn, "Claude sign-in", claudeAuth?.LoggedIn == true,

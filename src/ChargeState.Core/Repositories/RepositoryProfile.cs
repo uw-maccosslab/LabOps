@@ -35,7 +35,7 @@ public sealed class RepositoryProfile
         ChecksCommits = checksCommits;
     }
 
-    /// <summary>uw-maccosslab/lab-projects: collaborations and experiments, open to the whole lab.</summary>
+    /// <summary>uw-maccosslab/lab-projects: labs, their projects and experiments, open to the whole lab.</summary>
     public static RepositoryProfile Projects { get; } = new(
         RepositoryKind.Projects, "projects", "uw-maccosslab/lab-projects", "lab projects", "lab-projects",
         "scripts/project.py", "projects", itemDepth: 3, generatedFileNames: [], checksCommits: true);
@@ -64,7 +64,7 @@ public sealed class RepositoryProfile
     /// <summary>The engine, relative to the repository root.</summary>
     public string EngineScript { get; }
 
-    /// <summary>The folder holding every item (quote or experiment) and nothing else.</summary>
+    /// <summary>The folder holding every item (quote or project) and nothing else.</summary>
     public string RootFolder { get; }
 
     /// <summary>Path segments from the repository root to an item folder: quotes/Group/year/number is 4.</summary>
@@ -91,7 +91,7 @@ public sealed class RepositoryProfile
         || (path.StartsWith(RootFolder + "/", StringComparison.Ordinal)
             && GeneratedFileNames.Any(name => path.EndsWith("/" + name, StringComparison.Ordinal)));
 
-    /// <summary>The item folder (quotes/Group/year/number, projects/Group/experiment) of any path inside one.</summary>
+    /// <summary>The item folder (quotes/Group/year/number, projects/Lab/Project) of any path inside one.</summary>
     public string ItemFolder(string path) => string.Join('/', path.Split('/').Take(ItemDepth));
 
     /// <summary>True when the path is inside an item folder rather than elsewhere in the repository.</summary>
