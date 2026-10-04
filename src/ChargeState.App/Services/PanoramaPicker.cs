@@ -8,9 +8,9 @@ using ChargeState.Core.Panorama;
 namespace ChargeState.App.Services;
 
 /// <summary>
-/// Chooses a folder or an ELN notebook on Panorama. Signs in with PanoramaBridge's saved sign-in,
-/// else ChargeState's, and asks for an API key or a user name and password only when neither
-/// works. Read-only.
+/// Chooses a folder or an ELN notebook on Panorama, and signs in for the Wiki page window. Signs in
+/// with PanoramaBridge's saved sign-in, else ChargeState's, and asks for an API key or a user name
+/// and password only when neither works.
 /// </summary>
 public sealed class PanoramaPicker(PanoramaSignIn signIn, ILogger<PanoramaPicker> log)
 {
@@ -28,8 +28,8 @@ public sealed class PanoramaPicker(PanoramaSignIn signIn, ILogger<PanoramaPicker
         return client is null ? null : NotebookPickerWindow.Ask(owner, new NotebookPickerViewModel(client));
     }
 
-    /// <summary>A client with a sign-in Panorama accepts, or null if the person gave up.</summary>
-    private async Task<PanoramaClient?> SignInAsync(Window owner)
+    /// <summary>A client with a sign-in Panorama accepts, or null if the person gave up. The caller disposes it.</summary>
+    public async Task<PanoramaClient?> SignInAsync(Window owner)
     {
         string? rejected = null;
         foreach (var candidate in signIn.Candidates())
@@ -51,7 +51,7 @@ public sealed class PanoramaPicker(PanoramaSignIn signIn, ILogger<PanoramaPicker
         }
 
         var message = (rejected ?? "Neither PanoramaBridge nor ChargeState has a Panorama sign-in saved on this computer. ")
-            + "Sign in once to browse Panorama; ChargeState keeps the sign-in for next time.";
+            + "Sign in once to use Panorama from ChargeState; it keeps the sign-in for next time.";
         if (PanoramaSignInWindow.Ask(owner, message, signIn.Server,
                 async c => (await TryAsync(c).ConfigureAwait(true))?.Message) is not { } typed)
         {

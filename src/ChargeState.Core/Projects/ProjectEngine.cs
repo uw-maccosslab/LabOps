@@ -165,6 +165,49 @@ public sealed class ProjectEngine : IPreCommitCheck
         using var doc = await RunAsync(["unlink", item, what, value], cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>Records where the project's wiki page is: a Panorama folder (or its address) and the page's name.</summary>
+    public async Task LinkWikiAsync(string project, string folder, string? page, CancellationToken cancellationToken = default)
+    {
+        var args = new List<string> { "link", project, "wiki", folder.Trim() };
+        if (!string.IsNullOrWhiteSpace(page))
+        {
+            args.AddRange(["--page", page.Trim()]);
+        }
+
+        using var doc = await RunAsync(args, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Stops recording the project's wiki page (the page stays on Panorama).</summary>
+    public async Task UnlinkWikiAsync(string project, CancellationToken cancellationToken = default)
+    {
+        using var doc = await RunAsync(["unlink", project, "wiki"], cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Builds the project's wiki page. <paramref name="documentsFile"/> is JSON mapping each results
+    /// or qc folder to its Skyline documents, read from Panorama; without it they are not listed.
+    /// </summary>
+    public async Task<WikiPageContent> WikiAsync(string project, string? documentsFile = null, CancellationToken cancellationToken = default)
+    {
+        var args = new List<string> { "wiki", project };
+        if (documentsFile is not null)
+        {
+            args.AddRange(["--documents", documentsFile]);
+        }
+
+        using var doc = await RunAsync(args, cancellationToken).ConfigureAwait(false);
+        return ReadWiki(doc.RootElement);
+    }
+
+    internal static WikiPageContent ReadWiki(JsonElement root) => new(
+        root.GetProperty("project").GetString() ?? "",
+        root.TryGetProperty("folder", out var f) && f.ValueKind == JsonValueKind.String ? f.GetString() : null,
+        root.TryGetProperty("page", out var p) && p.ValueKind == JsonValueKind.String ? p.GetString()! : "default",
+        root.GetProperty("title").GetString() ?? "",
+        root.GetProperty("html").GetString() ?? "",
+        root.TryGetProperty("written", out var w) && w.ValueKind == JsonValueKind.True,
+        root.TryGetProperty("written_hash", out var h) && h.ValueKind == JsonValueKind.String ? h.GetString()! : "none");
+
     /// <summary>Removes a step that has not started.</summary>
     public async Task RemoveStepAsync(string item, string stage, CancellationToken cancellationToken = default)
     {

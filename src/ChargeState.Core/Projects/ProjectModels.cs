@@ -98,8 +98,23 @@ public sealed record AnalysisLocation(string? Repo, string? Folder);
 /// <summary>The plate layout imported from Octopus.</summary>
 public sealed record LayoutInfo(int? Plates, int? Samples, string? Imported, string? OctopusVersion);
 
-/// <summary>Which of a project's sample files exist.</summary>
-public sealed record ProjectFiles(bool Samples, bool Layout);
+/// <summary>Which of a project's files exist.</summary>
+/// <param name="Wiki">wiki.yaml: the written parts of its wiki page.</param>
+public sealed record ProjectFiles(bool Samples, bool Layout, bool Wiki = false);
+
+/// <summary>Where a project's wiki page is on Panorama.</summary>
+/// <param name="Folder">The Panorama folder, for example /MacCoss/Collaborations/MNRF/BioTRACK.</param>
+/// <param name="Page">The page's name; default is the folder's main page.</param>
+public sealed record WikiLocation(string Folder, string? Page)
+{
+    public string PageName => string.IsNullOrWhiteSpace(Page) ? "default" : Page!;
+}
+
+/// <summary>A project's wiki page as <c>project.py wiki</c> builds it.</summary>
+/// <param name="Folder">Where it goes, or null when the project has no wiki page recorded.</param>
+/// <param name="Written">Whether wiki.yaml (the summary, plan and samples, by Claude) exists.</param>
+/// <param name="WrittenHash">A fingerprint of the written parts, also in the page's footer.</param>
+public sealed record WikiPageContent(string Project, string? Folder, string Page, string Title, string Html, bool Written, string WrittenHash);
 
 /// <summary>What a project and an experiment share: a timeline of steps.</summary>
 public interface ITimeline
@@ -191,6 +206,9 @@ public sealed record ProjectSummary : ITimeline
     public AnalysisLocation Analysis { get; init; } = new(null, null);
 
     public LayoutInfo? Layout { get; init; }
+
+    /// <summary>Where the project's wiki page is on Panorama, when one is recorded.</summary>
+    public WikiLocation? Wiki { get; init; }
 
     /// <summary>The samples' current step.</summary>
     public string? CurrentStage { get; init; }

@@ -43,11 +43,12 @@ public interface IPanoramaClient
 }
 
 /// <summary>
-/// Reads Panorama, signed in with HTTP Basic on every request; nothing is written. Folders and
-/// files come the way PanoramaBridge browses them, one level at a time with LabKey's WebDAV listing
-/// (<c>GET /_webdav/...?method=json</c>); notebooks from LabKey's query API (labbook.Notebook).
+/// Talks to Panorama, signed in with HTTP Basic on every request. Folders and files come the way
+/// PanoramaBridge browses them, one level at a time with LabKey's WebDAV listing
+/// (<c>GET /_webdav/...?method=json</c>); notebooks and Skyline documents from LabKey's query API.
+/// The one thing it writes is a project's wiki page (PanoramaClient.Wiki.cs).
 /// </summary>
-public sealed class PanoramaClient : IPanoramaClient, IDisposable
+public sealed partial class PanoramaClient : IPanoramaClient, IDisposable
 {
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
 
@@ -83,9 +84,17 @@ public sealed class PanoramaClient : IPanoramaClient, IDisposable
     }
 
     /// <summary>A GET as text, with every failure turned into a message for the person.</summary>
-    private async Task<string> GetAsync(string relativeUrl, string display, CancellationToken cancellationToken)
+    private async Task<string> GetAsync(string relativeUrl, string display, CancellationToken cancellationToken) =>
+        (await SendAsync(new HttpRequestMessage(HttpMethod.Get, relativeUrl), display, allowMissing: false, cancellationToken)
+            .ConfigureAwait(false))!;
+
+    /// <summary>
+    /// Sends a request and returns the answer as text, with every failure turned into a message for
+    /// the person; null for a 404 when <paramref name="allowMissing"/>.
+    /// </summary>
+    private async Task<string?> SendAsync(HttpRequestMessage request, string display, bool allowMissing, CancellationToken cancellationToken)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, relativeUrl);
+        using var owned = request;
         request.Headers.Authorization = _credential.ToAuthenticationHeader();
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -124,12 +133,21 @@ public sealed class PanoramaClient : IPanoramaClient, IDisposable
 
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
+                if (allowMissing)
+                {
+                    return null;
+                }
+
                 throw new PanoramaException($"{display} is not on Panorama.");
             }
 
             if (!response.IsSuccessStatusCode)
             {
-                throw new PanoramaException($"Panorama answered {(int)response.StatusCode} {response.ReasonPhrase} for {display}.");
+                // LabKey's APIs explain a refusal in JSON: {"exception": "..."}.
+                var detail = ApiError(await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false));
+                throw new PanoramaException(detail is null
+                    ? $"Panorama answered {(int)response.StatusCode} {response.ReasonPhrase} for {display}."
+                    : $"Panorama refused {display}: {detail}");
             }
 
             return await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);

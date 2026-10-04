@@ -174,6 +174,9 @@ public static class StepHomes
     /// <summary>The Panorama folder the raw files go to.</summary>
     public static IReadOnlyList<string> RawData { get; } = ["data_deposited", "data_acquisition"];
 
+    /// <summary>The Panorama folder with the process control (system suitability) runs, watched during acquisition.</summary>
+    public static IReadOnlyList<string> ProcessControl { get; } = ["data_acquisition"];
+
     /// <summary>The Panorama folder with the Skyline documents.</summary>
     public static IReadOnlyList<string> Results { get; } = ["signal_processing", "data_analysis", "results_returned"];
 
@@ -186,7 +189,7 @@ public static class StepHomes
 public sealed record StepTool(string Label, string ToolTip, IRelayCommand Command, object? Parameter = null);
 
 /// <summary>What Add raw data folder, Add results folder or Add notebook records, and on what.</summary>
-/// <param name="Kind">raw, results or notebook.</param>
+/// <param name="Kind">raw, results, qc or notebook.</param>
 public sealed record LinkRequest(TimelineSection Section, string Kind);
 
 /// <summary>One step of a timeline, with the buttons that apply to it.</summary>

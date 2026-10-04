@@ -62,6 +62,8 @@
                         </TextBlock.Style>
                     </TextBlock>
                     <TextBlock Text="{Binding WorkingText}" Margin="24,0,0,0" FontStyle="Italic" Foreground="{StaticResource MutedBrush}" />
+                    <TextBlock Text="{Binding Notice}" Margin="24,0,0,0" Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis"
+                               ToolTip="{Binding Notice}" />
                 </StackPanel>
             </DockPanel>
         </Border>

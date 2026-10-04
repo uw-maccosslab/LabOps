@@ -145,6 +145,8 @@ public sealed partial class MainViewModel : ObservableObject
 
     [ObservableProperty] public partial string? WorkingText { get; set; }
 
+    [ObservableProperty] public partial string? Notice { get; set; }
+
     public bool HasSelection => Selected is not null;
 
     public bool CanSendSelected => _workspace.CanSend && Selected is { IsDraft: true };
@@ -332,6 +334,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         IsWorking = _work.IsWorking;
         WorkingText = _work.WorkingText;
+        Notice = _work.Notice;
     }
 
     /// <summary>

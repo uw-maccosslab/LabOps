@@ -145,6 +145,7 @@ public static class Program
         services.AddSingleton(provider => new PanoramaSignIn(provider.GetRequiredService<ICredentialStore>(),
             Environment.GetEnvironmentVariable("CHARGESTATE_PANORAMA") is { Length: > 0 } server ? new Uri(server) : PanoramaPaths.DefaultServer));
         services.AddSingleton<PanoramaPicker>();
+        services.AddSingleton<WikiPublisher>();
         // Each open repository gets its own git client and sync service from the factory.
         services.AddSingleton(provider => new RepositoryFactory(
             provider.GetRequiredService<IProcessRunner>(), provider.GetRequiredService<ToolLocator>(),

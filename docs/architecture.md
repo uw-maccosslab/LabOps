@@ -49,7 +49,7 @@ flowchart LR
     claude -->|"follows"| guide
     claude -->|"edits, runs the engine"| records
     records <-->|"3. kept in step by the app, with git"| github
-    app -->|"4. reads, never writes"| panorama
+    app -->|"4. reads; writes only wiki pages"| panorama
     claude --> claudeService
 ```
 
@@ -59,7 +59,8 @@ flowchart LR
    instructions, and runs the same engine.
 3. **git** carries every change to and from GitHub. The app commits and syncs; GitHub runs each
    repository's checks after every push.
-4. **Panorama** is only read: to choose an experiment's folders and notebook.
+4. **Panorama** is read to choose an experiment's folders and notebook, and to count the Skyline
+   documents in them. The one thing the app writes there is each project's wiki page.
 
 ### Panorama and PanoramaBridge
 
@@ -78,6 +79,9 @@ flowchart LR
     eln --> browse
     creds["Windows Credential Manager<br/>PanoramaBridge's saved sign-in"] -.-> browse
     browse -->|"records your choice"| experiment["lab-projects<br/>experiment.yaml"]
+    folder -->|"Skyline documents counted"| wikiBuild["ChargeState: Wiki page<br/>project.py wiki builds it"]
+    wikiBuild -->|"publishes"| wikiPage["Wiki page<br/>.../BioTRACK, page default"]
+    creds -.-> wikiBuild
 ```
 
 ChargeState signs in to Panorama with the sign-in PanoramaBridge saved on the computer (an API key
@@ -159,8 +163,14 @@ flowchart LR
   `127.0.0.1` (a random port, with a secret token) and gives Claude three tools: `ask_user`
   (a question in the chat pane), `report_quote_summary` (the quote card) and `approve` (the
   permission prompt). It is named `quotes-app` in both repositories, for historical reasons.
-- **Panorama is read-only.** The only request the app sends Panorama is `GET`: folder listings and
-  the notebook list. What you choose is written to lab-projects by `project.py link`.
+- **Panorama is read, except for wiki pages.** The app reads folder listings, the notebook list
+  and each results folder's Skyline documents, and writes one thing: a project's wiki page
+  (`wiki-saveWiki.api`), built by `project.py wiki`. LabKey wants a CSRF token on every POST, even
+  with an API key, so the save first gets one from `login-whoami.api` and sends it with that
+  session's cookies. The app republishes a page on its own only when the page's footer marks it as
+  ChargeState's, nobody has edited it on Panorama since (the footer fingerprints the page), and its
+  written parts are the ones published last; replacing a page written or edited by hand, and
+  publishing new text from Claude, are done in the Wiki page window. What you choose when browsing is written to lab-projects by `project.py link`.
 - **The bundled tools.** The installer carries pinned copies of `uv` and `gh` in its `tools`
   folder. Git and Claude Code are installed by Setup.
 
@@ -175,6 +185,9 @@ flowchart LR
 | Add a step, Remove a step | `project.py add-step`, `remove-step` | `<item>: added step ...` |
 | Add notebook, Add raw data folder, Add results folder, Remove a link | `project.py link`, `unlink` | `<item>: raw data on Panorama` |
 | Organize with Claude | `project.py scan <file>`, then Claude | `<project>: updated with Claude` |
+| Wiki page (the first time: where it goes) | `project.py link <project> wiki <folder> --page <name>` | `<project>: wiki page on Panorama` |
+| Wiki page, Publish; and after every saved change | `project.py wiki <project> --documents <file>`, then Panorama's `wiki-saveWiki.api` | nothing in git |
+| Write the text with Claude | the update-wiki skill writes `wiki.yaml` | `<project>: updated with Claude` |
 | Open in Octopus, Import layout | `project.py octopus-input`, `import-layout` | `<project>: plate layout from Octopus` |
 | Every commit in lab-projects | `project.py check --staged` | refuses the commit on an error |
 | Send, PO received, Invoiced, Declined | `quote.py send`, `quote.py status` | `<number>: sent` |

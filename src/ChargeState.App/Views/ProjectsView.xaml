@@ -172,6 +172,8 @@
                                     ToolTip="Record progress, add a notebook, Panorama folder or analysis repository, or change anything else, by telling Claude." />
                             <Button Content="New experiment" Command="{Binding NewExperimentCommand}"
                                     ToolTip="Another measurement of these samples, for example PRM on the Stellar after DIA on the Astral. Claude asks what it is." />
+                            <Button Content="Wiki page" Command="{Binding ViewWikiCommand}"
+                                    ToolTip="The project's page on Panorama, with every step and where the data are. The app keeps it up to date; the collaborators who can open the folder can read it." />
                             <Button Content="Folder" Command="{Binding OpenFolderCommand}" />
                             <Button Content="On GitHub" Command="{Binding OpenOnGitHubCommand}" />
                         </WrapPanel>

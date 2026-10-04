@@ -21,6 +21,10 @@ public sealed partial class WorkTracker(ILogger<WorkTracker> log) : ObservableOb
     [ObservableProperty]
     public partial string? WorkingText { get; private set; }
 
+    /// <summary>The latest word from work done in the background, such as a wiki page update.</summary>
+    [ObservableProperty]
+    public partial string? Notice { get; set; }
+
     /// <summary>
     /// How recent a sync with GitHub makes a fetch before the next change unnecessary. After a
     /// save the app shares in the background, so a person clicking through steps gets no fetch

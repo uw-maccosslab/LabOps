@@ -8,7 +8,8 @@ namespace ChargeState.App.Views;
 /// <param name="PanoramaKind">raw or results for a Panorama folder; null for a notebook.</param>
 /// <param name="Address">The Panorama folder or address, or the notebook's link.</param>
 /// <param name="NotebookId">The notebook's ID, for a notebook.</param>
-public sealed record AddLinkAnswer(string? PanoramaKind, string? Address, string? NotebookId);
+/// <param name="Page">The wiki page's name, for a wiki page.</param>
+public sealed record AddLinkAnswer(string? PanoramaKind, string? Address, string? NotebookId, string? Page = null);
 
 /// <summary>Asks for a Panorama folder (raw data or results) or an ELN notebook, by browsing or pasting its address.</summary>
 public partial class AddLinkWindow : Window
@@ -20,7 +21,7 @@ public partial class AddLinkWindow : Window
     private readonly string _kind;
     private AddLinkAnswer? _answer;
 
-    private AddLinkWindow(Window? owner, string heading, string kind, PanoramaPicker? picker)
+    private AddLinkWindow(Window? owner, string heading, string kind, PanoramaPicker? picker, string? suggestion)
     {
         _picker = picker;
         _kind = kind;
@@ -35,15 +36,28 @@ public partial class AddLinkWindow : Window
                 + "before acquisition starts.",
             "results" => "The folder with the Skyline documents. Choose it with Browse, paste its address from your browser, "
                 + "or type its path, for example /MacCoss/Collaborations/MNRF/BioTRACK/2026-09-BioTRACK-Quant.",
+            "qc" => "The folder with the process control (system suitability) runs. Choose it with Browse, paste its address "
+                + "from your browser, or type its path.",
+            "wiki" => "The Panorama folder whose page tracks the project, usually the one that holds its experiments' folders, "
+                + "and the page's name (default is the folder's main page). Everyone who can open the folder can read the page, "
+                + "the collaborators included; a lab member decides who that is, in Panorama.",
             _ => "Choose the notebook with Browse, or give its ID (the link is filled in from it).",
         };
 
         AddressLabel.Text = IsNotebook ? "Link" : "Folder";
+        if (IsWiki)
+        {
+            IdLabel.Text = "Page";
+            NotebookId.Text = "default";
+            NotebookId.ToolTip = "The wiki page's name: default is the folder's main page";
+            Address.Text = suggestion ?? "";
+        }
+
         FindIt.Content = IsNotebook ? "Find it in the notebooks on Panorama" : "Find it on Panorama";
         Address.ToolTip = IsNotebook
             ? "The notebook's address, copied from your browser"
             : "The folder's address copied from your browser, or its path, for example /MacCoss/maccoss/2026-BioTRACK";
-        IdLabel.Visibility = NotebookId.Visibility = IsNotebook ? Visibility.Visible : Visibility.Collapsed;
+        IdLabel.Visibility = NotebookId.Visibility = IsNotebook || IsWiki ? Visibility.Visible : Visibility.Collapsed;
         Browse.Visibility = _picker is null ? Visibility.Collapsed : Visibility.Visible;
         Browse.ToolTip = IsNotebook
             ? "Choose the notebook from the lab's notebooks on Panorama"
@@ -52,15 +66,18 @@ public partial class AddLinkWindow : Window
     }
 
     /// <summary>The link to add, or null if cancelled.</summary>
-    /// <param name="kind">raw or results for a Panorama folder; notebook for an ELN notebook.</param>
+    /// <param name="kind">raw, results or qc for a Panorama folder; notebook for an ELN notebook; wiki for the project's page.</param>
     /// <param name="picker">Browses Panorama for a folder or a notebook; null hides Browse.</param>
-    public static AddLinkAnswer? Ask(Window? owner, string heading, string kind, PanoramaPicker? picker = null)
+    /// <param name="suggestion">A folder to start from, for the wiki page.</param>
+    public static AddLinkAnswer? Ask(Window? owner, string heading, string kind, PanoramaPicker? picker = null, string? suggestion = null)
     {
-        var window = new AddLinkWindow(owner, heading, kind, picker);
+        var window = new AddLinkWindow(owner, heading, kind, picker, suggestion);
         return window.ShowDialog() == true ? window._answer : null;
     }
 
     private bool IsNotebook => _kind == "notebook";
+
+    private bool IsWiki => _kind == "wiki";
 
     private async void OnBrowse(object sender, RoutedEventArgs e)
     {
@@ -112,7 +129,7 @@ public partial class AddLinkWindow : Window
             return;
         }
 
-        _answer = new AddLinkAnswer(IsNotebook ? null : _kind, address, IsNotebook ? id : null);
+        _answer = new AddLinkAnswer(IsNotebook ? null : _kind, address, IsNotebook ? id : null, IsWiki ? id ?? "default" : null);
         DialogResult = true;
     }
 }

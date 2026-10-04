@@ -214,7 +214,8 @@ sequenceDiagram
     App->>App: commit and push
 ```
 
-- **Read-only.** Only `GET` requests go to Panorama; what you choose is written to lab-projects.
+- **Read-only.** Browsing sends only `GET` requests to Panorama; what you choose is written to
+  lab-projects. (The wiki page, below, is the one thing written to Panorama.)
 - **Folders:** raw files are in a folder's `@files` area (where PanoramaBridge uploads), and are
   recorded with that part, for example
   `/MacCoss/Collaborations/MNRF/BioTRACK/2026-09-BioTRACK-Quant/@files/RawFiles`. The folder itself,
@@ -247,3 +248,47 @@ flowchart TB
 Each clone is set to rebase on pull with autostash, and lab-projects to use its `.githooks`. Setup
 runs again whenever something is missing, for example after the engines are deleted or a sign-in
 expires.
+
+## The project's wiki page
+
+**Wiki page** on a project shows its page on Panorama as it would be published: the status, the
+figures, every step with its dates, who and note, the samples, the Panorama folders with their
+Skyline documents, and where the records are. Everyone who can open the folder reads it, the
+collaborators of that collaboration included; a lab member decides who that is, in Panorama.
+
+```mermaid
+sequenceDiagram
+    actor You
+    participant App as ChargeState
+    participant Engine as project.py
+    participant Claude as Claude Code
+    participant Panorama as panoramaweb.org
+
+    opt the first time
+        You->>App: Wiki page, then the folder and page name
+        App->>Engine: link MNRF-BioTRACK wiki /MacCoss/Collaborations/MNRF/BioTRACK
+    end
+    App->>Panorama: each results and process control folder's Skyline documents
+    App->>Engine: wiki MNRF-BioTRACK --documents (the counts)
+    App->>Panorama: the page as it is now (wiki-edit.view)
+    App-->>You: the preview, and what Publish would do
+    alt Write the text with Claude
+        You->>App: Write the text with Claude
+        App->>Claude: update-wiki skill (writes wiki.yaml)
+        Claude-->>App: turn finished, wiki.yaml changed
+        App-->>You: the preview again
+    end
+    You->>App: Publish
+    App->>Panorama: wiki-saveWiki.api (Panorama keeps the earlier version)
+    Note over App,Panorama: after that, every change saved in the app republishes the page,<br/>until its written parts change again
+```
+
+- **Kept up to date:** after each change saved in the app (a step, a link, Claude's work), the app
+  rebuilds and republishes the page in the background, and says so in the status bar. It does so
+  only for a page whose footer marks it as ChargeState's, that nobody has edited on Panorama since,
+  and only while the written parts (`wiki.yaml`) are the ones last published; new text, and a page
+  edited on Panorama, wait in the Wiki page window for a person.
+- **Written parts:** the summary, plan, description of the samples and a sentence per data folder
+  are Claude's, in the project's `wiki.yaml`; everything else comes from the records each time.
+- **A page written or edited by hand** is replaced only from the Wiki page window, after a
+  question; Panorama keeps the earlier version in the page's history.

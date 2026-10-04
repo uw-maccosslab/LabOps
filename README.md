@@ -49,6 +49,10 @@ Projects:
   - **Signal processing:** **Add results folder**, with the Skyline documents.
   - **Browse...** finds folders and notebooks on Panorama, signed in the way PanoramaBridge is. A
     timeline without the step keeps its buttons beside its heading.
+- **Wiki page:** the project's page on Panorama, as in the BioTRACK folder: status, every step with
+  its dates, who and notes, the samples, and the data with their Skyline documents. Preview it,
+  have Claude write its summary, plan and description of the samples, and publish it; after that
+  the app republishes it after every change. The collaborators who can open the folder read it.
 - The list shows active and on-hold projects; **Show closed** adds the closed ones.
 
 Quotes:

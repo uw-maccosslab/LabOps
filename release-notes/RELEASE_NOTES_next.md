@@ -6,6 +6,26 @@ the GitHub Release description and fails if it is missing.
 
 ## New Features
 
+- **A wiki page on Panorama for each project.** Wiki page on a project shows its page as it would
+  be published, in the style of the BioTRACK page: the status and funding, the figures, the plan,
+  every step with its status, dates, who and note, the samples, the raw data, results and process
+  control folders with their Skyline documents (replicates, peptides, proteins, read from
+  Panorama), and where the records are. The first time, it asks where the page goes (the folder
+  above the experiments' folders is suggested). From the window:
+  - **Write the text with Claude** has Claude write the summary, plan and description of the
+    samples (the project's `wiki.yaml`, new update-wiki skill); the page is shown again when
+    Claude finishes.
+  - **Publish** puts the page on Panorama, signed in the way PanoramaBridge is. A page written by
+    hand is replaced only after a question, and Panorama keeps the earlier version.
+
+  After that, every change saved in the app republishes the page in the background (the status
+  bar says so), as long as the page is ChargeState's, nobody has edited it on Panorama since, and
+  its written text is the one last published; new text, and a page edited on Panorama, wait in the
+  window to be looked at first. Everyone who can open the
+  folder can read the page, the collaborators of that collaboration included. Needs the
+  lab-projects engine with `project.py wiki`.
+- **Process control folders.** Data acquisition has Add process control folder, for the Panorama
+  folder with an experiment's process control runs; the wiki page lists its Skyline documents.
 - **Each step has the buttons for its work.** The project's row of buttons is down to Ask Claude
   to update it, New experiment, Folder and On GitHub; the rest moved onto the steps they belong
   to, where what they record is shown too:
