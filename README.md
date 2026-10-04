@@ -13,7 +13,7 @@ with the repositories, their engines, Claude Code, GitHub and Panorama.
 
 ## Installing
 
-Download the `MacCossLab.LabOps-...-Setup.exe` from the latest
+Download `MacCossLab.LabOps-stable-Setup.exe` from the latest
 [release](https://github.com/uw-maccosslab/LabOps/releases) and run it. No
 administrator rights are needed. The first time it starts, Setup walks through:
 
