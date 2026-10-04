@@ -7,7 +7,7 @@
         <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
             <TextBlock Text="Set up ChargeState" Style="{StaticResource Heading}" />
             <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,0"
-                       Text="The app needs a few tools and sign-ins. Each button does one step; sign-ins open your browser. You only do this once." />
+                       Text="The app needs a few tools, sign-ins, and a copy of the lab projects. Each button does one step; sign-ins open your browser. You only do this once. The quotes are optional, for the people who prepare them." />
         </StackPanel>
         <DockPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
             <Button DockPanel.Dock="Right" Content="Done" IsDefault="True" Click="OnDone" Style="{StaticResource PrimaryButton}" Margin="0" />

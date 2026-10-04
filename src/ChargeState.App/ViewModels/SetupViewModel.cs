@@ -3,8 +3,11 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
 using ChargeState.App.Services;
+using ChargeState.Core.Engines;
 using ChargeState.Core.Infrastructure;
+using ChargeState.Core.Projects;
 using ChargeState.Core.Quotes;
+using ChargeState.Core.Repositories;
 using ChargeState.Core.Setup;
 
 namespace ChargeState.App.ViewModels;
@@ -34,13 +37,15 @@ public sealed partial class SetupViewModel : ObservableObject
 {
     private readonly SetupService _setup;
     private readonly Workspace _workspace;
-    private readonly QuoteEngine _engine;
+    private readonly QuoteEngine _quoteEngine;
+    private readonly ProjectEngine _projectEngine;
 
-    public SetupViewModel(SetupService setup, Workspace workspace, QuoteEngine engine)
+    public SetupViewModel(SetupService setup, Workspace workspace, QuoteEngine quoteEngine, ProjectEngine projectEngine)
     {
         _setup = setup;
         _workspace = workspace;
-        _engine = engine;
+        _quoteEngine = quoteEngine;
+        _projectEngine = projectEngine;
         Status = "Checking...";
     }
 
@@ -62,13 +67,16 @@ public sealed partial class SetupViewModel : ObservableObject
         IsWorking = true;
         try
         {
-            var repo = _workspace.RepositoryPath ?? SetupService.FindExistingClone(_workspace.Settings.RepositoryPath);
-            if (repo is not null && _workspace.RepositoryPath != repo)
+            foreach (var profile in RepositoryProfile.All)
             {
-                _workspace.UseRepository(repo);
+                if (_workspace.Get(profile) is null
+                    && SetupService.FindExistingClone(profile, _workspace.ConfiguredPath(profile)) is { } found)
+                {
+                    _workspace.Open(profile, found);
+                }
             }
 
-            var items = await _setup.CheckAsync(repo).ConfigureAwait(true);
+            var items = await _setup.CheckAsync(_workspace.Projects?.Path, _workspace.Quotes?.Path).ConfigureAwait(true);
             Rows.Clear();
             foreach (var item in items)
             {
@@ -92,16 +100,24 @@ public sealed partial class SetupViewModel : ObservableObject
         {
             switch (row.Item.Step)
             {
-                case SetupStep.Repository:
-                    await CloneAsync().ConfigureAwait(true);
+                case SetupStep.ProjectsRepository or SetupStep.QuotesRepository:
+                    await CloneAsync(row.Item.Profile!).ConfigureAwait(true);
                     break;
                 case SetupStep.GitIdentity:
                     Status = "Setting your name on saved changes...";
-                    await _setup.SetIdentityFromGitHubAsync(_workspace.RepositoryPath!).ConfigureAwait(true);
+                    foreach (var repository in new[] { _workspace.Projects, _workspace.Quotes }.OfType<Repository>())
+                    {
+                        await _setup.SetIdentityFromGitHubAsync(repository.Path).ConfigureAwait(true);
+                    }
+
                     break;
-                case SetupStep.PythonEnvironment:
+                case SetupStep.ProjectsEngine:
+                    Status = "Preparing the project engine. The first time downloads Python, which takes a minute or two...";
+                    await _projectEngine.EnsureEnvironmentAsync().ConfigureAwait(true);
+                    break;
+                case SetupStep.QuotesEngine:
                     Status = "Preparing the quote engine. The first time downloads Python, which takes a minute or two...";
-                    await _engine.EnsureEnvironmentAsync().ConfigureAwait(true);
+                    await _quoteEngine.EnsureEnvironmentAsync().ConfigureAwait(true);
                     break;
                 default:
                     if (_setup.ConsoleFix(row.Item.Step) is { } command)
@@ -113,7 +129,7 @@ public sealed partial class SetupViewModel : ObservableObject
                     break;
             }
         }
-        catch (Exception ex) when (ex is InvalidOperationException or QuoteEngineException or IOException
+        catch (Exception ex) when (ex is InvalidOperationException or EngineException or IOException
             or System.ComponentModel.Win32Exception or Core.Processes.ToolMissingException)
         {
             System.Windows.MessageBox.Show(ex.Message, AppInfo.ProductName, System.Windows.MessageBoxButton.OK,
@@ -129,19 +145,19 @@ public sealed partial class SetupViewModel : ObservableObject
 
     private bool CanFix(SetupRowViewModel? row) => !IsWorking && row is { CanFix: true };
 
-    /// <summary>The second button on a row; today only "use a copy I already have".</summary>
+    /// <summary>The second button on a repository row: use a copy the user already has.</summary>
     [RelayCommand(CanExecute = nameof(CanAlternate))]
     private async Task AlternateAsync(SetupRowViewModel row)
     {
-        if (row.Item.Step != SetupStep.Repository)
+        if (row.Item.Profile is not { } profile)
         {
             return;
         }
 
         var dialog = new OpenFolderDialog
         {
-            Title = "Choose your existing copy of the quotes (the folder that contains scripts\\quote.py)",
-            InitialDirectory = _workspace.RepositoryPath ?? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            Title = $"Choose your existing copy of the {profile.DisplayName} (the folder that contains {profile.EngineScript.Replace('/', '\\')})",
+            InitialDirectory = _workspace.Get(profile)?.Path ?? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
         };
 
         if (dialog.ShowDialog() != true)
@@ -152,8 +168,8 @@ public sealed partial class SetupViewModel : ObservableObject
         IsWorking = true;
         try
         {
-            var path = await _setup.UseExistingCloneAsync(dialog.FolderName).ConfigureAwait(true);
-            _workspace.UseRepository(path);
+            var path = await _setup.UseExistingCloneAsync(profile, dialog.FolderName).ConfigureAwait(true);
+            _workspace.Open(profile, path);
         }
         catch (InvalidOperationException ex)
         {
@@ -170,12 +186,12 @@ public sealed partial class SetupViewModel : ObservableObject
 
     private bool CanAlternate(SetupRowViewModel? row) => !IsWorking && row is { HasAlternate: true };
 
-    private async Task CloneAsync()
+    private async Task CloneAsync(RepositoryProfile profile)
     {
         var dialog = new OpenFolderDialog
         {
-            Title = "Choose where to keep the quotes (a new folder named services-quotes is created inside it)",
-            InitialDirectory = Path.GetDirectoryName(AppPaths.DefaultClonePath),
+            Title = $"Choose where to keep the {profile.DisplayName} (a new folder named {profile.DefaultFolderName} is created inside it)",
+            InitialDirectory = Path.GetDirectoryName(profile.DefaultClonePath),
         };
 
         if (dialog.ShowDialog() != true)
@@ -183,9 +199,9 @@ public sealed partial class SetupViewModel : ObservableObject
             return;
         }
 
-        var target = Path.Combine(dialog.FolderName, "services-quotes");
-        Status = $"Downloading the quotes to {target}...";
-        var path = await _setup.CloneAsync(target).ConfigureAwait(true);
-        _workspace.UseRepository(path);
+        var target = Path.Combine(dialog.FolderName, profile.DefaultFolderName);
+        Status = $"Downloading the {profile.DisplayName} to {target}...";
+        var path = await _setup.CloneAsync(profile, target).ConfigureAwait(true);
+        _workspace.Open(profile, path);
     }
 }

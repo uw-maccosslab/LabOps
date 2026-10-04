@@ -1,0 +1,264 @@
+{
+  "ok": true,
+  "engine_version": "26.1.0",
+  "projects": [
+    {
+      "group": "ClearwaterZoo-Cole",
+      "folder": "projects/ClearwaterZoo-Cole",
+      "title": "Marten plasma extracellular vesicles",
+      "pi": "Ella Cole, Ph.D.",
+      "institution": "Clearwater Zoo and Botanical Garden",
+      "status": "active",
+      "lab_contact": "maccoss",
+      "analysis_repo": null,
+      "notebooks": [],
+      "issues": [],
+      "experiments": [
+        {
+          "experiment": "2026-10-Marten-Plasma",
+          "folder": "projects/ClearwaterZoo-Cole/2026-10-Marten-Plasma",
+          "group": "ClearwaterZoo-Cole",
+          "title": "Mag-Net EV proteomics of marten plasma",
+          "status": "active",
+          "series": null,
+          "lab_contact": "maccoss",
+          "funding": {
+            "type": "quote",
+            "quotes": [
+              "MacCoss-2026-CWZG-MARTEN"
+            ],
+            "grant": null
+          },
+          "human": false,
+          "species": "American marten",
+          "sample_type": "plasma",
+          "expected_samples": 10,
+          "instrument": "Orbitrap Astral",
+          "notebooks": [
+            {
+              "id": "ELN-4485-20230314-179",
+              "url": "https://panoramaweb.org/MacCoss/samplemanager-app.view#/notebooks"
+            }
+          ],
+          "panorama": [
+            {
+              "folder": "/MacCoss/maccoss/2026-Marten",
+              "kind": "raw"
+            }
+          ],
+          "analysis": {
+            "repo": null,
+            "folder": null
+          },
+          "layout": {
+            "plates": 1,
+            "samples": 10,
+            "imported": "2026-10-03",
+            "octopus_version": "1.4.0"
+          },
+          "current_stage": "sample_prep",
+          "stages": [
+            {
+              "stage": "samples_received",
+              "status": "done",
+              "started": "2026-10-01",
+              "finished": "2026-10-01",
+              "by": "maccoss",
+              "note": "10 tubes on dry ice"
+            },
+            {
+              "stage": "metadata_organized",
+              "status": "done",
+              "started": "2026-10-02",
+              "finished": "2026-10-02",
+              "by": "maccoss",
+              "note": null
+            },
+            {
+              "stage": "plate_layout",
+              "status": "done",
+              "started": "2026-10-03",
+              "finished": "2026-10-03",
+              "by": "maccoss",
+              "note": "Octopus layout: 1 plate(s), 10 samples"
+            },
+            {
+              "stage": "sample_prep",
+              "status": "in_progress",
+              "started": "2026-10-03",
+              "finished": null,
+              "by": "maccoss",
+              "note": null
+            },
+            {
+              "stage": "data_acquisition",
+              "status": "pending",
+              "started": null,
+              "finished": null,
+              "by": null,
+              "note": null
+            },
+            {
+              "stage": "data_deposited",
+              "status": "pending",
+              "started": null,
+              "finished": null,
+              "by": null,
+              "note": null
+            },
+            {
+              "stage": "signal_processing",
+              "status": "pending",
+              "started": null,
+              "finished": null,
+              "by": null,
+              "note": null
+            },
+            {
+              "stage": "data_analysis",
+              "status": "pending",
+              "started": null,
+              "finished": null,
+              "by": null,
+              "note": null
+            },
+            {
+              "stage": "results_returned",
+              "status": "pending",
+              "started": null,
+              "finished": null,
+              "by": null,
+              "note": null
+            }
+          ],
+          "files": {
+            "samples": true,
+            "layout": true
+          },
+          "issues": []
+        }
+      ]
+    },
+    {
+      "group": "UW-Example",
+      "folder": "projects/UW-Example",
+      "title": "Internal method development",
+      "pi": "Michael MacCoss, Ph.D.",
+      "institution": "University of Washington",
+      "status": "active",
+      "lab_contact": "maccoss",
+      "analysis_repo": null,
+      "notebooks": [],
+      "issues": [],
+      "experiments": [
+        {
+          "experiment": "2026-09-Gradient-Test",
+          "folder": "projects/UW-Example/2026-09-Gradient-Test",
+          "group": "UW-Example",
+          "title": "Short gradient test",
+          "status": "active",
+          "series": null,
+          "lab_contact": "maccoss",
+          "funding": {
+            "type": "internal",
+            "quotes": [],
+            "grant": null
+          },
+          "human": true,
+          "species": null,
+          "sample_type": null,
+          "expected_samples": null,
+          "instrument": null,
+          "notebooks": [],
+          "panorama": [],
+          "analysis": {
+            "repo": null,
+            "folder": null
+          },
+          "layout": null,
+          "current_stage": "samples_received",
+          "stages": [
+            {
+              "stage": "samples_received",
+              "status": "pending",
+              "started": null,
+              "finished": null,
+              "by": null,
+              "note": null
+            },
+            {
+              "stage": "metadata_organized",
+              "status": "pending",
+              "started": null,
+              "finished": null,
+              "by": null,
+              "note": null
+            },
+            {
+              "stage": "plate_layout",
+              "status": "pending",
+              "started": null,
+              "finished": null,
+              "by": null,
+              "note": null
+            },
+            {
+              "stage": "sample_prep",
+              "status": "pending",
+              "started": null,
+              "finished": null,
+              "by": null,
+              "note": null
+            },
+            {
+              "stage": "data_acquisition",
+              "status": "pending",
+              "started": null,
+              "finished": null,
+              "by": null,
+              "note": null
+            },
+            {
+              "stage": "data_deposited",
+              "status": "pending",
+              "started": null,
+              "finished": null,
+              "by": null,
+              "note": null
+            },
+            {
+              "stage": "signal_processing",
+              "status": "pending",
+              "started": null,
+              "finished": null,
+              "by": null,
+              "note": null
+            },
+            {
+              "stage": "data_analysis",
+              "status": "pending",
+              "started": null,
+              "finished": null,
+              "by": null,
+              "note": null
+            },
+            {
+              "stage": "results_returned",
+              "status": "pending",
+              "started": null,
+              "finished": null,
+              "by": null,
+              "note": null
+            }
+          ],
+          "files": {
+            "samples": false,
+            "layout": false
+          },
+          "issues": []
+        }
+      ]
+    }
+  ],
+  "problems": []
+}

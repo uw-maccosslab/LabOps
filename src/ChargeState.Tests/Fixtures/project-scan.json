@@ -1,0 +1,38 @@
+{
+  "ok": true,
+  "human_rules": true,
+  "sheets": [
+    {
+      "sheet": "manifest.csv",
+      "rows": 2,
+      "columns": [
+        "Sample_ID",
+        "Patient Name",
+        "Collection date",
+        "Notes"
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "level": "ERROR",
+      "file": "manifest.csv",
+      "column": "Patient Name",
+      "message": "looks like a person's name (rename it if it names something else, for example Sample Name); remove the column or replace it with a study code"
+    },
+    {
+      "level": "ERROR",
+      "file": "manifest.csv",
+      "column": "Collection date",
+      "message": "contains full dates, which identify people in a human study; keep only the year, or convert to days from the first collection",
+      "count": 2
+    },
+    {
+      "level": "WARN",
+      "file": "manifest.csv",
+      "column": "Notes",
+      "message": "is free text; check it for names, dates, places or other identifiers"
+    }
+  ],
+  "errors": 2
+}

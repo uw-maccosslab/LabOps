@@ -69,6 +69,12 @@ public sealed record QuoteSummary
     /// <summary>Set instead of the fields above when quote.yaml could not be read.</summary>
     public string? Error { get; init; }
 
+    /// <summary>
+    /// When the quote's folder last changed, from git history (not from quote.py); null until the
+    /// app has read the history. Uncommitted changes count as now.
+    /// </summary>
+    public DateTimeOffset? Modified { get; init; }
+
     public bool IsHistorical => Status == "historical";
 
     public bool IsDraft => Status == "draft";

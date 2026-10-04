@@ -9,9 +9,16 @@ namespace ChargeState.Core.Infrastructure;
 public sealed class AppSettings
 {
     /// <summary>Folder holding the clone of the quotes repository, once setup has made one.</summary>
+    /// <remarks>The name predates the projects repository; it stays so existing settings still load.</remarks>
     public string? RepositoryPath { get; set; }
 
-    /// <summary>Claude Code session per quote number, so "continue" picks up the conversation.</summary>
+    /// <summary>Folder holding the clone of the lab projects repository.</summary>
+    public string? ProjectsRepositoryPath { get; set; }
+
+    /// <summary>
+    /// Claude Code session per item, so "continue" picks up the conversation: keyed by quote
+    /// number, or <c>projects:</c> plus the experiment name.
+    /// </summary>
     public Dictionary<string, string> ClaudeSessions { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Optional Claude model alias (for example "opus"); empty uses the user's default.</summary>
@@ -66,7 +73,7 @@ public sealed class SettingsStore
                 return new AppSettings();
             }
 
-            // A deserialized dictionary loses its comparer; quote numbers are case-insensitive.
+            // A deserialized dictionary loses its comparer; the keys are case-insensitive.
             settings.ClaudeSessions = new Dictionary<string, string>(
                 settings.ClaudeSessions ?? [], StringComparer.OrdinalIgnoreCase);
             return settings;

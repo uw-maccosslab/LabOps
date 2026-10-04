@@ -1,5 +1,6 @@
 using System.Text.Json;
 using ChargeState.Core.Claude;
+using ChargeState.Core.Repositories;
 
 namespace ChargeState.Tests.Claude;
 
@@ -93,8 +94,30 @@ public sealed class ClaudeSessionTests
         ClaudeLauncher.DisallowedTools.ShouldContain("Bash(git push:*)");
         ClaudeLauncher.DisallowedTools.ShouldContain("Bash(git reset:*)");
         ClaudeLauncher.DisallowedTools.ShouldContain("WebFetch");
-        ClaudeLauncher.AllowedTools.ShouldNotContain(t => t.StartsWith("Bash(git commit", StringComparison.Ordinal));
-        ClaudeLauncher.AllowedTools.ShouldContain("Bash(uv run python scripts/quote.py:*)");
+        ClaudeLauncher.DisallowedTools.ShouldContain("Bash(git config:*)");
+        var quotes = ClaudeLauncher.AllowedTools(RepositoryProfile.Quotes);
+        quotes.ShouldNotContain(t => t.StartsWith("Bash(git commit", StringComparison.Ordinal));
+        quotes.ShouldContain("Bash(uv run python scripts/quote.py:*)");
+        quotes.ShouldNotContain("Bash(uv run python scripts/project.py:*)");
+
+        var projects = ClaudeLauncher.AllowedTools(RepositoryProfile.Projects);
+        projects.ShouldContain("Bash(uv run python scripts/project.py:*)");
+        projects.ShouldNotContain("Bash(uv run python scripts/quote.py:*)");
+    }
+
+    [Fact]
+    public void Each_repository_tells_claude_its_own_skills_and_rules()
+    {
+        var projects = ClaudeLauncher.SystemPrompt(RepositoryProfile.Projects, "Mike");
+        projects.ShouldContain("organize-metadata");
+        projects.ShouldContain("project.py scan");
+        projects.ShouldNotContain("report_quote_summary");
+        projects.ShouldNotContain("\u2014");
+
+        var quotes = ClaudeLauncher.SystemPrompt(RepositoryProfile.Quotes, null);
+        quotes.ShouldContain("new-quote");
+        quotes.ShouldContain("report_quote_summary");
+        quotes.ShouldContain("do not chain commands");
     }
 
     [Theory]

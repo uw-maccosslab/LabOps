@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Threading;
@@ -7,17 +8,28 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using ChargeState.App.Services;
 using ChargeState.App.Views;
+using ChargeState.Core.Engines;
 using ChargeState.Core.GitHub;
 using ChargeState.Core.Infrastructure;
 using ChargeState.Core.Processes;
 using ChargeState.Core.Quotes;
+using ChargeState.Core.Repositories;
 using ChargeState.Core.Setup;
 using ChargeState.Core.Sync;
 
 namespace ChargeState.App.ViewModels;
 
+/// <summary>The two halves of the app.</summary>
+public enum AppArea
+{
+    Projects,
+    Quotes,
+}
+
 /// <summary>
-/// The main window: the quote list, the selected quote, its actions, and the status bar.
+/// The main window: which area is showing, the Quotes area (the quote list, the selected quote
+/// and its actions), and the status bar for both repositories. The Projects area has its own
+/// view model, <see cref="ProjectsViewModel"/>.
 /// </summary>
 /// <remarks>
 /// Every action that changes a quote ends with a save and sync, so the user never has to think
@@ -29,47 +41,66 @@ public sealed partial class MainViewModel : ObservableObject
 
     private readonly Workspace _workspace;
     private readonly QuoteEngine _engine;
-    private readonly SyncService _sync;
     private readonly GitHubCli _gh;
     private readonly SetupService _setup;
     private readonly QuoteSearch _search;
     private readonly UpdateService _updates;
+    private readonly WorkTracker _work;
     private readonly ILogger<MainViewModel> _log;
     private readonly Dispatcher _dispatcher;
+    private readonly Dictionary<RepositoryKind, SyncStatus> _syncStatus = [];
+    private readonly Dictionary<RepositoryKind, CheckRun?> _checks = [];
     private DispatcherTimer? _timer;
     private List<QuoteSummary> _all = [];
 
     public MainViewModel(
-        Workspace workspace, QuoteEngine engine, SyncService sync, GitHubCli gh, SetupService setup,
-        QuoteSearch search, UpdateService updates, ChatViewModel chat, ILogger<MainViewModel> log)
+        Workspace workspace, QuoteEngine engine, GitHubCli gh, SetupService setup, QuoteSearch search,
+        UpdateService updates, WorkTracker work, ChatViewModel chat, ProjectsViewModel projects, ILogger<MainViewModel> log)
     {
         _workspace = workspace;
         _engine = engine;
-        _sync = sync;
         _gh = gh;
         _setup = setup;
         _search = search;
         _updates = updates;
+        _work = work;
         _log = log;
         Chat = chat;
+        Projects = projects;
         _dispatcher = Dispatcher.CurrentDispatcher;
 
         Query = "";
         Filter = QuoteFilter.Current;
+        Area = AppArea.Projects;
         PreviewHtml = MarkdownRenderer.ToHtml(null, "Select a quote to see it here.");
         SyncText = "Starting...";
 
         Chat.TurnCompleted += OnClaudeTurnCompletedAsync;
-        _sync.StatusChanged += s => _dispatcher.InvokeAsync(() => ShowSync(s));
-        _sync.RepositoryUpdated += () => _dispatcher.InvokeAsync(async () => await ReloadQuotesAsync().ConfigureAwait(true));
+        _workspace.RepositoryOpened += OnRepositoryOpened;
         _updates.StatusChanged += s => _dispatcher.InvokeAsync(() => ShowUpdate(s));
+        _work.PropertyChanged += OnWorkChanged;
     }
 
     public ChatViewModel Chat { get; }
 
+    public ProjectsViewModel Projects { get; }
+
     public ObservableCollection<QuoteSummary> Quotes { get; } = [];
 
     public IReadOnlyList<QuoteFilter> Filters { get; } = Enum.GetValues<QuoteFilter>();
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsProjectsArea), nameof(IsQuotesArea))]
+    public partial AppArea Area { get; set; }
+
+    public bool IsProjectsArea => Area == AppArea.Projects;
+
+    public bool IsQuotesArea => Area == AppArea.Quotes;
+
+    /// <summary>The Quotes area exists only for people with a copy of the quotes.</summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ShowQuotesCommand))]
+    public partial bool HasQuotes { get; set; }
 
     [ObservableProperty] public partial string Query { get; set; }
 
@@ -140,7 +171,8 @@ public sealed partial class MainViewModel : ObservableObject
                 $"{q.Total.ToString("C2", Us)} total, {q.PerSample.ToString("C2", Us)} per sample, {q.StudySamples:0.##} study samples",
             };
             var dates = new[] { ("Issued", q.Issued), ("Valid until", q.ValidUntil), ("Sent", q.Sent), ("Accepted", q.Accepted),
-                                ("Invoiced", q.Invoiced), ("Declined", q.Declined), ("PO", q.Po) }
+                                ("Invoiced", q.Invoiced), ("Declined", q.Declined), ("PO", q.Po),
+                                ("Last changed", q.Modified?.ToLocalTime().ToString("yyyy-MM-dd", Us)) }
                 .Where(d => !string.IsNullOrWhiteSpace(d.Item2)).Select(d => $"{d.Item1} {d.Item2}");
             lines.Add(string.Join("   ", dates));
             return string.Join("\n", lines.Where(l => !string.IsNullOrWhiteSpace(l)));
@@ -150,26 +182,34 @@ public sealed partial class MainViewModel : ObservableObject
     public IReadOnlyList<string> SelectedIssues =>
         Selected is null ? [] : [.. Selected.Issues.Select(i => $"{i.Level}: {i.Message}"), .. Selected.Error is null ? [] : new[] { Selected.Error }];
 
+    private Repository? QuotesRepository => _workspace.Quotes;
+
+    private string? QuotesPath => _workspace.Quotes?.Path;
+
+    private IEnumerable<Repository> OpenRepositories() => new[] { _workspace.Projects, _workspace.Quotes }.OfType<Repository>();
+
     // -- startup -----------------------------------------------------------------------------
 
     /// <summary>Runs setup if needed, then loads and syncs. Called once the window is shown.</summary>
     public async Task InitializeAsync(Window owner)
     {
-        var repo = SetupService.FindExistingClone(_workspace.Settings.RepositoryPath);
-        if (repo is not null)
+        foreach (var profile in RepositoryProfile.All)
         {
-            _workspace.UseRepository(repo);
+            if (SetupService.FindExistingClone(profile, _workspace.ConfiguredPath(profile)) is { } path)
+            {
+                _workspace.Open(profile, path);
+            }
         }
 
-        var items = await _setup.CheckAsync(repo).ConfigureAwait(true);
+        var items = await _setup.CheckAsync(_workspace.Projects?.Path, _workspace.Quotes?.Path).ConfigureAwait(true);
         if (!SetupService.AllDone(items))
         {
             SetupWindow.Show(owner, App.Services);
         }
 
-        if (_workspace.RepositoryPath is null)
+        if (!OpenRepositories().Any())
         {
-            Banner = "Setup is not finished. Open Setup to download the quotes.";
+            Banner = "Setup is not finished. Open Setup to download the lab projects.";
             SyncText = "Not set up";
             return;
         }
@@ -177,21 +217,57 @@ public sealed partial class MainViewModel : ObservableObject
         await StartWorkingAsync().ConfigureAwait(true);
     }
 
+    private void OnRepositoryOpened(Repository repository)
+    {
+        var kind = repository.Profile.Kind;
+        repository.Sync.StatusChanged += s => _dispatcher.InvokeAsync(() => ShowSync(kind, s));
+        repository.Sync.RepositoryUpdated += () => _dispatcher.InvokeAsync(async () =>
+        {
+            if (kind == RepositoryKind.Quotes)
+            {
+                await ReloadQuotesAsync().ConfigureAwait(true);
+            }
+            else
+            {
+                await Projects.ReloadAsync().ConfigureAwait(true);
+            }
+        });
+
+        HasQuotes = _workspace.Quotes is not null;
+        if (_workspace.Projects is null && HasQuotes)
+        {
+            Area = AppArea.Quotes;
+        }
+    }
+
     private async Task StartWorkingAsync()
     {
-        _workspace.ReloadConfig();
+        foreach (var repository in OpenRepositories())
+        {
+            repository.ReloadConfig();
+        }
+
         _workspace.User = await _gh.GetUserAsync().ConfigureAwait(true);
         UserText = _workspace.User is null ? "Not signed in to GitHub" : $"Signed in as {_workspace.User.Login}";
         ShowBanner();
 
-        await RunAsync("Getting the latest quotes...", async () =>
+        await _work.RunAsync("Getting the latest changes...", async () =>
         {
-            await _sync.SyncAsync().ConfigureAwait(true);
+            foreach (var repository in OpenRepositories())
+            {
+                await repository.Sync.SyncAsync().ConfigureAwait(true);
+            }
         }).ConfigureAwait(true);
+
+        await Projects.ReloadAsync().ConfigureAwait(true);
         await ReloadQuotesAsync().ConfigureAwait(true);
+        if (Area == AppArea.Quotes && !HasQuotes)
+        {
+            Area = AppArea.Projects;
+        }
 
         _timer ??= CreateTimer();
-        _ = RefreshCheckAsync();
+        _ = RefreshChecksAsync();
         _ = _updates.CheckAsync();
     }
 
@@ -223,27 +299,47 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>Brings in others' work quietly, unless the user is in the middle of something.</summary>
     private async Task BackgroundSyncAsync()
     {
-        if (IsWorking || Chat.IsBusy || _workspace.RepositoryPath is null)
+        foreach (var repository in OpenRepositories().ToList())
         {
-            return;
+            if (IsWorking || Chat.IsBusy)
+            {
+                return;
+            }
+
+            var status = await repository.Sync.RefreshAsync(fetch: true).ConfigureAwait(true);
+            if (status.Behind > 0 && status.Changes.Count == 0)
+            {
+                await repository.Sync.SyncAsync().ConfigureAwait(true);
+            }
         }
 
-        var status = await _sync.RefreshAsync(fetch: true).ConfigureAwait(true);
-        if (status.Behind > 0 && status.Changes.Count == 0)
-        {
-            await _sync.SyncAsync().ConfigureAwait(true);
-        }
-
-        await RefreshCheckAsync().ConfigureAwait(true);
+        await RefreshChecksAsync().ConfigureAwait(true);
     }
 
     private void ShowBanner()
     {
-        Banner = _workspace.AppTooOld
-            ? $"This version of {AppInfo.ProductName} is too old for the quotes repository (it needs {_workspace.Config.MinAppVersion}). Update the app to make changes."
-            : null;
+        var old = OpenRepositories().Where(r => r.AppTooOld).ToList();
+        Banner = old.Count == 0
+            ? null
+            : $"This version of {AppInfo.ProductName} is too old for the {string.Join(" and ", old.Select(r => r.Profile.DisplayName))} "
+              + $"(it needs {old.Max(r => r.Config.MinAppVersion)}). Update the app to make changes.";
         OnPropertyChanged(nameof(CanSendSelected));
+        Projects.RefreshCommands();
     }
+
+    private void OnWorkChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        IsWorking = _work.IsWorking;
+        WorkingText = _work.WorkingText;
+    }
+
+    // -- areas -------------------------------------------------------------------------------
+
+    [RelayCommand]
+    private void ShowProjects() => Area = AppArea.Projects;
+
+    [RelayCommand(CanExecute = nameof(HasQuotes))]
+    private void ShowQuotes() => Area = AppArea.Quotes;
 
     // -- list --------------------------------------------------------------------------------
 
@@ -255,12 +351,17 @@ public sealed partial class MainViewModel : ObservableObject
 
     partial void OnShowCalculationChanged(bool value) => ShowPreview();
 
+    /// <summary>Re-reads both areas from this computer, without contacting GitHub.</summary>
     [RelayCommand]
-    private async Task RefreshAsync() => await ReloadQuotesAsync().ConfigureAwait(true);
+    private async Task RefreshAsync()
+    {
+        await Projects.ReloadAsync().ConfigureAwait(true);
+        await ReloadQuotesAsync().ConfigureAwait(true);
+    }
 
     private async Task ReloadQuotesAsync(string? select = null)
     {
-        if (_workspace.RepositoryPath is null)
+        if (QuotesRepository is not { } repository)
         {
             return;
         }
@@ -268,18 +369,20 @@ public sealed partial class MainViewModel : ObservableObject
         var keep = select ?? Selected?.QuoteNumber;
         try
         {
-            _all = [.. await _engine.ListAsync().ConfigureAwait(true)];
-            var repo = _workspace.RepositoryPath;
+            var quotes = await _engine.ListAsync().ConfigureAwait(true);
+            var modified = await ItemHistory.LastModifiedAsync(repository).ConfigureAwait(true);
+            _all = [.. quotes.Select(q => q with { Modified = modified.TryGetValue(q.Folder, out var t) ? t : null })];
+            var path = repository.Path;
             var snapshot = _all;
-            await Task.Run(() => _search.Index(repo, snapshot)).ConfigureAwait(true);
+            await Task.Run(() => _search.Index(path, snapshot)).ConfigureAwait(true);
         }
-        catch (Exception ex) when (ex is QuoteEngineException or ToolMissingException)
+        catch (Exception ex) when (ex is EngineException or ToolMissingException or GitException)
         {
             Banner = $"The quotes could not be loaded: {ex.Message}";
             return;
         }
 
-        _workspace.ReloadConfig();
+        repository.ReloadConfig();
         ShowBanner();
         ApplyFilter();
 
@@ -311,13 +414,13 @@ public sealed partial class MainViewModel : ObservableObject
 
     private void ShowPreview()
     {
-        if (Selected is null || _workspace.RepositoryPath is null)
+        if (Selected is null || QuotesPath is null)
         {
             PreviewHtml = MarkdownRenderer.ToHtml(null, "Select a quote to see it here.");
             return;
         }
 
-        var folder = Selected.FolderPath(_workspace.RepositoryPath);
+        var folder = Selected.FolderPath(QuotesPath);
         var file = ShowCalculation || Selected.IsHistorical ? "calculation.md" : "quote.md";
         var path = Path.Combine(folder, file);
         var text = File.Exists(path) ? File.ReadAllText(path) : null;
@@ -336,10 +439,10 @@ public sealed partial class MainViewModel : ObservableObject
         }
 
         await PullFirstAsync().ConfigureAwait(true);
-        await Chat.StartAsync(form.Title, quoteNumber: null, form.BuildPrompt(), isNewQuote: true).ConfigureAwait(true);
+        await Chat.StartAsync(QuotesRepository!, form.Title, item: null, form.BuildPrompt(), isNew: true).ConfigureAwait(true);
     }
 
-    private bool CanEdit() => !IsWorking && _workspace.RepositoryPath is not null && !_workspace.AppTooOld;
+    private bool CanEdit() => !IsWorking && QuotesRepository is { AppTooOld: false };
 
     [RelayCommand(CanExecute = nameof(CanAskClaude))]
     private async Task AskClaudeAsync()
@@ -362,15 +465,14 @@ public sealed partial class MainViewModel : ObservableObject
             }
         }
 
-        var hasEarlier = _workspace.Settings.ClaudeSessions.ContainsKey(quote.QuoteNumber);
-        var resume = hasEarlier && MessageBox.Show(
+        var resume = Chat.HasEarlierConversation(RepositoryProfile.Quotes, quote.QuoteNumber) && MessageBox.Show(
             $"Continue your earlier conversation with Claude about {quote.QuoteNumber}? Choose No to start fresh.",
             AppInfo.ProductName, MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;
 
         await PullFirstAsync().ConfigureAwait(true);
         var prompt = $"Use the revise-quote skill on quote {quote.QuoteNumber} ({quote.Folder}). "
             + "Ask me what I want to change with the ask_user tool, then make the change.";
-        await Chat.StartAsync(quote.QuoteNumber, quote.QuoteNumber, prompt, isNewQuote: false, resume).ConfigureAwait(true);
+        await Chat.StartAsync(QuotesRepository!, quote.QuoteNumber, quote.QuoteNumber, prompt, isNew: false, resume).ConfigureAwait(true);
     }
 
     private bool CanAskClaude() => CanEdit() && Selected is { IsHistorical: false, Error: null };
@@ -390,7 +492,7 @@ public sealed partial class MainViewModel : ObservableObject
         }
 
         SendResult? result = null;
-        await RunAsync($"Sending {quote.QuoteNumber}...", async () =>
+        await _work.RunAsync($"Sending {quote.QuoteNumber}...", async () =>
         {
             await PullFirstAsync().ConfigureAwait(true);
             result = await _engine.SendAsync(quote.QuoteNumber, keepIssued: false).ConfigureAwait(true);
@@ -447,7 +549,7 @@ public sealed partial class MainViewModel : ObservableObject
     private async Task ChangeStatusAsync(QuoteSummary quote, QuoteStatusChange change, string? po)
     {
         var word = change.ToString().ToLowerInvariant();
-        await RunAsync($"Marking {quote.QuoteNumber} {word}...", async () =>
+        await _work.RunAsync($"Marking {quote.QuoteNumber} {word}...", async () =>
         {
             await PullFirstAsync().ConfigureAwait(true);
             await _engine.SetStatusAsync(quote.QuoteNumber, change, po).ConfigureAwait(true);
@@ -471,7 +573,7 @@ public sealed partial class MainViewModel : ObservableObject
     private async Task<QuoteSummary?> ReviseCoreAsync(QuoteSummary quote)
     {
         QuoteSummary? revised = null;
-        await RunAsync($"Making a revision of {quote.QuoteNumber}...", async () =>
+        await _work.RunAsync($"Making a revision of {quote.QuoteNumber}...", async () =>
         {
             await PullFirstAsync().ConfigureAwait(true);
             revised = await _engine.ReviseAsync(quote.QuoteNumber).ConfigureAwait(true);
@@ -492,7 +594,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         var quote = Selected!;
         string? path = null;
-        await RunAsync("Making a draft PDF...", async () =>
+        await _work.RunAsync("Making a draft PDF...", async () =>
             path = await _engine.DraftPdfAsync(quote.QuoteNumber).ConfigureAwait(true)).ConfigureAwait(true);
         if (path is not null)
         {
@@ -507,41 +609,52 @@ public sealed partial class MainViewModel : ObservableObject
     private bool CanDraftPdf() => !IsWorking && Selected is { IsDraft: true, Error: null };
 
     [RelayCommand(CanExecute = nameof(HasSelection))]
-    private void OpenFolder() => Shell.Open(Selected!.FolderPath(_workspace.RepositoryPath!));
+    private void OpenFolder() => Shell.Open(Selected!.FolderPath(QuotesPath!));
 
     /// <summary>The sent PDF, or for a draft the latest draft PDF.</summary>
     [RelayCommand(CanExecute = nameof(CanOpenPdf))]
-    private void OpenPdf() => Shell.Open(Selected!.ExistingPdf(_workspace.RepositoryPath!)!);
+    private void OpenPdf() => Shell.Open(Selected!.ExistingPdf(QuotesPath!)!);
 
-    private bool CanOpenPdf() => _workspace.RepositoryPath is not null && Selected?.ExistingPdf(_workspace.RepositoryPath) is not null;
+    private bool CanOpenPdf() => QuotesPath is not null && Selected?.ExistingPdf(QuotesPath) is not null;
 
     [RelayCommand(CanExecute = nameof(CanOpenSpreadsheet))]
-    private void OpenSpreadsheet() => Shell.Open(Selected!.ExistingSpreadsheet(_workspace.RepositoryPath!)!);
+    private void OpenSpreadsheet() => Shell.Open(Selected!.ExistingSpreadsheet(QuotesPath!)!);
 
-    private bool CanOpenSpreadsheet() => _workspace.RepositoryPath is not null && Selected?.ExistingSpreadsheet(_workspace.RepositoryPath) is not null;
+    private bool CanOpenSpreadsheet() => QuotesPath is not null && Selected?.ExistingSpreadsheet(QuotesPath) is not null;
 
     [RelayCommand(CanExecute = nameof(HasSelection))]
     private void OpenOnGitHub() =>
-        Shell.Open($"https://github.com/{AppInfo.QuotesRepository}/tree/main/{Uri.EscapeDataString(Selected!.Folder).Replace("%2F", "/", StringComparison.Ordinal)}");
+        Shell.Open($"{RepositoryProfile.Quotes.Url}/tree/main/{Uri.EscapeDataString(Selected!.Folder).Replace("%2F", "/", StringComparison.Ordinal)}");
 
+    /// <summary>Syncs every open repository: brings in others' work and shares this computer's.</summary>
     [RelayCommand(CanExecute = nameof(CanSyncNow))]
     private async Task SyncNowAsync()
     {
-        await RunAsync("Syncing with GitHub...", async () =>
+        await _work.RunAsync("Syncing with GitHub...", async () =>
         {
-            var result = await _sync.SyncAsync().ConfigureAwait(true);
-            await HandleSaveResultAsync(result).ConfigureAwait(true);
+            foreach (var repository in OpenRepositories().ToList())
+            {
+                var result = await repository.Sync.SyncAsync().ConfigureAwait(true);
+                if (repository.Profile.Kind == RepositoryKind.Quotes)
+                {
+                    await HandleSaveResultAsync(result).ConfigureAwait(true);
+                }
+                else
+                {
+                    await Projects.HandleSaveResultAsync(result).ConfigureAwait(true);
+                }
+            }
         }).ConfigureAwait(true);
-        await RefreshCheckAsync().ConfigureAwait(true);
+        await RefreshChecksAsync().ConfigureAwait(true);
     }
 
-    private bool CanSyncNow() => !IsWorking && _workspace.RepositoryPath is not null;
+    private bool CanSyncNow() => !IsWorking && OpenRepositories().Any();
 
     [RelayCommand]
     private async Task OpenSetupAsync()
     {
         SetupWindow.Show(Application.Current.MainWindow, App.Services);
-        if (_workspace.RepositoryPath is not null)
+        if (OpenRepositories().Any())
         {
             await StartWorkingAsync().ConfigureAwait(true);
         }
@@ -573,25 +686,47 @@ public sealed partial class MainViewModel : ObservableObject
 
     // -- Claude ------------------------------------------------------------------------------
 
-    /// <summary>Saves and syncs whatever Claude changed under quotes/ when it finishes a turn.</summary>
+    /// <summary>Saves and syncs what Claude changed when it finishes a turn, in the repository it worked in.</summary>
     private async Task OnClaudeTurnCompletedAsync(ChatTurnResult turn)
     {
-        var number = turn.Report?.QuoteNumber ?? turn.QuoteNumber;
-        var status = await _sync.RefreshAsync(fetch: false).ConfigureAwait(true);
-        var changed = status.Changes.Where(c => c.StartsWith("quotes/", StringComparison.Ordinal)).ToList();
-        var outside = status.Changes.Where(c => !c.StartsWith("quotes/", StringComparison.Ordinal)).ToList();
-
-        if (outside.Count > 0)
+        if (turn.Repository.Profile.Kind == RepositoryKind.Projects)
         {
-            Chat.Items.Add(new NoticeItem(
-                "Claude also changed files outside the quotes folder. They were not saved: " + string.Join(", ", outside), isError: true));
+            await Projects.OnClaudeTurnCompletedAsync(turn).ConfigureAwait(true);
+            return;
         }
 
-        if (changed.Count > 0)
+        var repository = turn.Repository;
+        var root = repository.Profile.RootFolder + "/";
+        var number = turn.Report?.QuoteNumber ?? turn.Item;
+        var status = await repository.Sync.RefreshAsync(fetch: false).ConfigureAwait(true);
+        var changed = status.Changes.Where(c => c.StartsWith(root, StringComparison.Ordinal)).ToList();
+        var outside = status.Changes.Where(c => !c.StartsWith(root, StringComparison.Ordinal)).ToList();
+
+        // Files outside the quotes folder (the engine, templates, rates) change how every quote is
+        // built. A quote built with an engine change that stays on this computer fails GitHub's
+        // check, so an approver is asked whether to share them too; anyone else keeps them local.
+        var shareOutside = false;
+        if (outside.Count > 0)
         {
-            var verb = turn.IsNewQuote ? "draft" : "changed";
-            await RunAsync("Saving Claude's changes...", async () =>
-                await SaveAsync(["quotes"], $"{number ?? "Quotes"}: {verb} with Claude").ConfigureAwait(true)).ConfigureAwait(true);
+            var list = string.Join("\n", outside.Select(f => "- " + f));
+            shareOutside = _workspace.CanSend && MessageBox.Show(
+                $"Claude also changed files outside the quotes folder:\n\n{list}\n\nThese change how quotes are built, for everyone. "
+                + "Save and share them too? Choose No to keep them on this computer only; a quote that depends on them will then fail GitHub's check.",
+                AppInfo.ProductName, MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes;
+            if (!shareOutside)
+            {
+                Chat.Items.Add(new NoticeItem(
+                    "Claude also changed files outside the quotes folder. They were kept on this computer and not shared: " + string.Join(", ", outside),
+                    isError: true));
+            }
+        }
+
+        if (changed.Count > 0 || shareOutside)
+        {
+            var verb = turn.IsNew ? "draft" : "changed";
+            string[] paths = shareOutside ? [repository.Profile.RootFolder, .. outside] : [repository.Profile.RootFolder];
+            await _work.RunAsync("Saving Claude's changes...", async () =>
+                await SaveAsync(paths, $"{number ?? "Quotes"}: {verb} with Claude").ConfigureAwait(true)).ConfigureAwait(true);
             Chat.Items.Add(new NoticeItem("Saved and shared.", isError: false));
         }
 
@@ -600,10 +735,10 @@ public sealed partial class MainViewModel : ObservableObject
 
     // -- helpers -----------------------------------------------------------------------------
 
-    /// <summary>Brings in others' work before changing anything, so edits start from the latest.</summary>
+    /// <summary>Brings in others' quotes before changing anything, so edits start from the latest.</summary>
     private async Task PullFirstAsync()
     {
-        var result = await _sync.SyncAsync().ConfigureAwait(true);
+        var result = await QuotesRepository!.Sync.SyncAsync().ConfigureAwait(true);
         await HandleSaveResultAsync(result).ConfigureAwait(true);
         if (result.Conflict is null)
         {
@@ -613,86 +748,67 @@ public sealed partial class MainViewModel : ObservableObject
 
     private async Task SaveAsync(IReadOnlyList<string> paths, string message)
     {
-        var result = await _sync.SaveAsync(paths, message).ConfigureAwait(true);
+        var result = await QuotesRepository!.Sync.SaveAsync(paths, message).ConfigureAwait(true);
         await HandleSaveResultAsync(result).ConfigureAwait(true);
     }
 
     private async Task HandleSaveResultAsync(SaveResult result)
     {
-        if (result.Conflict is { } conflict)
+        if (await WorkTracker.HandleSaveResultAsync(QuotesRepository!, result).ConfigureAwait(true) is not { } aside)
         {
-            var answer = MessageBox.Show(
-                $"{conflict.Message}\n\nSet your version aside and use theirs? Your version is kept on this computer, and Claude can redo your change on top of theirs.",
-                AppInfo.ProductName, MessageBoxButton.YesNo, MessageBoxImage.Warning);
-            if (answer != MessageBoxResult.Yes)
+            return;
+        }
+
+        await ReloadQuotesAsync().ConfigureAwait(true);
+        if (aside.Item is { } quote)
+        {
+            var prompt = $"My change to quote {quote} conflicted with someone else's change, so my version was set aside on the local git branch {aside.Branch}. "
+                + $"Use `git show {aside.Branch}` to see what I changed, then use the revise-quote skill to apply the same change to the current version of {quote}. "
+                + "If their change and mine disagree, ask me which to keep.";
+            await Chat.StartAsync(QuotesRepository!, $"Redo my change to {quote}", quote, prompt, isNew: false).ConfigureAwait(true);
+        }
+    }
+
+    private void ShowSync(RepositoryKind kind, SyncStatus status)
+    {
+        _syncStatus[kind] = status;
+        SyncProblem = _syncStatus.Values.Any(s => s.State is SyncState.Conflict or SyncState.Error or SyncState.Offline);
+
+        static string Describe(SyncStatus s)
+        {
+            var when = s.State == SyncState.UpToDate && s.LastSynced is { } t ? $" (synced {t:h:mm tt})" : "";
+            return $"{s.Message ?? s.State.ToString()}{when}";
+        }
+
+        SyncText = _syncStatus.Count == 1
+            ? Describe(_syncStatus.Values.Single())
+            : string.Join("     ", _syncStatus.OrderBy(p => p.Key).Select(p => $"{(p.Key == RepositoryKind.Projects ? "Projects" : "Quotes")}: {Describe(p.Value)}"));
+    }
+
+    private async Task RefreshChecksAsync()
+    {
+        foreach (var repository in OpenRepositories().ToList())
+        {
+            try
             {
-                return;
+                _checks[repository.Profile.Kind] = await _gh.GetLatestCheckAsync(repository.Profile.GitHubName).ConfigureAwait(true);
             }
-
-            var branch = await _sync.SetAsideAsync().ConfigureAwait(true);
-            await ReloadQuotesAsync().ConfigureAwait(true);
-            var quote = conflict.QuoteNumbers.FirstOrDefault();
-            if (quote is not null)
+            catch (Exception ex) when (ex is ToolMissingException or System.Text.Json.JsonException)
             {
-                var prompt = $"My change to quote {quote} conflicted with someone else's change, so my version was set aside on the local git branch {branch}. "
-                    + $"Use `git show {branch}` to see what I changed, then use the revise-quote skill to apply the same change to the current version of {quote}. "
-                    + "If their change and mine disagree, ask me which to keep.";
-                await Chat.StartAsync($"Redo my change to {quote}", quote, prompt, isNewQuote: false).ConfigureAwait(true);
+                _checks[repository.Profile.Kind] = null;
             }
         }
-        else if (result.Error is { } error)
-        {
-            MessageBox.Show(error, AppInfo.ProductName, MessageBoxButton.OK, MessageBoxImage.Warning);
-        }
-    }
 
-    private async Task RunAsync(string text, Func<Task> work)
-    {
-        IsWorking = true;
-        WorkingText = text;
-        try
-        {
-            await work().ConfigureAwait(true);
-        }
-        catch (Exception ex) when (ex is QuoteEngineException or GitException or ToolMissingException or InvalidOperationException)
-        {
-            _log.LogWarning(ex, "{Work} failed.", text);
-            MessageBox.Show(ex.Message, AppInfo.ProductName, MessageBoxButton.OK, MessageBoxImage.Warning);
-        }
-        finally
-        {
-            IsWorking = false;
-            WorkingText = null;
-        }
-    }
-
-    private void ShowSync(SyncStatus status)
-    {
-        SyncProblem = status.State is SyncState.Conflict or SyncState.Error or SyncState.Offline;
-        var when = status.LastSynced is { } t ? $" (synced {t:h:mm tt})" : "";
-        SyncText = $"{status.Message ?? status.State.ToString()}{(status.State == SyncState.UpToDate ? when : "")}";
-    }
-
-    private async Task RefreshCheckAsync()
-    {
-        try
-        {
-            var run = await _gh.GetLatestCheckAsync().ConfigureAwait(true);
-            CheckUrl = run?.Url;
-            CheckFailed = run?.Failed == true;
-            CheckText = run switch
-            {
-                null => null,
-                { InProgress: true } => "Checks running on GitHub",
-                { Passed: true } => "Checks passed",
-                { Failed: true } => "Checks failed on GitHub (click for details)",
-                _ => $"Checks: {run.Conclusion ?? run.Status}",
-            };
-        }
-        catch (Exception ex) when (ex is ToolMissingException or System.Text.Json.JsonException)
-        {
-            CheckText = null;
-        }
+        var failed = _checks.Where(c => c.Value?.Failed == true).Select(c => (Kind: c.Key, Run: c.Value!)).FirstOrDefault();
+        var running = _checks.Values.FirstOrDefault(r => r?.InProgress == true);
+        var any = _checks.Values.OfType<CheckRun>().ToList();
+        CheckFailed = failed.Run is not null;
+        CheckUrl = failed.Run?.Url ?? running?.Url ?? any.FirstOrDefault()?.Url;
+        CheckText = failed.Run is not null
+            ? $"Checks failed on GitHub for the {(failed.Kind == RepositoryKind.Projects ? "projects" : "quotes")} (click for details)"
+            : running is not null ? "Checks running on GitHub"
+            : any.Count > 0 && any.All(r => r.Passed) ? "Checks passed"
+            : null;
     }
 
     private void ShowUpdate(UpdateStatus status)

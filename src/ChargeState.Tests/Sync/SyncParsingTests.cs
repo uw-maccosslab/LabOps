@@ -1,3 +1,4 @@
+using ChargeState.Core.Repositories;
 using ChargeState.Core.Sync;
 
 namespace ChargeState.Tests.Sync;
@@ -36,12 +37,30 @@ public sealed class SyncParsingTests
     [InlineData("rates/rates.yaml", false)]
     [InlineData("templates/quote.md", false)]
     public void Only_regenerable_files_count_as_generated(string path, bool generated) =>
-        SyncService.IsGenerated(path).ShouldBe(generated);
+        RepositoryProfile.Quotes.IsGenerated(path).ShouldBe(generated);
+
+    [Theory]
+    [InlineData("README.md", true)]
+    [InlineData("projects/Lab/2026-10-Pilot/experiment.yaml", false)]
+    [InlineData("projects/Lab/2026-10-Pilot/metadata/samples.csv", false)]
+    [InlineData("projects/Lab/2026-10-Pilot/calculation.md", false)]
+    public void Projects_have_no_generated_files_but_the_index(string path, bool generated) =>
+        RepositoryProfile.Projects.IsGenerated(path).ShouldBe(generated);
 
     [Fact]
     public void Quote_folder_is_the_first_four_path_segments() =>
-        SyncService.QuoteFolder("quotes/UW-Alder/2026/MacCoss-2026-UW-ALDER-GCF15/calculation.md")
+        RepositoryProfile.Quotes.ItemFolder("quotes/UW-Alder/2026/MacCoss-2026-UW-ALDER-GCF15/calculation.md")
             .ShouldBe("quotes/UW-Alder/2026/MacCoss-2026-UW-ALDER-GCF15");
+
+    [Fact]
+    public void Experiment_folder_is_the_first_three_path_segments()
+    {
+        RepositoryProfile.Projects.ItemFolder("projects/Lab/2026-10-Pilot/metadata/received/manifest.csv")
+            .ShouldBe("projects/Lab/2026-10-Pilot");
+        RepositoryProfile.Projects.IsItemPath("projects/Lab/2026-10-Pilot/experiment.yaml").ShouldBeTrue();
+        RepositoryProfile.Projects.IsItemPath("projects/Lab/project.yaml").ShouldBeFalse();
+        RepositoryProfile.Projects.IsItemPath("config/people.yaml").ShouldBeFalse();
+    }
 
     [Fact]
     public void A_rejected_push_because_github_moved_is_recognized()

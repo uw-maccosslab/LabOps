@@ -2,6 +2,7 @@ using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using ChargeState.App.Services;
 using ChargeState.App.ViewModels;
+using ChargeState.Core.Projects;
 using ChargeState.Core.Quotes;
 using ChargeState.Core.Setup;
 
@@ -22,7 +23,8 @@ public partial class SetupWindow : Window
         var vm = new SetupViewModel(
             services.GetRequiredService<SetupService>(),
             services.GetRequiredService<Workspace>(),
-            services.GetRequiredService<QuoteEngine>());
+            services.GetRequiredService<QuoteEngine>(),
+            services.GetRequiredService<ProjectEngine>());
 
         var window = new SetupWindow(vm);
         if (owner is { IsVisible: true })

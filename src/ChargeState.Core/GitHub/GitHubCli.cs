@@ -1,10 +1,9 @@
 using System.Text.Json;
-using ChargeState.Core.Infrastructure;
 using ChargeState.Core.Processes;
 
 namespace ChargeState.Core.GitHub;
 
-/// <summary>The latest run of the quotes repository's check workflow.</summary>
+/// <summary>The latest run of a repository's check workflow.</summary>
 public sealed record CheckRun(string Status, string? Conclusion, string Url, string HeadSha, DateTimeOffset CreatedAt)
 {
     public bool InProgress => Status is "queued" or "in_progress" or "waiting" or "pending" or "requested";
@@ -77,36 +76,50 @@ public sealed class GitHubCli
         return result.Succeeded ? result.StandardOutput.Trim() : null;
     }
 
-    public async Task<bool> CanAccessQuotesRepositoryAsync(CancellationToken cancellationToken = default)
+    /// <summary>Whether the signed-in account can read <paramref name="repository"/> (owner/name).</summary>
+    /// <returns>True or false, or null when GitHub could not be asked (offline, signed out).</returns>
+    public async Task<bool?> CanAccessRepositoryAsync(string repository, CancellationToken cancellationToken = default)
     {
-        var result = await RunAsync(["repo", "view", AppInfo.QuotesRepository, "--json", "name"], cancellationToken).ConfigureAwait(false);
-        return result.Succeeded;
+        if (_tools.Find(Tool.GitHubCli) is null)
+        {
+            return null;
+        }
+
+        var result = await RunAsync(["repo", "view", repository, "--json", "name"], cancellationToken).ConfigureAwait(false);
+        if (result.Succeeded)
+        {
+            return true;
+        }
+
+        // gh says "Could not resolve to a Repository" both for a missing repository and for one
+        // the account may not see; anything else (no network, no sign-in) is not an answer.
+        return result.ErrorText.Contains("Could not resolve to a Repository", StringComparison.OrdinalIgnoreCase) ? false : null;
     }
 
-    public async Task<CheckRun?> GetLatestCheckAsync(CancellationToken cancellationToken = default)
+    public async Task<CheckRun?> GetLatestCheckAsync(string repository, CancellationToken cancellationToken = default)
     {
         var result = await RunAsync(
-            ["run", "list", "--repo", AppInfo.QuotesRepository, "--workflow", "check.yml", "--branch", "main",
+            ["run", "list", "--repo", repository, "--workflow", "check.yml", "--branch", "main",
              "--limit", "1", "--json", "status,conclusion,url,headSha,createdAt"],
             cancellationToken).ConfigureAwait(false);
         return result.Succeeded ? ParseCheckRun(result.StandardOutput) : null;
     }
 
-    public async Task<bool> RunChecksAsync(CancellationToken cancellationToken = default)
+    public async Task<bool> RunChecksAsync(string repository, CancellationToken cancellationToken = default)
     {
         var result = await RunAsync(
-            ["workflow", "run", "check.yml", "--repo", AppInfo.QuotesRepository, "--ref", "main"],
+            ["workflow", "run", "check.yml", "--repo", repository, "--ref", "main"],
             cancellationToken).ConfigureAwait(false);
         return result.Succeeded;
     }
 
-    /// <summary>Clones the quotes repository into <paramref name="path"/>.</summary>
-    public async Task<ProcessResult> CloneQuotesRepositoryAsync(string path, CancellationToken cancellationToken = default) =>
+    /// <summary>Clones <paramref name="repository"/> (owner/name) into <paramref name="path"/>.</summary>
+    public async Task<ProcessResult> CloneRepositoryAsync(string repository, string path, CancellationToken cancellationToken = default) =>
         await _runner.RunAsync(
             _tools.Require(Tool.GitHubCli),
             // autocrlf off from the first checkout, so a global autocrlf=true (the Git for Windows
             // default) can never make files look changed when the clone is later set to false.
-            ["repo", "clone", AppInfo.QuotesRepository, path, "--", "-c", "core.autocrlf=false"],
+            ["repo", "clone", repository, path, "--", "-c", "core.autocrlf=false"],
             Path.GetDirectoryName(path),
             timeout: TimeSpan.FromMinutes(10),
             cancellationToken: cancellationToken).ConfigureAwait(false);

@@ -1,0 +1,9 @@
+{
+  "ok": false,
+  "problems": [
+    {
+      "level": "ERROR",
+      "message": "projects/UW-Example/2026-09-Gradient-Test/metadata/samples.csv [Owner Name]: looks like an animal owner's details; remove the column or replace it with a study code"
+    }
+  ]
+}

@@ -8,9 +8,10 @@ using ChargeState.Core.Claude;
 using ChargeState.Core.GitHub;
 using ChargeState.Core.Infrastructure;
 using ChargeState.Core.Processes;
+using ChargeState.Core.Projects;
 using ChargeState.Core.Quotes;
+using ChargeState.Core.Repositories;
 using ChargeState.Core.Setup;
-using ChargeState.Core.Sync;
 using Velopack;
 
 namespace ChargeState.App;
@@ -84,18 +85,23 @@ public static class Program
         services.AddSingleton<ProcessRunner>();
         services.AddSingleton<IProcessRunner>(provider => provider.GetRequiredService<ProcessRunner>());
         services.AddSingleton<QuoteEngine>();
-        services.AddSingleton<IGeneratedFileRebuilder, EngineRebuilder>();
-        services.AddSingleton<GitClient>();
-        services.AddSingleton<SyncService>();
+        services.AddSingleton<ProjectEngine>();
+        // Each open repository gets its own git client and sync service from the factory.
+        services.AddSingleton(provider => new RepositoryFactory(
+            provider.GetRequiredService<IProcessRunner>(), provider.GetRequiredService<ToolLocator>(),
+            provider.GetRequiredService<ILoggerFactory>()));
         services.AddSingleton<GitHubCli>();
         services.AddSingleton<SetupService>();
         services.AddSingleton<AppTools>();
+        services.AddSingleton<PermissionMemory>();
         services.AddSingleton<ClaudeLauncher>();
         services.AddSingleton<QuoteSearch>();
 
         services.AddSingleton<UpdateService>();
         services.AddSingleton<Workspace>();
+        services.AddSingleton<WorkTracker>();
         services.AddSingleton<ChatViewModel>();
+        services.AddSingleton<ProjectsViewModel>();
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<MainWindow>();
 

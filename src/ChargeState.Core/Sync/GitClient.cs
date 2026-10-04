@@ -5,7 +5,7 @@ namespace ChargeState.Core.Sync;
 /// <summary>A git command failed; the message is git's own explanation.</summary>
 public sealed class GitException(string message) : Exception(message);
 
-/// <summary>Runs git in the quotes repository.</summary>
+/// <summary>Runs git in one repository (each open repository has its own client).</summary>
 public sealed class GitClient
 {
     private static readonly TimeSpan Timeout = TimeSpan.FromMinutes(3);
@@ -33,7 +33,7 @@ public sealed class GitClient
         _runner.RunAsync(
             _tools.Require(Tool.Git),
             arguments,
-            RepositoryPath ?? throw new GitException("No quotes repository is set up yet."),
+            RepositoryPath ?? throw new GitException("No repository is set up yet."),
             NoEditor,
             Timeout,
             cancellationToken);

@@ -1,4 +1,5 @@
 using ChargeState.Core.GitHub;
+using ChargeState.Core.Repositories;
 using ChargeState.Core.Setup;
 
 namespace ChargeState.Tests.Setup;
@@ -57,7 +58,38 @@ public sealed class ToolOutputParsingTests
     [InlineData("https://github.com/uw-maccosslab/ChargeState.git", false)]
     [InlineData("https://github.com/someone/services-quotes.git", false)]
     public void Only_the_quotes_repository_is_accepted_as_an_existing_copy(string url, bool accepted) =>
-        SetupService.IsQuotesRemote(url).ShouldBe(accepted);
+        RepositoryProfile.Quotes.IsRemote(url).ShouldBe(accepted);
+
+    [Theory]
+    [InlineData("https://github.com/uw-maccosslab/lab-projects.git", true)]
+    [InlineData("git@github.com:uw-maccosslab/lab-projects", true)]
+    [InlineData("https://github.com/uw-maccosslab/services-quotes.git", false)]
+    public void Only_the_projects_repository_is_accepted_as_a_projects_copy(string url, bool accepted) =>
+        RepositoryProfile.Projects.IsRemote(url).ShouldBe(accepted);
+
+    [Fact]
+    public void The_quotes_are_optional_but_the_projects_are_not()
+    {
+        SetupItem Item(SetupStep step, bool done, bool optional = false) => new(step, step.ToString(), done, "", null, Optional: optional);
+
+        SetupService.AllDone([Item(SetupStep.Git, true), Item(SetupStep.ProjectsRepository, true),
+            Item(SetupStep.QuotesRepository, false, optional: true)]).ShouldBeTrue();
+        SetupService.AllDone([Item(SetupStep.Git, true), Item(SetupStep.ProjectsRepository, false),
+            Item(SetupStep.QuotesRepository, true, optional: true)]).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void An_existing_clone_is_found_by_its_engine_not_its_name()
+    {
+        using var temp = new ChargeState.Tests.TestSupport.TempDirectory();
+        var projects = temp.Combine("anything");
+        Directory.CreateDirectory(Path.Combine(projects, ".git"));
+        Directory.CreateDirectory(Path.Combine(projects, "scripts"));
+        File.WriteAllText(Path.Combine(projects, "scripts", "project.py"), "");
+
+        SetupService.FindExistingClone(RepositoryProfile.Projects, projects).ShouldBe(projects);
+        RepositoryProfile.Quotes.LooksLikeClone(projects).ShouldBeFalse();
+    }
 
     [Fact]
     public void Commit_email_is_the_github_noreply_address() =>

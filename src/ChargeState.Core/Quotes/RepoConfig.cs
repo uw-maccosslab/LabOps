@@ -5,7 +5,8 @@ using YamlDotNet.Serialization.NamingConventions;
 namespace ChargeState.Core.Quotes;
 
 /// <summary>
-/// Settings shared by every user, read from <c>config/app.yaml</c> in the quotes repository.
+/// Settings shared by every user, read from <c>config/app.yaml</c> in a repository (approvers
+/// apply to the quotes repository only).
 /// </summary>
 /// <remarks>
 /// They live in the repository rather than in each user's settings so that one commit changes

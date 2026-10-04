@@ -1,6 +1,7 @@
 <Window x:Class="ChargeState.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:app="clr-namespace:ChargeState.App"
         xmlns:views="clr-namespace:ChargeState.App.Views"
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         Title="ChargeState" Width="1500" Height="900" MinWidth="1000" MinHeight="600"
@@ -19,12 +20,20 @@
                     <Button Content="Logs" Command="{Binding OpenLogsCommand}" />
                 </StackPanel>
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="ChargeState" Foreground="White" FontSize="17" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,20,6" />
-                    <Button Content="New quote" Command="{Binding NewQuoteCommand}" FontWeight="SemiBold" />
+                    <TextBlock Text="ChargeState" Foreground="White" FontSize="17" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,18,6" />
+                    <Button Content="Projects" Command="{Binding ShowProjectsCommand}" Tag="{Binding IsProjectsArea}" Style="{StaticResource AreaTab}"
+                            VerticalAlignment="Center" Margin="0,0,4,6" />
+                    <Button Content="Quotes" Command="{Binding ShowQuotesCommand}" Tag="{Binding IsQuotesArea}" Style="{StaticResource AreaTab}"
+                            VerticalAlignment="Center" Margin="0,0,18,6"
+                            Visibility="{Binding HasQuotes, Converter={StaticResource BoolToVisibility}}" />
+                    <Button Content="New experiment" Command="{Binding Projects.NewExperimentCommand}" FontWeight="SemiBold"
+                            Visibility="{Binding IsProjectsArea, Converter={StaticResource BoolToVisibility}}" />
+                    <Button Content="New quote" Command="{Binding NewQuoteCommand}" FontWeight="SemiBold"
+                            Visibility="{Binding IsQuotesArea, Converter={StaticResource BoolToVisibility}}" />
                     <Button Content="Sync now" Command="{Binding SyncNowCommand}"
                             ToolTip="Get other people's changes from GitHub and share yours. This also happens on its own every few minutes and after every action." />
                     <Button Content="Reload" Command="{Binding RefreshCommand}"
-                            ToolTip="Re-read the quotes on this computer without contacting GitHub, for example after editing a file outside the app." />
+                            ToolTip="Re-read the projects and quotes on this computer without contacting GitHub, for example after editing a file outside the app." />
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -59,80 +68,102 @@
 
         <Grid>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="470" MinWidth="320" />
-                <ColumnDefinition Width="5" />
-                <ColumnDefinition Width="*" MinWidth="380" />
+                <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <!-- Quote list -->
-            <DockPanel Grid.Column="0" Margin="10,10,4,10">
-                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
-                    <ComboBox DockPanel.Dock="Right" Width="110" Margin="6,0,0,0" ItemsSource="{Binding Filters}" SelectedItem="{Binding Filter}" />
-                    <TextBox x:Name="SearchBox" Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}" ToolTip="Search by number, client, project, or any word in the quote" />
+            <!-- Projects -->
+            <views:ProjectsView x:Name="ProjectsArea" Grid.Column="0" DataContext="{Binding Projects}"
+                                Visibility="{Binding DataContext.IsProjectsArea, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVisibility}}" />
+
+            <!-- Quotes -->
+            <Grid Grid.Column="0" Visibility="{Binding IsQuotesArea, Converter={StaticResource BoolToVisibility}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="560" MinWidth="320" />
+                    <ColumnDefinition Width="5" />
+                    <ColumnDefinition Width="*" MinWidth="380" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Quote list -->
+                <DockPanel Grid.Column="0" Margin="10,10,4,10">
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                        <ComboBox DockPanel.Dock="Right" Width="110" Margin="6,0,0,0" ItemsSource="{Binding Filters}" SelectedItem="{Binding Filter}" />
+                        <TextBox x:Name="SearchBox" Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}" ToolTip="Search by number, client, project, or any word in the quote" />
+                    </DockPanel>
+                    <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource Muted}" Margin="0,6,0,0"
+                               Text="Click a column heading to sort by it." />
+                    <ListView ItemsSource="{Binding Quotes}" SelectedItem="{Binding Selected}" BorderBrush="{StaticResource BorderBrush}"
+                              app:GridViewSort.Enabled="True">
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Header="Quote" Width="180" DisplayMemberBinding="{Binding QuoteNumber}" app:GridViewSort.Property="QuoteNumber" />
+                                <GridViewColumn Header="Client" Width="110" DisplayMemberBinding="{Binding Client}" app:GridViewSort.Property="Client" />
+                                <GridViewColumn Header="Status" Width="70" DisplayMemberBinding="{Binding Status}" app:GridViewSort.Property="Status" />
+                                <GridViewColumn Header="Total" Width="80" app:GridViewSort.Property="Total">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Total, StringFormat={}{0:C0}, ConverterCulture=en-US}" TextAlignment="Right" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Modified" Width="85" app:GridViewSort.Property="Modified">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Modified, StringFormat={}{0:yyyy-MM-dd}, ConverterCulture=en-US}"
+                                                       ToolTip="When the quote last changed, from its history on GitHub" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
                 </DockPanel>
-                <ListView ItemsSource="{Binding Quotes}" SelectedItem="{Binding Selected}" BorderBrush="{StaticResource BorderBrush}">
-                    <ListView.View>
-                        <GridView>
-                            <GridViewColumn Header="Quote" Width="185" DisplayMemberBinding="{Binding QuoteNumber}" />
-                            <GridViewColumn Header="Client" Width="112" DisplayMemberBinding="{Binding Client}" />
-                            <GridViewColumn Header="Status" Width="68" DisplayMemberBinding="{Binding Status}" />
-                            <GridViewColumn Header="Total" Width="80">
-                                <GridViewColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding Total, StringFormat={}{0:C0}, ConverterCulture=en-US}" TextAlignment="Right" />
-                                    </DataTemplate>
-                                </GridViewColumn.CellTemplate>
-                            </GridViewColumn>
-                        </GridView>
-                    </ListView.View>
-                </ListView>
-            </DockPanel>
 
-            <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" Background="{StaticResource BorderBrush}" />
+                <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" Background="{StaticResource BorderBrush}" />
 
-            <!-- Selected quote -->
-            <DockPanel Grid.Column="2" Margin="10,10,10,10">
-                <StackPanel DockPanel.Dock="Top" Visibility="{Binding HasSelection, Converter={StaticResource BoolToVisibility}}">
-                    <TextBlock Text="{Binding SelectedHeadline}" Style="{StaticResource Heading}" />
-                    <TextBlock Text="{Binding SelectedDetail}" Style="{StaticResource Muted}" Margin="0,4,0,8" />
-                    <ItemsControl ItemsSource="{Binding SelectedIssues}" Margin="0,0,0,8">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border Background="{StaticResource DangerLightBrush}" CornerRadius="3" Padding="8,4" Margin="0,0,0,4">
-                                    <TextBlock Text="{Binding}" TextWrapping="Wrap" Foreground="{StaticResource DangerBrush}" />
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    <WrapPanel>
-                        <Button Content="Ask Claude to change it" Command="{Binding AskClaudeCommand}" Style="{StaticResource PrimaryButton}" />
-                        <Button Content="Send" Command="{Binding SendCommand}"
-                                Visibility="{Binding CanSendSelected, Converter={StaticResource BoolToVisibility}}" />
-                        <Button Content="PO received" Command="{Binding MarkAcceptedCommand}"
-                                Visibility="{Binding IsSentSelected, Converter={StaticResource BoolToVisibility}}" />
-                        <Button Content="Invoiced" Command="{Binding MarkInvoicedCommand}"
-                                Visibility="{Binding IsAcceptedSelected, Converter={StaticResource BoolToVisibility}}" />
-                        <Button Content="Declined" Command="{Binding MarkDeclinedCommand}" />
-                        <Button Content="Make a revision" Command="{Binding ReviseCommand}" />
-                        <Button Content="Draft PDF" Command="{Binding DraftPdfCommand}"
-                                ToolTip="Make a new draft PDF from the quote as it is now, and open it. Draft PDFs stay on this computer." ToolTipService.ShowOnDisabled="True" />
-                        <Button Content="Open PDF" Command="{Binding OpenPdfCommand}"
-                                ToolTip="Open the PDF in the quote folder: the one that was sent, or for a draft the latest draft PDF." ToolTipService.ShowOnDisabled="True" />
-                        <Button Content="Spreadsheet" Command="{Binding OpenSpreadsheetCommand}"
-                                ToolTip="Open the admin spreadsheet: the one written when the quote was sent, or for a draft the latest draft." ToolTipService.ShowOnDisabled="True" />
-                        <Button Content="Folder" Command="{Binding OpenFolderCommand}" />
-                        <Button Content="On GitHub" Command="{Binding OpenOnGitHubCommand}" />
-                    </WrapPanel>
-                    <CheckBox Content="Show the calculation instead of the quote text" IsChecked="{Binding ShowCalculation}" Margin="0,2,0,8" />
-                </StackPanel>
-                <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
-                    <wv2:WebView2 x:Name="Preview" DefaultBackgroundColor="White" />
-                </Border>
-            </DockPanel>
+                <!-- Selected quote -->
+                <DockPanel Grid.Column="2" Margin="10,10,10,10">
+                    <StackPanel DockPanel.Dock="Top" Visibility="{Binding HasSelection, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock Text="{Binding SelectedHeadline}" Style="{StaticResource Heading}" />
+                        <TextBlock Text="{Binding SelectedDetail}" Style="{StaticResource Muted}" Margin="0,4,0,8" />
+                        <ItemsControl ItemsSource="{Binding SelectedIssues}" Margin="0,0,0,8">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{StaticResource DangerLightBrush}" CornerRadius="3" Padding="8,4" Margin="0,0,0,4">
+                                        <TextBlock Text="{Binding}" TextWrapping="Wrap" Foreground="{StaticResource DangerBrush}" />
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <WrapPanel>
+                            <Button Content="Ask Claude to change it" Command="{Binding AskClaudeCommand}" Style="{StaticResource PrimaryButton}" />
+                            <Button Content="Send" Command="{Binding SendCommand}"
+                                    Visibility="{Binding CanSendSelected, Converter={StaticResource BoolToVisibility}}" />
+                            <Button Content="PO received" Command="{Binding MarkAcceptedCommand}"
+                                    Visibility="{Binding IsSentSelected, Converter={StaticResource BoolToVisibility}}" />
+                            <Button Content="Invoiced" Command="{Binding MarkInvoicedCommand}"
+                                    Visibility="{Binding IsAcceptedSelected, Converter={StaticResource BoolToVisibility}}" />
+                            <Button Content="Declined" Command="{Binding MarkDeclinedCommand}" />
+                            <Button Content="Make a revision" Command="{Binding ReviseCommand}" />
+                            <Button Content="Draft PDF" Command="{Binding DraftPdfCommand}"
+                                    ToolTip="Make a new draft PDF from the quote as it is now, and open it. Draft PDFs stay on this computer." ToolTipService.ShowOnDisabled="True" />
+                            <Button Content="Open PDF" Command="{Binding OpenPdfCommand}"
+                                    ToolTip="Open the PDF in the quote folder: the one that was sent, or for a draft the latest draft PDF." ToolTipService.ShowOnDisabled="True" />
+                            <Button Content="Spreadsheet" Command="{Binding OpenSpreadsheetCommand}"
+                                    ToolTip="Open the admin spreadsheet: the one written when the quote was sent, or for a draft the latest draft." ToolTipService.ShowOnDisabled="True" />
+                            <Button Content="Folder" Command="{Binding OpenFolderCommand}" />
+                            <Button Content="On GitHub" Command="{Binding OpenOnGitHubCommand}" />
+                        </WrapPanel>
+                        <CheckBox Content="Show the calculation instead of the quote text" IsChecked="{Binding ShowCalculation}" Margin="0,2,0,8" />
+                    </StackPanel>
+                    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                        <wv2:WebView2 x:Name="Preview" DefaultBackgroundColor="White" />
+                    </Border>
+                </DockPanel>
+            </Grid>
 
             <!-- Claude -->
-            <Border Grid.Column="3" Width="460" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1,0,0,0"
+            <Border Grid.Column="1" Width="460" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1,0,0,0"
                     Visibility="{Binding Chat.IsOpen, Converter={StaticResource BoolToVisibility}}">
                 <views:ChatPanel DataContext="{Binding Chat}" />
             </Border>

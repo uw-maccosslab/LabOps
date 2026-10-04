@@ -81,7 +81,7 @@ public sealed class SyncServiceTests : IDisposable
         var result = await sync.SaveAsync(["quotes/G/2026/A"], "A: Bob");
 
         result.Conflict.ShouldNotBeNull();
-        result.Conflict.QuoteNumbers.ShouldBe(["A"]);
+        result.Conflict.Items.ShouldBe(["A"]);
         result.Conflict.OtherAuthor.ShouldBe("Alice");
         result.Pushed.ShouldBeFalse();
         sync.Status.State.ShouldBe(SyncState.Conflict);

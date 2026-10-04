@@ -21,9 +21,6 @@ public static class AppInfo
     /// <summary>Repository the update feed is served from.</summary>
     public const string RepositoryUrl = "https://github.com/uw-maccosslab/ChargeState";
 
-    /// <summary>The quotes repository this app works on.</summary>
-    public const string QuotesRepository = "uw-maccosslab/services-quotes";
-
     /// <summary>Informational version, e.g. <c>26.1.0</c>, without build metadata.</summary>
     public static string InformationalVersion { get; } = ResolveInformationalVersion();
 

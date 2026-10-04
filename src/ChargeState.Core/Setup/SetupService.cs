@@ -1,8 +1,7 @@
 using System.Text.Json;
 using ChargeState.Core.GitHub;
-using ChargeState.Core.Infrastructure;
 using ChargeState.Core.Processes;
-using ChargeState.Core.Quotes;
+using ChargeState.Core.Repositories;
 
 namespace ChargeState.Core.Setup;
 
@@ -14,9 +13,11 @@ public enum SetupStep
     GitHubSignIn,
     Claude,
     ClaudeSignIn,
-    Repository,
+    ProjectsRepository,
+    ProjectsEngine,
+    QuotesRepository,
+    QuotesEngine,
     GitIdentity,
-    PythonEnvironment,
 }
 
 /// <summary>A command that needs a visible console, because it asks the user something.</summary>
@@ -26,9 +27,25 @@ public enum SetupStep
 public sealed record ConsoleCommand(string FileName, IReadOnlyList<string> Arguments, string Explanation);
 
 /// <summary>The state of one setup step.</summary>
-public sealed record SetupItem(SetupStep Step, string Title, bool Done, string Detail, string? FixLabel, string? AlternateLabel = null)
+/// <param name="Step">Which step.</param>
+/// <param name="Title">Its name in the checklist.</param>
+/// <param name="Done">Whether it is complete.</param>
+/// <param name="Detail">What it is for, or how it stands.</param>
+/// <param name="FixLabel">The button that completes it, or null when nothing can be done yet.</param>
+/// <param name="AlternateLabel">A second button, offered even once it is done.</param>
+/// <param name="Optional">Not needed to use the app (the quotes, for people who do not prepare them).</param>
+public sealed record SetupItem(
+    SetupStep Step, string Title, bool Done, string Detail, string? FixLabel, string? AlternateLabel = null, bool Optional = false)
 {
     public bool CanFix => !Done && FixLabel is not null;
+
+    /// <summary>The repository a step belongs to, if any.</summary>
+    public RepositoryProfile? Profile => Step switch
+    {
+        SetupStep.ProjectsRepository or SetupStep.ProjectsEngine => RepositoryProfile.Projects,
+        SetupStep.QuotesRepository or SetupStep.QuotesEngine => RepositoryProfile.Quotes,
+        _ => null,
+    };
 
     /// <summary>A second way to complete the step, offered even once it is done (for example, switching clones).</summary>
     public bool HasAlternate => AlternateLabel is not null;
@@ -56,7 +73,10 @@ public sealed class SetupService
         _gh = gh;
     }
 
-    public async Task<IReadOnlyList<SetupItem>> CheckAsync(string? repositoryPath, CancellationToken cancellationToken = default)
+    /// <param name="projectsPath">The projects clone, if there is one.</param>
+    /// <param name="quotesPath">The quotes clone, if there is one.</param>
+    /// <param name="cancellationToken">Cancels the checks.</param>
+    public async Task<IReadOnlyList<SetupItem>> CheckAsync(string? projectsPath, string? quotesPath, CancellationToken cancellationToken = default)
     {
         var items = new List<SetupItem>();
         var git = _tools.Find(Tool.Git);
@@ -70,12 +90,12 @@ public sealed class SetupService
         var signedIn = gh is not null && await _gh.IsSignedInAsync(cancellationToken).ConfigureAwait(false);
         var user = signedIn ? await _gh.GetUserAsync(cancellationToken).ConfigureAwait(false) : null;
         items.Add(new(SetupStep.GitHubSignIn, "GitHub sign-in", signedIn,
-            signedIn ? $"Signed in as {user?.Login}." : "Sign in with the GitHub account that has access to the quotes.",
+            signedIn ? $"Signed in as {user?.Login}." : "Sign in with the GitHub account you use for the lab.",
             gh is null ? null : "Sign in"));
 
         var claude = _tools.Find(Tool.Claude);
         items.Add(new(SetupStep.Claude, "Claude Code", claude is not null,
-            claude is not null ? "Installed." : "Claude drafts and revises quotes.", "Install Claude Code"));
+            claude is not null ? "Installed." : "Claude organizes sample metadata, updates experiments, and drafts quotes.", "Install Claude Code"));
 
         var claudeAuth = claude is not null ? await ClaudeStatusAsync(claude, cancellationToken).ConfigureAwait(false) : null;
         items.Add(new(SetupStep.ClaudeSignIn, "Claude sign-in", claudeAuth?.LoggedIn == true,
@@ -84,27 +104,61 @@ public sealed class SetupService
                 : "Sign in with your lab Claude account.",
             claude is null ? null : "Sign in"));
 
-        var repoReady = repositoryPath is not null && Directory.Exists(Path.Combine(repositoryPath, ".git"))
-            && File.Exists(Path.Combine(repositoryPath, "scripts", "quote.py"));
-        items.Add(new(SetupStep.Repository, "Quotes repository", repoReady,
-            repoReady ? repositoryPath! : "A copy of the quotes on this computer. Download one, or point to a copy you already have.",
-            signedIn ? "Download the quotes" : null,
-            git is null ? null : repoReady ? "Use a different copy" : "Use a copy I already have"));
+        var projects = RepositoryProfile.Projects.LooksLikeClone(projectsPath);
+        items.Add(new(SetupStep.ProjectsRepository, "Lab projects", projects,
+            projects ? projectsPath! : "A copy of the lab's projects on this computer. Download one, or point to a copy you already have.",
+            signedIn ? "Download the projects" : null,
+            git is null ? null : projects ? "Use a different copy" : "Use a copy I already have"));
+        items.Add(EngineItem(SetupStep.ProjectsEngine, "Project engine", "project.py", projects ? projectsPath : null));
 
-        var identity = repoReady && git is not null ? await GitIdentityAsync(git, repositoryPath!, cancellationToken).ConfigureAwait(false) : null;
-        items.Add(new(SetupStep.GitIdentity, "Git identity", identity is not null,
-            identity is not null ? $"Changes are recorded as {identity}." : "Your name on the changes you save.",
-            repoReady && signedIn ? "Use my GitHub name" : null));
+        // The quotes are for the people who prepare them. Ask GitHub before offering a download
+        // that would fail, and leave the step out of "all done" either way.
+        var quotes = RepositoryProfile.Quotes.LooksLikeClone(quotesPath);
+        var access = quotes || !signedIn
+            ? (bool?)quotes
+            : await _gh.CanAccessRepositoryAsync(RepositoryProfile.Quotes.GitHubName, cancellationToken).ConfigureAwait(false);
+        items.Add(new(SetupStep.QuotesRepository, "Quotes (optional)", quotes || access == false,
+            quotes ? quotesPath!
+                : access == false ? "Your GitHub account does not have access to the quotes, so the Quotes area is hidden. Ask Mike if you need it."
+                : "Only for people who prepare Proteomics Services quotes.",
+            signedIn && access != false ? "Download the quotes" : null,
+            git is null || access == false ? null : quotes ? "Use a different copy" : "Use a copy I already have",
+            Optional: true));
+        if (quotes)
+        {
+            items.Add(EngineItem(SetupStep.QuotesEngine, "Quote engine", "quote.py", quotesPath) with { Optional = true });
+        }
 
-        var python = repoReady && Directory.Exists(Path.Combine(repositoryPath!, ".venv"));
-        items.Add(new(SetupStep.PythonEnvironment, "Quote engine", python,
-            python ? "Ready." : "Python and the packages quote.py needs (downloaded once).",
-            repoReady ? "Prepare" : null));
+        var clones = new[] { projects ? projectsPath : null, quotes ? quotesPath : null }.OfType<string>().ToList();
+        var identities = new List<string>();
+        if (git is not null)
+        {
+            foreach (var clone in clones)
+            {
+                if (await GitIdentityAsync(git, clone, cancellationToken).ConfigureAwait(false) is { } identity)
+                {
+                    identities.Add(identity);
+                }
+            }
+        }
+
+        var named = clones.Count > 0 && identities.Count == clones.Count;
+        items.Add(new(SetupStep.GitIdentity, "Git identity", named,
+            named ? $"Changes are recorded as {identities[0]}." : "Your name on the changes you save.",
+            clones.Count > 0 && signedIn ? "Use my GitHub name" : null));
 
         return items;
     }
 
-    public static bool AllDone(IEnumerable<SetupItem> items) => items.All(i => i.Done);
+    private static SetupItem EngineItem(SetupStep step, string title, string script, string? clone)
+    {
+        var ready = clone is not null && Directory.Exists(Path.Combine(clone, ".venv"));
+        return new(step, title, ready, ready ? "Ready." : $"Python and the packages {script} needs (downloaded once).",
+            clone is not null ? "Prepare" : null);
+    }
+
+    /// <summary>Whether the app can be used: every step done except the optional ones.</summary>
+    public static bool AllDone(IEnumerable<SetupItem> items) => items.Where(i => !i.Optional).All(i => i.Done);
 
     /// <summary>The console command that fixes a step, or null for steps the app does itself.</summary>
     /// <remarks>
@@ -141,13 +195,12 @@ public sealed class SetupService
 
     private static string Quote(string path) => "'" + path.Replace("'", "''", StringComparison.Ordinal) + "'";
 
-    /// <summary>Clones the quotes repository and configures it for rebase-only syncing.</summary>
-    public async Task<string> CloneAsync(string path, CancellationToken cancellationToken = default)
+    /// <summary>Clones a repository and configures it for rebase-only syncing.</summary>
+    public async Task<string> CloneAsync(RepositoryProfile profile, string path, CancellationToken cancellationToken = default)
     {
         if (Directory.Exists(Path.Combine(path, ".git")))
         {
-            await ConfigureRepositoryAsync(path, cancellationToken).ConfigureAwait(false);
-            return path;
+            return await UseExistingCloneAsync(profile, path, cancellationToken).ConfigureAwait(false);
         }
 
         if (Directory.Exists(path) && Directory.EnumerateFileSystemEntries(path).Any())
@@ -156,13 +209,13 @@ public sealed class SetupService
         }
 
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        var result = await _gh.CloneQuotesRepositoryAsync(path, cancellationToken).ConfigureAwait(false);
+        var result = await _gh.CloneRepositoryAsync(profile.GitHubName, path, cancellationToken).ConfigureAwait(false);
         if (!result.Succeeded)
         {
-            throw new InvalidOperationException($"The quotes could not be downloaded: {result.ErrorText}");
+            throw new InvalidOperationException($"The {profile.DisplayName} could not be downloaded: {result.ErrorText}");
         }
 
-        await ConfigureRepositoryAsync(path, cancellationToken).ConfigureAwait(false);
+        await ConfigureRepositoryAsync(profile, path, cancellationToken).ConfigureAwait(false);
         return path;
     }
 
@@ -175,53 +228,47 @@ public sealed class SetupService
         await GitConfigAsync(repositoryPath, "user.email", user.NoReplyEmail, cancellationToken).ConfigureAwait(false);
     }
 
-    public static string? FindExistingClone(string? configured) =>
-        new[] { configured, AppPaths.DefaultClonePath }
-            .FirstOrDefault(p => p is not null && File.Exists(Path.Combine(p, "scripts", "quote.py")) && Directory.Exists(Path.Combine(p, ".git")));
+    /// <summary>The configured clone, else one in the default place, if either is a clone of the repository.</summary>
+    public static string? FindExistingClone(RepositoryProfile profile, string? configured) =>
+        new[] { configured, profile.DefaultClonePath }.FirstOrDefault(profile.LooksLikeClone);
 
     /// <summary>
     /// Adopts a clone the user already has (for example one they use from a terminal), after
-    /// checking it really is the quotes repository, so the app does not make a second copy.
+    /// checking it really is the repository, so the app does not make a second copy.
     /// </summary>
-    public async Task<string> UseExistingCloneAsync(string path, CancellationToken cancellationToken = default)
+    public async Task<string> UseExistingCloneAsync(RepositoryProfile profile, string path, CancellationToken cancellationToken = default)
     {
-        if (!Directory.Exists(Path.Combine(path, ".git")) || !File.Exists(Path.Combine(path, "scripts", "quote.py")))
+        if (!profile.LooksLikeClone(path))
         {
-            throw new InvalidOperationException($"{path} is not a copy of the quotes repository. Choose the folder that contains scripts\\quote.py.");
+            throw new InvalidOperationException(
+                $"{path} is not a copy of the {profile.DisplayName}. Choose the folder that contains {profile.EngineScript.Replace('/', '\\')}.");
         }
 
         var remote = await _runner.RunAsync(_tools.Require(Tool.Git), ["remote", "get-url", "origin"], path,
             cancellationToken: cancellationToken).ConfigureAwait(false);
-        if (!remote.Succeeded || !IsQuotesRemote(remote.StandardOutput))
+        if (!remote.Succeeded || !profile.IsRemote(remote.StandardOutput))
         {
             throw new InvalidOperationException(
-                $"{path} is a git repository, but not a copy of github.com/{AppInfo.QuotesRepository} (its origin is {remote.StandardOutput.Trim()}).");
+                $"{path} is a git repository, but not a copy of github.com/{profile.GitHubName} (its origin is {remote.StandardOutput.Trim()}).");
         }
 
-        await ConfigureRepositoryAsync(path, cancellationToken).ConfigureAwait(false);
+        await ConfigureRepositoryAsync(profile, path, cancellationToken).ConfigureAwait(false);
         return path;
     }
 
-    /// <summary>True for the https and ssh forms of the quotes repository's URL.</summary>
-    internal static bool IsQuotesRemote(string url)
-    {
-        var normalized = url.Trim().TrimEnd('/');
-        if (normalized.EndsWith(".git", StringComparison.OrdinalIgnoreCase))
-        {
-            normalized = normalized[..^4];
-        }
-
-        return normalized.EndsWith("github.com/" + AppInfo.QuotesRepository, StringComparison.OrdinalIgnoreCase)
-            || normalized.EndsWith("github.com:" + AppInfo.QuotesRepository, StringComparison.OrdinalIgnoreCase);
-    }
-
-    private async Task ConfigureRepositoryAsync(string path, CancellationToken cancellationToken)
+    private async Task ConfigureRepositoryAsync(RepositoryProfile profile, string path, CancellationToken cancellationToken)
     {
         // Settings local to this clone, so terminal users of the same folder sync the same way.
         // Line endings are not touched here: a fresh clone gets autocrlf=false from the clone
         // command itself, and an existing clone keeps whatever its owner chose.
         await GitConfigAsync(path, "pull.rebase", "true", cancellationToken).ConfigureAwait(false);
         await GitConfigAsync(path, "rebase.autoStash", "true", cancellationToken).ConfigureAwait(false);
+        if (profile.ChecksCommits)
+        {
+            // The repository's pre-commit hook, so a commit from a terminal in this clone gets the
+            // same identifier check the app runs before its own commits.
+            await GitConfigAsync(path, "core.hooksPath", ".githooks", cancellationToken).ConfigureAwait(false);
+        }
     }
 
     private async Task GitConfigAsync(string repositoryPath, string key, string value, CancellationToken cancellationToken)

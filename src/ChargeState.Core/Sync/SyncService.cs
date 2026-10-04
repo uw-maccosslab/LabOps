@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using ChargeState.Core.Repositories;
 
 namespace ChargeState.Core.Sync;
 
@@ -30,15 +31,18 @@ public sealed record SyncStatus(
     public IReadOnlyList<string> Changes => LocalChanges ?? [];
 }
 
-/// <summary>Someone else changed the same quote. Nothing was lost; the user's commit is kept locally.</summary>
-public sealed record SyncConflict(IReadOnlyList<string> Files, IReadOnlyList<string> QuoteNumbers, string? OtherAuthor)
+/// <summary>Someone else changed the same quote or experiment. Nothing was lost; the user's commit is kept locally.</summary>
+/// <param name="Files">The files in conflict.</param>
+/// <param name="Items">The quote numbers or experiment names they belong to.</param>
+/// <param name="OtherAuthor">Who made the change on GitHub, when known.</param>
+public sealed record SyncConflict(IReadOnlyList<string> Files, IReadOnlyList<string> Items, string? OtherAuthor)
 {
     public string Message
     {
         get
         {
             var who = string.IsNullOrWhiteSpace(OtherAuthor) ? "Someone else" : OtherAuthor;
-            var what = QuoteNumbers.Count > 0 ? string.Join(", ", QuoteNumbers) : string.Join(", ", Files);
+            var what = Items.Count > 0 ? string.Join(", ", Items) : string.Join(", ", Files);
             return $"{who} changed {what} at the same time. Your change is saved on this computer but "
                 + "has not been shared. You can redo your change on top of the latest version.";
         }
@@ -46,16 +50,56 @@ public sealed record SyncConflict(IReadOnlyList<string> Files, IReadOnlyList<str
 }
 
 /// <summary>The outcome of saving and syncing.</summary>
-public sealed record SaveResult(bool Committed, bool Pushed, SyncConflict? Conflict = null, string? Error = null)
+/// <param name="Committed">A commit was made.</param>
+/// <param name="Pushed">It reached GitHub.</param>
+/// <param name="Conflict">Someone else changed the same item; nothing was shared.</param>
+/// <param name="Error">Something else stopped the save or the sync.</param>
+/// <param name="Refused">
+/// The pre-commit check's errors, when it refused the commit. Nothing was committed, and the
+/// files are left as they are for the user (or Claude) to fix.
+/// </param>
+public sealed record SaveResult(
+    bool Committed, bool Pushed, SyncConflict? Conflict = null, string? Error = null, IReadOnlyList<string>? Refused = null)
 {
     public bool Succeeded => Conflict is null && Error is null;
 }
 
-/// <summary>Rebuilds a quote's generated files; used to resolve conflicts in them.</summary>
+/// <summary>Rebuilds an item's generated files; used to resolve conflicts in them.</summary>
 public interface IGeneratedFileRebuilder
 {
-    /// <summary>Rebuilds the quote in <paramref name="folder"/> (relative, forward slashes).</summary>
+    /// <summary>Rebuilds the item in <paramref name="folder"/> (relative, forward slashes).</summary>
     Task RebuildAsync(string folder, CancellationToken cancellationToken);
+}
+
+/// <summary>For a repository with no generated files in its item folders.</summary>
+public sealed class NoGeneratedFiles : IGeneratedFileRebuilder
+{
+    public Task RebuildAsync(string folder, CancellationToken cancellationToken) =>
+        throw new InvalidOperationException($"{folder} has no generated files to rebuild.");
+}
+
+/// <summary>A problem the pre-commit check found in what is staged.</summary>
+public sealed record CommitProblem(string Level, string Message)
+{
+    public bool IsError => string.Equals(Level, "ERROR", StringComparison.OrdinalIgnoreCase);
+
+    public override string ToString() => $"{Level}: {Message}";
+}
+
+/// <summary>
+/// Judges what is staged before it is committed (the projects repository's identifier check).
+/// Git history keeps whatever is committed, so this runs before the commit, never after.
+/// </summary>
+public interface IPreCommitCheck
+{
+    Task<IReadOnlyList<CommitProblem>> CheckStagedAsync(CancellationToken cancellationToken);
+}
+
+/// <summary>The pre-commit check refused the staged files.</summary>
+public sealed class CommitRefusedException(IReadOnlyList<string> problems)
+    : Exception("The pre-commit check refused the commit: " + string.Join("; ", problems))
+{
+    public IReadOnlyList<string> Problems { get; } = problems;
 }
 
 /// <summary>
@@ -64,9 +108,9 @@ public interface IGeneratedFileRebuilder
 /// </summary>
 /// <remarks>
 /// <para>
-/// Quotes live in separate folders, so two people working on different quotes touch different
-/// files and a rebase replays one person's commit on top of the other's with no conflict at all.
-/// That is the normal case, and it needs nothing from the user.
+/// Quotes and experiments live in separate folders, so two people working on different ones
+/// touch different files and a rebase replays one person's commit on top of the other's with no
+/// conflict at all. That is the normal case, and it needs nothing from the user.
 /// </para>
 /// <para>
 /// Generated files (calculation.md and quote.md) can conflict when two people change the same
@@ -76,9 +120,13 @@ public interface IGeneratedFileRebuilder
 /// regenerates it.
 /// </para>
 /// <para>
-/// A conflict in anything a person edits, quote.yaml above all, is real, and guessing would lose
-/// someone's work. The rebase is aborted, the user's commit stays on this computer, and the user
-/// is told who changed the quote.
+/// A conflict in anything a person edits, quote.yaml or experiment.yaml above all, is real, and
+/// guessing would lose someone's work. The rebase is aborted, the user's commit stays on this
+/// computer, and the user is told who changed it.
+/// </para>
+/// <para>
+/// In a repository whose profile checks commits, the staged files must pass the pre-commit check
+/// before anything is committed.
 /// </para>
 /// Every operation runs under one lock, so a background fetch can never overlap a save.
 /// </remarks>
@@ -89,16 +137,29 @@ public sealed partial class SyncService
     private const int MaxPushAttempts = 3;
 
     private readonly GitClient _git;
+    private readonly RepositoryProfile _profile;
     private readonly IGeneratedFileRebuilder _rebuilder;
+    private readonly IPreCommitCheck? _check;
     private readonly ILogger<SyncService> _log;
     private readonly SemaphoreSlim _gate = new(1, 1);
 
-    public SyncService(GitClient git, IGeneratedFileRebuilder rebuilder, ILogger<SyncService>? log = null)
+    public SyncService(
+        GitClient git, RepositoryProfile profile, IGeneratedFileRebuilder rebuilder, IPreCommitCheck? check = null,
+        ILogger<SyncService>? log = null)
     {
+        if (profile.ChecksCommits && check is null)
+        {
+            throw new ArgumentException($"The {profile.Id} repository needs a pre-commit check.", nameof(check));
+        }
+
         _git = git;
+        _profile = profile;
         _rebuilder = rebuilder;
+        _check = check;
         _log = log ?? NullLogger<SyncService>.Instance;
     }
+
+    public RepositoryProfile Profile => _profile;
 
     /// <summary>Raised when the status changes. May fire on a background thread.</summary>
     public event Action<SyncStatus>? StatusChanged;
@@ -133,7 +194,7 @@ public sealed partial class SyncService
     }
 
     /// <summary>Commits the given paths (if anything changed) and syncs with GitHub.</summary>
-    /// <param name="paths">Paths relative to the repository, usually quote folders.</param>
+    /// <param name="paths">Paths relative to the repository, usually item folders.</param>
     /// <param name="message">Commit message, for example <c>MacCoss-2026-NWU-SC: draft</c>.</param>
     public async Task<SaveResult> SaveAsync(IEnumerable<string> paths, string message, CancellationToken cancellationToken = default)
     {
@@ -144,6 +205,12 @@ public sealed partial class SyncService
             var committed = await CommitAsync(paths.ToList(), message, cancellationToken).ConfigureAwait(false);
             var result = await SyncCoreAsync(cancellationToken).ConfigureAwait(false);
             return result with { Committed = committed };
+        }
+        catch (CommitRefusedException refused)
+        {
+            const string text = "Not saved: the check found information that must not be shared.";
+            Publish((await ReadStatusAsync(cancellationToken).ConfigureAwait(false)) with { State = SyncState.Error, Message = text });
+            return new SaveResult(false, false, Error: text, Refused: refused.Problems);
         }
         catch (GitException ex)
         {
@@ -181,7 +248,9 @@ public sealed partial class SyncService
     /// </summary>
     /// <remarks>
     /// The branch stays on this computer. Its name goes to Claude, which can read the set-aside
-    /// change with <c>git show</c> (allowed, read-only) and reapply it to the current quote.
+    /// change with <c>git show</c> (allowed, read-only) and reapply it to the current version.
+    /// That commit skips the pre-commit check: it never leaves this computer, and refusing it
+    /// would leave the user's work uncommitted when main is reset.
     /// </remarks>
     /// <returns>The name of the branch holding the user's version.</returns>
     public async Task<string> SetAsideAsync(CancellationToken cancellationToken = default)
@@ -190,7 +259,7 @@ public sealed partial class SyncService
         try
         {
             // Anything not yet committed goes onto the set-aside branch too, before the reset.
-            await CommitAsync(["quotes"], "Set aside after a conflict", cancellationToken).ConfigureAwait(false);
+            await CommitAsync([_profile.RootFolder], "Set aside after a conflict", cancellationToken, localOnly: true).ConfigureAwait(false);
 
             var branch = $"set-aside/{DateTime.Now:yyyyMMdd-HHmmss}";
             await _git.RequireAsync(["branch", branch, "HEAD"], cancellationToken).ConfigureAwait(false);
@@ -208,7 +277,7 @@ public sealed partial class SyncService
         }
     }
 
-    private async Task<bool> CommitAsync(IReadOnlyList<string> paths, string message, CancellationToken ct)
+    private async Task<bool> CommitAsync(IReadOnlyList<string> paths, string message, CancellationToken ct, bool localOnly = false)
     {
         if (paths.Count == 0)
         {
@@ -224,7 +293,21 @@ public sealed partial class SyncService
             return false;
         }
 
-        await _git.RequireAsync(["commit", "--quiet", "-m", message], ct).ConfigureAwait(false);
+        if (_check is not null && !localOnly)
+        {
+            var errors = (await _check.CheckStagedAsync(ct).ConfigureAwait(false)).Where(p => p.IsError).ToList();
+            if (errors.Count > 0)
+            {
+                // Unstage, so nothing refused waits in the index for a later commit to pick up.
+                await _git.RunAsync(["reset", "--quiet", "--", .. paths], ct).ConfigureAwait(false);
+                _log.LogWarning("The pre-commit check refused {Message}: {Problems}", message, string.Join("; ", errors));
+                throw new CommitRefusedException(errors.Select(e => e.Message).ToList());
+            }
+        }
+
+        // The repository's own hook (if any) runs too, except for a local-only set-aside commit.
+        string[] commit = localOnly ? ["commit", "--quiet", "--no-verify", "-m", message] : ["commit", "--quiet", "-m", message];
+        await _git.RequireAsync(commit, ct).ConfigureAwait(false);
         _log.LogInformation("Committed: {Message}", message);
         return true;
     }
@@ -327,12 +410,12 @@ public sealed partial class SyncService
                 await _git.RequireAsync(["add", "--", file], ct).ConfigureAwait(false);
             }
 
-            foreach (var folder in conflicted.Where(f => f != "README.md").Select(QuoteFolder).Distinct())
+            foreach (var folder in conflicted.Where(f => f != "README.md").Select(_profile.ItemFolder).Distinct())
             {
                 _log.LogInformation("Rebuilding {Folder} to resolve a conflict in its generated files.", folder);
                 foreach (var file in conflicted.Where(f => f.StartsWith(folder + "/", StringComparison.Ordinal)))
                 {
-                    // Any side will do; the rebuild below overwrites it from the merged quote.yaml.
+                    // Any side will do; the rebuild below overwrites it from the merged inputs.
                     await _git.RequireAsync(["checkout", "--theirs", "--", file], ct).ConfigureAwait(false);
                 }
 
@@ -368,10 +451,10 @@ public sealed partial class SyncService
             author = log.Succeeded ? log.StandardOutput.Trim() : null;
         }
 
-        var quotes = personal.Where(f => f.StartsWith("quotes/", StringComparison.Ordinal))
-            .Select(f => QuoteFolder(f).Split('/').Last()).Distinct().ToList();
+        var items = personal.Where(_profile.IsItemPath)
+            .Select(f => _profile.ItemFolder(f).Split('/').Last()).Distinct().ToList();
         _log.LogWarning("Sync stopped on a conflict in {Files}.", string.Join(", ", files));
-        return new SyncConflict(personal.Count > 0 ? personal : files, quotes, author);
+        return new SyncConflict(personal.Count > 0 ? personal : files, items, author);
     }
 
     private async Task<bool> BroughtInCommitsAsync(string before, CancellationToken ct)
@@ -423,14 +506,7 @@ public sealed partial class SyncService
         return new SyncStatus(state, ahead, behind, changes, message);
     }
 
-    /// <summary>Files the app regenerates and therefore never asks a person to merge.</summary>
-    internal static bool IsGenerated(string path) =>
-        path == "README.md"
-        || (path.StartsWith("quotes/", StringComparison.Ordinal)
-            && (path.EndsWith("/calculation.md", StringComparison.Ordinal) || path.EndsWith("/quote.md", StringComparison.Ordinal)));
-
-    /// <summary>quotes/Group/year/number from any path inside a quote folder.</summary>
-    internal static string QuoteFolder(string path) => string.Join('/', path.Split('/').Take(4));
+    private bool IsGenerated(string path) => _profile.IsGenerated(path);
 
     internal static bool IsRejectedBecauseBehind(string error) =>
         error.Contains("rejected", StringComparison.OrdinalIgnoreCase)

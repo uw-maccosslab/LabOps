@@ -26,6 +26,16 @@ public partial class MainWindow : Window
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
+        // The quote preview lives in the Quotes area, which may be hidden (the Projects area opens
+        // first), so startup does not wait for it.
+        var preview = InitializePreviewAsync();
+        await _vm.InitializeAsync(this);
+        FocusSearch();
+        await preview;
+    }
+
+    private async Task InitializePreviewAsync()
+    {
         try
         {
             // The browser profile goes in the app's data folder, not beside the executable.
@@ -41,9 +51,18 @@ public partial class MainWindow : Window
         {
             Serilog.Log.Warning(ex, "The WebView2 runtime is unavailable; the preview is disabled.");
         }
+    }
 
-        await _vm.InitializeAsync(this);
-        SearchBox.Focus();
+    private void FocusSearch()
+    {
+        if (_vm.IsQuotesArea)
+        {
+            SearchBox.Focus();
+        }
+        else
+        {
+            ProjectsArea.FocusSearch();
+        }
     }
 
     private void OnViewModelChanged(object? sender, PropertyChangedEventArgs e)
@@ -51,6 +70,10 @@ public partial class MainWindow : Window
         if (e.PropertyName == nameof(MainViewModel.PreviewHtml) && _previewReady)
         {
             Preview.NavigateToString(_vm.PreviewHtml);
+        }
+        else if (e.PropertyName == nameof(MainViewModel.Area) && IsLoaded)
+        {
+            Dispatcher.InvokeAsync(FocusSearch);
         }
     }
 

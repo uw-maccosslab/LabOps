@@ -5,8 +5,8 @@ namespace ChargeState.Core.Infrastructure;
 /// </summary>
 /// <remarks>
 /// Everything lives under <c>%LOCALAPPDATA%\ChargeState</c>: local, not roaming, because the
-/// logs and Claude's per-session files are machine specific. The quotes themselves live in the
-/// git clone the user chose during setup, never here.
+/// logs and Claude's per-session files are machine specific. Projects and quotes live in the git
+/// clones the user chose during setup, never here.
 /// </remarks>
 public sealed class AppPaths
 {
@@ -38,11 +38,6 @@ public sealed class AppPaths
 
     /// <summary>Held open while the application runs, so a second copy can tell there is one.</summary>
     public string InstanceLockFile => Path.Combine(Root, "instance.lock");
-
-    /// <summary>The default place to clone the quotes repository during setup.</summary>
-    public static string DefaultClonePath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-        "services-quotes");
 
     /// <summary>Creates the directories that must exist before anything else runs.</summary>
     public void EnsureCreated()

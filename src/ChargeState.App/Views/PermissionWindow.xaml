@@ -12,7 +12,9 @@
         </Expander>
         <TextBlock Style="{StaticResource Muted}" Margin="0,10,0,0"
                    Text="If you are not sure what this does, choose Don't allow. Claude will continue without it or explain what it needed." />
-        <CheckBox x:Name="Remember" Content="Allow this kind of step for the rest of this conversation" Margin="0,10,0,0" />
+        <CheckBox x:Name="Remember" Margin="0,10,0,0">
+            <TextBlock x:Name="RememberText" TextWrapping="Wrap" />
+        </CheckBox>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
             <Button Content="Don't allow" IsCancel="True" IsDefault="True" Click="OnDeny" />
             <Button Content="Allow" Click="OnAllow" Style="{StaticResource PrimaryButton}" Margin="0" />

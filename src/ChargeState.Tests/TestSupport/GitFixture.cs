@@ -1,12 +1,14 @@
 using System.Diagnostics;
 using ChargeState.Core.Processes;
+using ChargeState.Core.Repositories;
 using ChargeState.Core.Sync;
 
 namespace ChargeState.Tests.TestSupport;
 
 /// <summary>
 /// A bare repository standing in for GitHub, with clones standing in for two people's computers.
-/// Uses the real git, because the behavior under test is git's.
+/// Uses the real git, because the behavior under test is git's. The seed has two quotes and an
+/// experiment, so one remote serves the tests of both repository profiles.
 /// </summary>
 public sealed class GitFixture : IDisposable
 {
@@ -36,6 +38,9 @@ public sealed class GitFixture : IDisposable
             Write(seed, $"quotes/G/2026/{quote}/quote.md", $"# {quote}\n");
         }
 
+        Write(seed, "projects/Lab/project.yaml", "group: Lab\ntitle: A collaboration\nstatus: active\n");
+        Write(seed, "projects/Lab/2026-10-Pilot/experiment.yaml", "experiment: 2026-10-Pilot\nstatus: active\nsamples: 10\n");
+
         Git(seed, "add", "-A");
         Git(seed, "commit", "--quiet", "-m", "seed");
         Git(seed, "push", "--quiet", "origin", "HEAD:main");
@@ -52,11 +57,20 @@ public sealed class GitFixture : IDisposable
         return path;
     }
 
+    /// <summary>Syncs a clone as the quotes repository.</summary>
     public SyncService SyncFor(string clone, IGeneratedFileRebuilder? rebuilder = null)
     {
         var tools = new ToolLocator();
         var git = new GitClient(new ProcessRunner(tools), tools) { RepositoryPath = clone };
-        return new SyncService(git, rebuilder ?? new RecordingRebuilder(clone));
+        return new SyncService(git, RepositoryProfile.Quotes, rebuilder ?? new RecordingRebuilder(clone));
+    }
+
+    /// <summary>Syncs a clone as the projects repository, whose commits pass <paramref name="check"/> first.</summary>
+    public SyncService ProjectsSyncFor(string clone, IPreCommitCheck check)
+    {
+        var tools = new ToolLocator();
+        var git = new GitClient(new ProcessRunner(tools), tools) { RepositoryPath = clone };
+        return new SyncService(git, RepositoryProfile.Projects, new NoGeneratedFiles(), check);
     }
 
     public static void Write(string clone, string relative, string text)
@@ -118,5 +132,23 @@ public sealed class RecordingRebuilder(string clone) : IGeneratedFileRebuilder
         GitFixture.Write(clone, $"{folder}/calculation.md", $"rebuilt from:\n{yaml}");
         GitFixture.Write(clone, $"{folder}/quote.md", "rebuilt\n");
         return Task.CompletedTask;
+    }
+}
+
+/// <summary>Stands in for project.py check --staged: refuses any staged file containing a marker.</summary>
+public sealed class MarkerCheck(string clone, string marker = "SECRET") : IPreCommitCheck
+{
+    public int Calls { get; private set; }
+
+    public Task<IReadOnlyList<CommitProblem>> CheckStagedAsync(CancellationToken cancellationToken)
+    {
+        Calls++;
+        var staged = GitFixture.Git(clone, "diff", "--cached", "--name-only").Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        IReadOnlyList<CommitProblem> problems = staged
+            .Where(f => GitFixture.Git(clone, "show", $":{f.Trim()}").Contains(marker, StringComparison.Ordinal))
+            .Select(f => new CommitProblem("ERROR", $"{f.Trim()}: contains {marker}"))
+            .Concat([new CommitProblem("WARN", "a warning never stops a commit")])
+            .ToList();
+        return Task.FromResult(problems);
     }
 }
