@@ -33,6 +33,54 @@ once as above. The first time it starts it takes over ChargeState's settings (yo
 lab projects and quotes, and Claude conversations to resume) and its Panorama sign-in, so Setup has
 nothing to ask. It then offers to open Windows' Installed apps, where you uninstall ChargeState.
 
+## Accounts and access
+
+What each person needs before Setup, and who gives it:
+
+| Account or access | Who needs it | How they get it |
+|---|---|---|
+| A GitHub account in the [uw-maccosslab](https://github.com/uw-maccosslab) organization | Everyone | An organization owner invites them under the organization's People. Setup signs in to GitHub in the browser. |
+| [LabOps](https://github.com/uw-maccosslab/LabOps): read | Everyone | Nothing to do: the repository is internal, so every organization member can read it. The app downloads its updates from there. |
+| [lab-projects](https://github.com/uw-maccosslab/lab-projects): **write** | Everyone who records progress | The repository is internal, so every member can read it, but saving anything (a step, a link, a wiki page's text, Claude's work) pushes to it, which needs Write. An owner gives it on the repository's Settings > Collaborators and teams, best through a team (for example "lab", with Write). With Read only, LabOps shows the projects and refuses to save. |
+| [services-quotes](https://github.com/uw-maccosslab/services-quotes): **write** | Only the people who prepare quotes | The repository is private. An owner gives each of them Write on its Settings > Collaborators and teams. Its `config/app.yaml` lists who sees the Send button. |
+| A Claude account in the lab's Claude organization | Everyone who uses Claude in the app | An admin of the lab's Claude organization adds them. Setup installs Claude Code and signs in. Tracking steps, links, View samples and the wiki page work without it; Claude's buttons do not. |
+| A [Panorama](https://panoramaweb.org) account | Everyone who browses Panorama from the app or publishes a wiki page | A panoramaweb.org account with access to the lab's folders in the MacCoss project. Browsing needs Reader in those folders; publishing a project's wiki page needs Editor (or higher) in the project's folder. A Panorama admin of the MacCoss project grants these. |
+
+The organization's base permission is **Read** today, which gives every member read access to
+every repository, including the private services-quotes (prices included). To keep the quotes to
+the people who prepare them, an owner sets the base permission to **No permission** (Organization
+settings > Member privileges) and gives those people Write on services-quotes; LabOps and
+lab-projects stay readable to every member because they are internal. The same owner then gives
+lab-projects Write to everyone who records progress.
+
+### Panorama sign-in
+
+LabOps signs in to Panorama the way PanoramaBridge does, and asks only when it has to:
+
+1. If PanoramaBridge is signed in on the same computer, LabOps uses that sign-in (an API key or a
+   user name and password), read from Windows Credential Manager. There is nothing to do.
+2. Otherwise, the first time you choose Browse or Wiki page, LabOps asks for a Panorama API key
+   (recommended) or a user name and password, checks it with Panorama, and keeps it in Windows
+   Credential Manager, as `LabOps:https://panoramaweb.org`, for next time. A sign-in saved by
+   ChargeState is used too.
+
+To make an API key: sign in at [panoramaweb.org](https://panoramaweb.org), open the menu under
+your name (top right) and choose **API Keys** (on some versions, under My Account), then
+**Generate API Key**. Copy it right away, since Panorama shows it only once, and paste it into
+LabOps' sign-in window (or PanoramaBridge's). The key acts as your account, with your account's
+access:
+
+- Keep it only in a sign-in window. Never paste it into a chat with Claude, an email, a message,
+  or a file in a repository.
+- When it expires, LabOps says Panorama did not accept the sign-in and asks for a new one.
+- To remove it from a computer, open Windows Credential Manager > Windows Credentials and remove
+  `LabOps:https://panoramaweb.org` (PanoramaBridge's entry, `PanoramaBridge:https://panoramaweb.org`,
+  belongs to PanoramaBridge).
+
+Who can read a project's wiki page is set in Panorama, not in LabOps: everyone with access to the
+project's folder can read it, so a lab member gives a collaboration's collaborators access to that
+folder (the folder's Permissions in Panorama), and only that folder.
+
 ## Using it
 
 Projects:
