@@ -101,6 +101,11 @@ public partial class MainWindow : Window
     /// running. Waiting for it synchronously in App.OnExit deadlocked: ending a Claude session
     /// resumes on the UI thread, which was blocked waiting for it, so the process outlived its
     /// window and kept the single-instance lock.
+    /// <para>
+    /// The second close is queued behind this handler. With nothing to shut down (no Claude
+    /// conversation) the shutdown finishes at once, so a Close() here would still be inside this
+    /// Closing event, which WPF refuses: the app showed an error and stayed open, disabled.
+    /// </para>
     /// </remarks>
     private async void OnClosing(object? sender, CancelEventArgs e)
     {
@@ -135,6 +140,6 @@ public partial class MainWindow : Window
             Serilog.Log.Warning(ex, "Shutdown did not finish cleanly.");
         }
 
-        Close();
+        _ = Dispatcher.BeginInvoke(Close);
     }
 }

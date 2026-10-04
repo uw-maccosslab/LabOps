@@ -8,6 +8,9 @@ the GitHub Release description and fails if it is missing.
 
 ## Bug Fixes
 
+- **Closing the app no longer shows "Something went wrong".** When no Claude conversation was
+  open, closing the window showed an error about a window closing, and the app stayed open and
+  disabled until closed again. It now closes at once.
 - **Claude keeps collection dates and ages in sample tables.** The app told Claude never to copy
   full dates or ages over 89 from a human study, so organizing a manifest such as MNRF's dropped
   them even after lab-projects stopped flagging them (its engine 26.2.0). Claude now follows the
