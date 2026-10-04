@@ -39,7 +39,10 @@ Projects:
   notebook. **Browse...** finds them on Panorama, signed in the way PanoramaBridge is.
 - **Organize metadata with Claude:** choose the collaborator's sample sheet. It is checked for
   identifying information first and never shared; Claude builds the sample table from it.
+- **View samples:** the organized sample table in a grid to sort and search, with the QC rows
+  counted, and the deidentified files it was made from.
 - **Open in Octopus / Import Octopus layout:** lay the samples out on plates and keep the layout.
+- The list shows active and on-hold projects; **Show closed** adds the closed ones.
 
 Quotes:
 

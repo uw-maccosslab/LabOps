@@ -296,7 +296,9 @@ public sealed record Person(string Login, string? Name, string? Role)
 }
 
 /// <summary>Everything <c>project.py list</c> returns.</summary>
-public sealed record ProjectList(IReadOnlyList<LabSummary> Labs, IReadOnlyList<Person> People, IReadOnlyList<ProjectIssue> Problems);
+/// <param name="ClosedHidden">How many closed projects <c>list --active</c> left out; 0 when it listed them all.</param>
+public sealed record ProjectList(
+    IReadOnlyList<LabSummary> Labs, IReadOnlyList<Person> People, IReadOnlyList<ProjectIssue> Problems, int ClosedHidden = 0);
 
 /// <summary>One sheet the scan read: its name, row count and column headers (never its values).</summary>
 public sealed record ScanSheet(string Sheet, int Rows, IReadOnlyList<string> Columns);

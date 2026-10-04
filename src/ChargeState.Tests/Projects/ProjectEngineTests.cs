@@ -130,6 +130,77 @@ public sealed class ProjectEngineTests
         ex.Message.ShouldBe("The project engine could not run: error: Failed to download Python");
     }
 
+    private const string ActiveList = """{"ok": true, "labs": [], "people": [], "closed_hidden": 12, "problems": []}""";
+    private const string FullList = """{"ok": true, "labs": [], "people": [], "closed_hidden": 0, "problems": []}""";
+
+    [Fact]
+    public async Task The_list_leaves_out_closed_projects_unless_asked_for_them()
+    {
+        using var engine = new FakeEngine(_ => new ProcessResult(0, ActiveList, ""));
+
+        (await engine.Engine.ListAsync()).ClosedHidden.ShouldBe(12);
+        engine.Calls.Single().ShouldEndWith("--json list --active");
+
+        engine.Respond = _ => new ProcessResult(0, FullList, "");
+        (await engine.Engine.ListAsync(includeClosed: true)).ClosedHidden.ShouldBe(0);
+        engine.Calls[1].ShouldEndWith("--json list");
+    }
+
+    [Fact]
+    public async Task An_engine_without_list_active_lists_everything_instead()
+    {
+        // What argparse prints for an option a 26.2.0 engine does not have.
+        using var engine = new FakeEngine(args => args.EndsWith("--active", StringComparison.Ordinal)
+            ? new ProcessResult(2, "", "usage: project.py [-h] [--json] [--version] ...\nproject.py: error: unrecognized arguments: --active")
+            : new ProcessResult(0, """{"ok": true, "labs": [], "people": [], "problems": []}""", ""));
+
+        var list = await engine.Engine.ListAsync();
+
+        list.ClosedHidden.ShouldBe(0);
+        engine.Calls.Select(c => c[c.IndexOf("list", StringComparison.Ordinal)..]).ShouldBe(["list --active", "list"]);
+    }
+
+    [Fact]
+    public async Task Other_engine_errors_are_not_retried()
+    {
+        using var engine = new FakeEngine(_ => new ProcessResult(2, "", "error: Failed to download Python"));
+
+        (await Should.ThrowAsync<EngineException>(() => engine.Engine.ListAsync())).Message.ShouldContain("Failed to download Python");
+        engine.Calls.Count.ShouldBe(1);
+    }
+
+    /// <summary>A ProjectEngine whose process runner answers from a function and records each command.</summary>
+    private sealed class FakeEngine : IProcessRunner, IDisposable
+    {
+        private readonly string _folder = Directory.CreateTempSubdirectory("chargestate-engine-").FullName;
+
+        public FakeEngine(Func<string, ProcessResult> respond)
+        {
+            Respond = respond;
+            Directory.CreateDirectory(Path.Combine(_folder, "tools"));
+            File.WriteAllText(Path.Combine(_folder, "tools", "uv.exe"), "");
+            Engine = new ProjectEngine(this, new ToolLocator(_folder)) { RepositoryPath = _folder };
+        }
+
+        public ProjectEngine Engine { get; }
+
+        public Func<string, ProcessResult> Respond { get; set; }
+
+        public List<string> Calls { get; } = [];
+
+        public Task<ProcessResult> RunAsync(
+            string fileName, IEnumerable<string> arguments, string? workingDirectory = null,
+            IReadOnlyDictionary<string, string?>? environment = null, TimeSpan? timeout = null,
+            CancellationToken cancellationToken = default)
+        {
+            var args = string.Join(' ', arguments);
+            Calls.Add(args);
+            return Task.FromResult(Respond(args));
+        }
+
+        public void Dispose() => Directory.Delete(_folder, recursive: true);
+    }
+
     /// <summary>
     /// Runs the real project.py through uv against a clone of lab-projects. Opt-in: set
     /// LAB_PROJECTS_REPO to the clone's path.

@@ -38,6 +38,7 @@ public sealed partial class ProjectsViewModel : ObservableObject
     private readonly ILogger<ProjectsViewModel> _log;
     private readonly PanoramaPicker _panorama;
     private List<ProjectRow> _all = [];
+    private bool _allHasClosed;
     private IReadOnlyList<Person> _people = [];
 
     public ProjectsViewModel(
@@ -66,6 +67,13 @@ public sealed partial class ProjectsViewModel : ObservableObject
     [ObservableProperty] public partial string Query { get; set; }
 
     [ObservableProperty] public partial bool ShowClosed { get; set; }
+
+    /// <summary>How many projects are closed, whether or not they are shown.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowClosedText))]
+    public partial int ClosedCount { get; set; }
+
+    public string ShowClosedText => ClosedCount > 0 ? $"Show closed ({ClosedCount})" : "Show closed";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasSelection), nameof(SelectedHeadline), nameof(SelectedTitle), nameof(SelectedDetail),
@@ -123,7 +131,10 @@ public sealed partial class ProjectsViewModel : ObservableObject
 
     // -- loading -----------------------------------------------------------------------------
 
-    /// <summary>Re-reads every project from this computer, keeping (or moving to) the selection.</summary>
+    /// <summary>
+    /// Re-reads the projects from this computer, keeping (or moving to) the selection. Closed
+    /// projects are read only while Show closed is ticked, or when the one to select is closed.
+    /// </summary>
     public async Task ReloadAsync(string? select = null)
     {
         IsAvailable = Repository is not null;
@@ -135,11 +146,22 @@ public sealed partial class ProjectsViewModel : ObservableObject
         var keep = select ?? Selected?.Name;
         try
         {
-            var list = await _engine.ListAsync().ConfigureAwait(true);
+            var includeClosed = ShowClosed;
+            var list = await _engine.ListAsync(includeClosed).ConfigureAwait(true);
+            if (!includeClosed && list.ClosedHidden > 0 && keep is not null
+                && !list.Labs.Any(lab => lab.Projects.Any(p => p.Project == keep)))
+            {
+                // The project to show is closed (perhaps just now): read the closed ones too.
+                includeClosed = true;
+                list = await _engine.ListAsync(includeClosed).ConfigureAwait(true);
+            }
+
             var modified = await ItemHistory.LastModifiedAsync(repository).ConfigureAwait(true);
             _people = list.People;
             _all = [.. list.Labs.SelectMany(lab => lab.Projects.Select(p =>
                 new ProjectRow(lab, p, modified.TryGetValue(p.Folder, out var t) ? t : null, p.Assigned is { } a ? NameOf(a) : "")))];
+            _allHasClosed = includeClosed || list.ClosedHidden == 0;
+            ClosedCount = _allHasClosed ? _all.Count(r => r.IsClosed) : list.ClosedHidden;
             var errors = list.Problems.Where(p => p.IsError).ToList();
             Banner = errors.Count == 0 ? null : "Problems in the lab projects: " + string.Join("; ", errors.Select(e => e.Message));
         }
@@ -169,7 +191,18 @@ public sealed partial class ProjectsViewModel : ObservableObject
 
     partial void OnQueryChanged(string value) => ApplyFilter();
 
-    partial void OnShowClosedChanged(bool value) => ApplyFilter();
+    partial void OnShowClosedChanged(bool value)
+    {
+        if (value && !_allHasClosed)
+        {
+            // The closed projects were not read; the reload filters when it has them.
+            _ = ReloadAsync();
+        }
+        else
+        {
+            ApplyFilter();
+        }
+    }
 
     partial void OnSelectedChanged(ProjectRow? value)
     {
@@ -605,6 +638,17 @@ public sealed partial class ProjectsViewModel : ObservableObject
 
     private bool CanOpenInOctopus() => CanEditSelected() && Selected!.Project.Files.Samples;
 
+    /// <summary>Shows the organized sample table, and the files it was made from, in a grid.</summary>
+    [RelayCommand(CanExecute = nameof(CanViewSamples))]
+    private void ViewSamples()
+    {
+        var p = Selected!.Project;
+        SamplesWindow.Open(Application.Current.MainWindow, new SamplesViewModel(p.Project, p.FolderPath(Repository!.Path)));
+    }
+
+    // Reading needs no sync and no edit rights, so this stays available while work runs.
+    private bool CanViewSamples() => Selected is { Project.Files.Samples: true } && Repository is not null;
+
     /// <summary>Keeps the layout exported from Octopus with the project, and marks the plate layout done.</summary>
     [RelayCommand(CanExecute = nameof(CanOpenInOctopus))]
     private async Task ImportLayoutAsync()
@@ -654,7 +698,7 @@ public sealed partial class ProjectsViewModel : ObservableObject
                      NewProjectCommand, NewExperimentCommand, AskClaudeCommand, StartStageCommand, FinishStageCommand,
                      SkipStageCommand, ReopenStageCommand, AssignCommand, AddStepCommand, RemoveStepCommand,
                      AddLinkCommand, AddProjectLinkCommand, RemoveLinkCommand, OrganizeMetadataCommand,
-                     OpenInOctopusCommand, ImportLayoutCommand, OpenFolderCommand, OpenOnGitHubCommand,
+                     OpenInOctopusCommand, ImportLayoutCommand, OpenFolderCommand, OpenOnGitHubCommand, ViewSamplesCommand,
                  })
         {
             command.NotifyCanExecuteChanged();
@@ -691,7 +735,8 @@ public sealed partial class ProjectsViewModel : ObservableObject
         }
 
         await ReloadAsync(turn.Item).ConfigureAwait(true);
-        var item = turn.Item ?? _all.Select(r => r.Name).FirstOrDefault(n => !known.Contains(n));
+        // A new project is not closed; this also ignores closed ones the reload may have added.
+        var item = turn.Item ?? _all.Where(r => !r.IsClosed).Select(r => r.Name).FirstOrDefault(n => !known.Contains(n));
         if (turn.Item is null && item is not null)
         {
             Chat.AdoptItem(item);

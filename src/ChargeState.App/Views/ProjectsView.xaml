@@ -115,7 +115,8 @@
             <!-- Project list -->
             <DockPanel Grid.Column="0" Margin="10,10,4,10">
                 <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
-                    <CheckBox DockPanel.Dock="Right" Content="Show closed" IsChecked="{Binding ShowClosed}" VerticalAlignment="Center" Margin="8,0,0,0" />
+                    <CheckBox DockPanel.Dock="Right" Content="{Binding ShowClosedText}" IsChecked="{Binding ShowClosed}" VerticalAlignment="Center" Margin="8,0,0,0"
+                              ToolTip="Closed projects are read only while this is ticked, which keeps the list quick." />
                     <TextBox x:Name="SearchBox" Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}"
                              ToolTip="Search by project, experiment, lab, PI, institution, species, instrument, funding, step, or person" />
                 </DockPanel>
@@ -155,6 +156,8 @@
                                     ToolTip="Another measurement of these samples, for example PRM on the Stellar after DIA on the Astral. Claude asks what it is." />
                             <Button Content="Organize metadata with Claude" Command="{Binding OrganizeMetadataCommand}"
                                     ToolTip="Choose the collaborator's sample sheet. It is checked for identifying information first; then Claude turns it into the sample table." ToolTipService.ShowOnDisabled="True" />
+                            <Button Content="View samples" Command="{Binding ViewSamplesCommand}"
+                                    ToolTip="The organized sample table in a grid you can sort and search, and the files it was made from. Needs the organized sample table." ToolTipService.ShowOnDisabled="True" />
                             <Button Content="Open in Octopus" Command="{Binding OpenInOctopusCommand}"
                                     ToolTip="Write the sample table for Octopus and open Octopus, to lay the samples out on plates. Needs the organized sample table." ToolTipService.ShowOnDisabled="True" />
                             <Button Content="Import Octopus layout" Command="{Binding ImportLayoutCommand}"

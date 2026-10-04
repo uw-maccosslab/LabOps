@@ -34,10 +34,31 @@ public sealed class ProjectEngine : IPreCommitCheck
     /// <summary>The clone of the projects repository. Set once setup has found or made it.</summary>
     public string? RepositoryPath { get; set; }
 
-    public async Task<ProjectList> ListAsync(CancellationToken cancellationToken = default)
+    /// <summary>Every lab, project and experiment.</summary>
+    /// <param name="includeClosed">
+    /// False leaves out closed projects (list --active), which the engine then neither checks nor
+    /// summarizes, so the list costs what the current work costs; <see cref="ProjectList.ClosedHidden"/>
+    /// says how many were left out.
+    /// </param>
+    public async Task<ProjectList> ListAsync(bool includeClosed = false, CancellationToken cancellationToken = default)
     {
-        using var doc = await RunAsync(["list"], cancellationToken).ConfigureAwait(false);
-        return ReadList(doc.RootElement);
+        JsonDocument doc;
+        try
+        {
+            doc = await RunAsync(includeClosed ? ["list"] : ["list", "--active"], cancellationToken).ConfigureAwait(false);
+        }
+        catch (EngineException ex) when (!includeClosed && ex.Message.Contains("--active", StringComparison.Ordinal))
+        {
+            // A clone whose engine predates list --active refuses it (argparse); its list has
+            // every project, so nothing is hidden.
+            _log.LogInformation("This project engine has no list --active; listing every project.");
+            doc = await RunAsync(["list"], cancellationToken).ConfigureAwait(false);
+        }
+
+        using (doc)
+        {
+            return ReadList(doc.RootElement);
+        }
     }
 
     /// <summary>Starts, finishes or skips a step.</summary>
@@ -203,7 +224,8 @@ public sealed class ProjectEngine : IPreCommitCheck
         }
 
         var people = root.TryGetProperty("people", out var list) ? list.Deserialize<List<Person>>(EngineJson.Options) ?? [] : [];
-        return new(labs.Deserialize<List<LabSummary>>(EngineJson.Options) ?? [], people, ReadProblems(root));
+        var hidden = root.TryGetProperty("closed_hidden", out var h) && h.TryGetInt32(out var n) ? n : 0;
+        return new(labs.Deserialize<List<LabSummary>>(EngineJson.Options) ?? [], people, ReadProblems(root), hidden);
     }
 
     private static List<ProjectIssue> ReadProblems(JsonElement root) =>

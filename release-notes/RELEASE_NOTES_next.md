@@ -6,6 +6,14 @@ the GitHub Release description and fails if it is missing.
 
 ## New Features
 
+- **View samples.** A project with an organized sample table has a View samples button. It opens
+  the table (`metadata/samples.csv`) in a grid: click a heading to sort (numbers sort as
+  numbers, and identifiers such as 0012 keep their zeros), type to keep only the rows containing
+  every word, and copy cells with their headings. It counts the rows, the study samples and the
+  QC rows, and can also show each deidentified file the table was made from. It only reads, and
+  the window can stay open while you work.
+- **Show closed counts the closed projects** ("Show closed (12)"), which the list leaves out.
+
 ## Bug Fixes
 
 ## Performance
@@ -23,5 +31,10 @@ the GitHub Release description and fails if it is missing.
     the same staged files (lab-projects engine change).
   - The log records how long each engine command, commit and sync took.
 - After a Claude turn, the app still waits for GitHub before it says "Saved and shared".
+- **The Projects list reads only the projects in progress.** Closed projects are read only
+  while Show closed is ticked, or to show one that was just closed, so the list stays quick as
+  finished work piles up. With lab-projects' faster `list` (same release of the project
+  engine), a repository of 1,000 projects, 80% of them closed, lists in 1.8 seconds instead of
+  30. A copy of lab-projects not yet synced to that engine still lists everything.
 
 ## Breaking Changes

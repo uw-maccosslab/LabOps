@@ -168,7 +168,8 @@ flowchart LR
 
 | In the app | Engine command | Saved as |
 |---|---|---|
-| Projects list, quotes list | `project.py list`, `quote.py list` | nothing |
+| Projects list, quotes list | `project.py list --active` (`list` with Show closed), `quote.py list` | nothing |
+| View samples | none: the app reads `metadata/samples.csv` and `metadata/received/*.csv` | nothing |
 | Start, Done, Skip, Reopen a step | `project.py stage <item> <step> start\|done\|skip` | `<item>: <step> done` |
 | Assign | `project.py assign <item> <steps> --to <login>` | `<item>: <step> assigned to <login>` |
 | Add a step, Remove a step | `project.py add-step`, `remove-step` | `<item>: added step ...` |
