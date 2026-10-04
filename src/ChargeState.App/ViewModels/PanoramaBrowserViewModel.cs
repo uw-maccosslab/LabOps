@@ -11,11 +11,11 @@ namespace ChargeState.App.ViewModels;
 /// </remarks>
 public sealed partial class PanoramaFolderNode : ObservableObject
 {
-    private readonly IPanoramaFiles? _files;
+    private readonly IPanoramaClient? _files;
     private Task? _loading;
     private bool _loaded;
 
-    public PanoramaFolderNode(IPanoramaFiles files, string path, string name)
+    public PanoramaFolderNode(IPanoramaClient files, string path, string name)
     {
         _files = files;
         Path = PanoramaPaths.AsFolder(path);
@@ -89,7 +89,7 @@ public sealed partial class PanoramaFolderNode : ObservableObject
 }
 
 /// <summary>Chooses a folder on Panorama, starting at the lab's shared folder.</summary>
-public sealed partial class PanoramaBrowserViewModel(IPanoramaFiles files) : ObservableObject
+public sealed partial class PanoramaBrowserViewModel(IPanoramaClient files) : ObservableObject
 {
     /// <summary>The projects this account can see.</summary>
     public ObservableCollection<PanoramaFolderNode> Roots { get; } = [];

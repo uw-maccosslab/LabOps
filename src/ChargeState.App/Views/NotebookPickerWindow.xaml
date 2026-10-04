@@ -1,0 +1,39 @@
+<Window x:Class="ChargeState.App.Views.NotebookPickerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Choose a notebook on Panorama" Width="860" Height="580" WindowStartupLocation="CenterOwner"
+        FontFamily="Segoe UI" FontSize="13" Foreground="{StaticResource TextBrush}" ShowInTaskbar="False">
+    <DockPanel Margin="16">
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+            <CheckBox DockPanel.Dock="Right" Content="Show archived" IsChecked="{Binding ShowArchived}" VerticalAlignment="Center" Margin="8,0,0,0" />
+            <TextBox x:Name="Search" Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}"
+                     ToolTip="Search by notebook ID, title, author or status" />
+        </DockPanel>
+        <DockPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button Content="Cancel" IsCancel="True" />
+                <Button Content="Choose" IsDefault="True" Click="OnChoose" Style="{StaticResource PrimaryButton}" Margin="0"
+                        IsEnabled="{Binding CanChoose}" />
+            </StackPanel>
+            <TextBlock Text="{Binding Summary}" Style="{StaticResource Muted}" VerticalAlignment="Center" />
+        </DockPanel>
+        <TextBlock DockPanel.Dock="Bottom" Text="{Binding Error}" TextWrapping="Wrap" Foreground="{StaticResource DangerBrush}" Margin="0,8,0,0"
+                   Visibility="{Binding Error, Converter={StaticResource NullToVisibility}}" />
+        <Grid>
+            <ListView ItemsSource="{Binding Notebooks}" SelectedItem="{Binding Selected}" MouseDoubleClick="OnDoubleClick"
+                      BorderBrush="{StaticResource BorderBrush}">
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn Header="Notebook ID" Width="175" DisplayMemberBinding="{Binding Id}" />
+                        <GridViewColumn Header="Title" Width="300" DisplayMemberBinding="{Binding Title}" />
+                        <GridViewColumn Header="Status" Width="95" DisplayMemberBinding="{Binding StatusText}" />
+                        <GridViewColumn Header="Author" Width="110" DisplayMemberBinding="{Binding Author}" />
+                        <GridViewColumn Header="Modified" Width="85" DisplayMemberBinding="{Binding ModifiedText}" />
+                    </GridView>
+                </ListView.View>
+            </ListView>
+            <TextBlock Text="Loading the notebooks from Panorama..." HorizontalAlignment="Center" VerticalAlignment="Center" Style="{StaticResource Muted}"
+                       Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}" />
+        </Grid>
+    </DockPanel>
+</Window>

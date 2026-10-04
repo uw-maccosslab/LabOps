@@ -17,20 +17,20 @@ public partial class AddLinkWindow : Window
     private const string PanoramaHome = "https://panoramaweb.org/MacCoss/maccoss/project-begin.view";
     private const string NotebooksUrl = "https://panoramaweb.org/MacCoss/samplemanager-app.view#/notebooks";
 
-    private readonly Func<Window, Task<string?>>? _browse;
+    private readonly PanoramaPicker? _picker;
     private AddLinkAnswer? _answer;
 
-    private AddLinkWindow(Window? owner, string heading, bool panorama, Func<Window, Task<string?>>? browse)
+    private AddLinkWindow(Window? owner, string heading, bool panorama, PanoramaPicker? picker)
     {
-        _browse = browse;
+        _picker = picker;
         InitializeComponent();
         Owner = owner;
         Title = AppInfo.ProductName;
         Heading.Text = heading;
         Message.Text = panorama
             ? "Choose the Panorama folder with Browse, paste its address from your browser, or type its path, "
-              + "for example /MacCoss/maccoss/@files/2026-BioTRACK. For a notebook, paste its link and its ID."
-            : "Paste the notebook's link from your browser and its ID. Panorama folders go on each experiment.";
+              + "for example /MacCoss/maccoss/@files/2026-BioTRACK. For a notebook, choose it with Browse or give its ID."
+            : "Choose the notebook with Browse, or give its ID (the link is filled in from it). Panorama folders go on each experiment.";
         List<Choice> choices = panorama
             ? [new("raw", "Raw data on Panorama"), new("results", "Results on Panorama"), new(null, "ELN notebook")]
             : [new(null, "ELN notebook")];
@@ -42,10 +42,10 @@ public partial class AddLinkWindow : Window
 
     /// <summary>The link to add, or null if cancelled.</summary>
     /// <param name="panorama">True for an experiment, which can have Panorama folders.</param>
-    /// <param name="browse">Chooses a folder on Panorama; returns its path, or null.</param>
-    public static AddLinkAnswer? Ask(Window? owner, string heading, bool panorama, Func<Window, Task<string?>>? browse = null)
+    /// <param name="picker">Browses Panorama for a folder or a notebook; null hides Browse.</param>
+    public static AddLinkAnswer? Ask(Window? owner, string heading, bool panorama, PanoramaPicker? picker = null)
     {
-        var window = new AddLinkWindow(owner, heading, panorama, browse);
+        var window = new AddLinkWindow(owner, heading, panorama, picker);
         return window.ShowDialog() == true ? window._answer : null;
     }
 
@@ -60,7 +60,10 @@ public partial class AddLinkWindow : Window
             : "The folder's address copied from your browser, or its path, for example /MacCoss/maccoss/2026-BioTRACK";
         var notebook = IsNotebook ? Visibility.Visible : Visibility.Collapsed;
         IdLabel.Visibility = NotebookId.Visibility = notebook;
-        Browse.Visibility = IsNotebook || _browse is null ? Visibility.Collapsed : Visibility.Visible;
+        Browse.Visibility = _picker is null ? Visibility.Collapsed : Visibility.Visible;
+        Browse.ToolTip = IsNotebook
+            ? "Choose the notebook from the lab's notebooks on Panorama"
+            : "Choose the folder on Panorama, signed in the way PanoramaBridge is";
     }
 
     private async void OnBrowse(object sender, RoutedEventArgs e)
@@ -68,7 +71,15 @@ public partial class AddLinkWindow : Window
         Browse.IsEnabled = false;
         try
         {
-            if (await _browse!(this).ConfigureAwait(true) is { } folder)
+            if (IsNotebook)
+            {
+                if (await _picker!.ChooseNotebookAsync(this).ConfigureAwait(true) is { } notebook)
+                {
+                    Address.Text = notebook.Url();
+                    NotebookId.Text = notebook.Id;
+                }
+            }
+            else if (await _picker!.ChooseFolderAsync(this).ConfigureAwait(true) is { } folder)
             {
                 Address.Text = folder;
             }
@@ -92,7 +103,7 @@ public partial class AddLinkWindow : Window
         }
         else if (IsNotebook && address is null && id is null)
         {
-            problem = "Paste the notebook's link, or give its ID.";
+            problem = "Choose the notebook with Browse, or give its ID.";
         }
         else if (IsNotebook && address is not null && !address.StartsWith("http", StringComparison.OrdinalIgnoreCase))
         {

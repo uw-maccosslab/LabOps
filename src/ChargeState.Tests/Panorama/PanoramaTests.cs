@@ -90,7 +90,7 @@ public sealed class PanoramaTests
     [Fact]
     public void A_listing_gives_folders_and_files_with_paths_built_from_the_parent()
     {
-        var entries = PanoramaFiles.Parse(Listing, "/_webdav/home/@files");
+        var entries = PanoramaClient.Parse(Listing, "/_webdav/home/@files");
 
         entries.Select(e => (e.Name, e.Path, e.IsFolder)).ShouldBe(
         [
@@ -102,14 +102,14 @@ public sealed class PanoramaTests
 
     [Fact]
     public void A_sign_in_page_instead_of_a_listing_is_a_sign_in_problem() =>
-        Should.Throw<PanoramaException>(() => PanoramaFiles.Parse("<!DOCTYPE html><html>Sign in</html>", "/_webdav/"))
+        Should.Throw<PanoramaException>(() => PanoramaClient.Parse("<!DOCTYPE html><html>Sign in</html>", "/_webdav/"))
             .IsSignInProblem.ShouldBeTrue();
 
     [Fact]
     public async Task Listing_asks_for_json_signed_in_and_keeps_at_signs_in_the_address()
     {
         var handler = new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(Listing) });
-        using var files = new PanoramaFiles(Server, PanoramaCredential.ApiKey("k"), handler);
+        using var files = new PanoramaClient(Server, PanoramaCredential.ApiKey("k"), handler);
 
         var entries = await files.ListAsync("/_webdav/MacCoss/maccoss/@files/Dog Aging");
 
@@ -128,7 +128,7 @@ public sealed class PanoramaTests
     [InlineData(HttpStatusCode.InternalServerError, false, "Panorama answered 500")]
     public async Task Failures_say_what_went_wrong(HttpStatusCode status, bool signIn, string message)
     {
-        using var files = new PanoramaFiles(Server, PanoramaCredential.ApiKey("k", "PanoramaBridge"),
+        using var files = new PanoramaClient(Server, PanoramaCredential.ApiKey("k", "PanoramaBridge"),
             new StubHandler(_ => new HttpResponseMessage(status)));
 
         var ex = await Should.ThrowAsync<PanoramaException>(() => files.ListAsync("/_webdav/MacCoss/private/"));
@@ -141,12 +141,88 @@ public sealed class PanoramaTests
     [Fact]
     public async Task A_key_typed_into_the_sign_in_window_is_called_this_API_key()
     {
-        using var files = new PanoramaFiles(Server, PanoramaCredential.ApiKey("k"),
+        using var files = new PanoramaClient(Server, PanoramaCredential.ApiKey("k"),
             new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.Unauthorized)));
 
         var ex = await Should.ThrowAsync<PanoramaException>(() => files.ListAsync("/_webdav/"));
 
         ex.Message.ShouldBe("Panorama did not accept this API key. Check it and try again.");
+    }
+
+    // -- notebooks ----------------------------------------------------------------------------
+
+    /// <summary>The form of query-selectRows.api for labbook.Notebook on panoramaweb.org (made-up notebooks).</summary>
+    private const string Notebooks = """
+    {"schemaName":"labbook","queryName":"Notebook","rowCount":3,"rows":[
+      {"Status":"inProgress","RowId":131,"_labkeyurl_RowId":"/MacCoss/query-detailsQueryRow.view?schemaName=labbook&query.queryName=Notebook&RowId=131",
+       "Title":"Plasma prep, BioTRACK","Name":"ELN-1567-20250730-131","Modified":"2025-07-30 10:50:16.399","CreatedBy/DisplayName":"pat","Archived":false},
+      {"Status":"submittedForReview","RowId":170,"Title":"Stellar PRM assay","Name":"ELN-1652-20260819-170",
+       "Modified":"2026-08-19 09:00:00.000","CreatedBy/DisplayName":"lee","Archived":false},
+      {"Status":"signed","RowId":12,"Title":"Old gradients","Name":"ELN-12","Modified":"2023-01-05 12:00:00.000",
+       "CreatedBy/DisplayName":"pat","Archived":true}
+    ]}
+    """;
+
+    [Fact]
+    public void Notebooks_are_read_with_their_ID_title_status_and_address()
+    {
+        var notebooks = PanoramaClient.ParseNotebooks(Notebooks);
+
+        notebooks.Select(n => (n.RowId, n.Id, n.Title, n.StatusText, n.Author, n.Archived)).ShouldBe(
+        [
+            (131, "ELN-1567-20250730-131", "Plasma prep, BioTRACK", "In progress", "pat", false),
+            (170, "ELN-1652-20260819-170", "Stellar PRM assay", "Submitted for review", "lee", false),
+            (12, "ELN-12", "Old gradients", "Signed", "pat", true),
+        ]);
+        notebooks[0].Url().ShouldBe("https://panoramaweb.org/MacCoss/samplemanager-app.view#/notebooks/131");
+        notebooks[0].ModifiedText.ShouldBe("2025-07-30");
+    }
+
+    [Theory]
+    [InlineData("ELN-1567-20250730-131", "https://panoramaweb.org/MacCoss/samplemanager-app.view#/notebooks/131")]
+    [InlineData("ELN-20250730-131", "https://panoramaweb.org/MacCoss/samplemanager-app.view#/notebooks/131")]
+    [InlineData(" eln-131 ", "https://panoramaweb.org/MacCoss/samplemanager-app.view#/notebooks/131")]
+    [InlineData("Lab book 7", null)]
+    [InlineData(null, null)]
+    public void A_notebook_ID_gives_its_address(string? id, string? url) =>
+        PanoramaPaths.NotebookUrlFromId(id).ShouldBe(url);
+
+    [Fact]
+    public async Task Notebooks_come_from_labbook_in_the_MacCoss_project_without_templates()
+    {
+        var handler = new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(Notebooks) });
+        using var client = new PanoramaClient(Server, PanoramaCredential.ApiKey("k"), handler);
+
+        (await client.ListNotebooksAsync()).Count.ShouldBe(3);
+
+        var url = handler.Requests.Single().RequestUri!;
+        url.AbsolutePath.ShouldBe("/MacCoss/query-selectRows.api");
+        url.Query.ShouldContain("schemaName=labbook&query.queryName=Notebook");
+        url.Query.ShouldContain("query.Template~eq=false");
+    }
+
+    [Fact]
+    public void A_sign_in_page_instead_of_notebooks_is_a_sign_in_problem() =>
+        Should.Throw<PanoramaException>(() => PanoramaClient.ParseNotebooks("<html>Sign in</html>")).IsSignInProblem.ShouldBeTrue();
+
+    [Fact]
+    public async Task The_notebook_picker_searches_and_hides_archived_notebooks()
+    {
+        var vm = new NotebookPickerViewModel(new FakeFiles { NotebookList = PanoramaClient.ParseNotebooks(Notebooks) });
+
+        await vm.InitializeAsync();
+
+        vm.Notebooks.Select(n => n.RowId).ShouldBe([170, 131]);  // newest first, archived hidden
+        vm.Summary.ShouldBe("2 of 3 notebooks; 1 archived hidden");
+        vm.Query = "pat";
+        vm.Notebooks.Select(n => n.RowId).ShouldBe([131]);
+        vm.ShowArchived = true;
+        vm.Notebooks.Select(n => n.RowId).ShouldBe([131, 12]);
+        vm.Query = "review stellar";
+        vm.Notebooks.Single().Id.ShouldBe("ELN-1652-20260819-170");
+        vm.CanChoose.ShouldBeFalse();
+        vm.Selected = vm.Notebooks.Single();
+        vm.CanChoose.ShouldBeTrue();
     }
 
     // -- paths --------------------------------------------------------------------------------
@@ -249,13 +325,18 @@ public sealed class PanoramaTests
         public void Delete(string target) => Entries.Remove(target);
     }
 
-    private sealed class FakeFiles : Dictionary<string, string[]>, IPanoramaFiles
+    private sealed class FakeFiles : Dictionary<string, string[]>, IPanoramaClient
     {
         public List<string> Calls { get; } = [];
 
         public HashSet<string> FailOnce { get; } = [];
 
         public bool SignInFails { get; init; }
+
+        public IReadOnlyList<PanoramaNotebook> NotebookList { get; init; } = [];
+
+        public Task<IReadOnlyList<PanoramaNotebook>> ListNotebooksAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(NotebookList);
 
         public Task<IReadOnlyList<PanoramaEntry>> ListAsync(string path, CancellationToken cancellationToken = default)
         {

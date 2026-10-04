@@ -36,12 +36,12 @@ public sealed partial class ProjectsViewModel : ObservableObject
     private readonly ProjectEngine _engine;
     private readonly WorkTracker _work;
     private readonly ILogger<ProjectsViewModel> _log;
-    private readonly PanoramaSignIn _panorama;
+    private readonly PanoramaPicker _panorama;
     private List<ProjectRow> _all = [];
     private IReadOnlyList<Person> _people = [];
 
     public ProjectsViewModel(
-        Workspace workspace, ProjectEngine engine, WorkTracker work, ChatViewModel chat, PanoramaSignIn panorama, ILogger<ProjectsViewModel> log)
+        Workspace workspace, ProjectEngine engine, WorkTracker work, ChatViewModel chat, PanoramaPicker panorama, ILogger<ProjectsViewModel> log)
     {
         _panorama = panorama;
         _workspace = workspace;
@@ -255,7 +255,7 @@ public sealed partial class ProjectsViewModel : ObservableObject
 
     /// <summary>Notebooks as links; with an item and folder, ones that can be removed there.</summary>
     private static IEnumerable<LinkItem> NotebookLinks(IEnumerable<Notebook> notebooks, string? item = null, string? folder = null) =>
-        notebooks.Select(n => new LinkItem($"ELN notebook {n.Id ?? n.Url}", n.Url ?? NotebooksUrl,
+        notebooks.Select(n => new LinkItem($"ELN notebook {n.Id ?? n.Url}", n.Url ?? PanoramaPaths.NotebookUrlFromId(n.Id) ?? NotebooksUrl,
             item, item is null ? null : "notebook", n.Id ?? n.Url, folder));
 
     internal static string PanoramaKindLabel(string? kind) => kind switch
@@ -424,7 +424,7 @@ public sealed partial class ProjectsViewModel : ObservableObject
     private async Task AddLinkToAsync(string item, string folder, bool panorama)
     {
         var project = Selected!.Name;
-        var answer = AddLinkWindow.Ask(Application.Current.MainWindow, $"Add a link: {item}", panorama, BrowsePanoramaAsync);
+        var answer = AddLinkWindow.Ask(Application.Current.MainWindow, $"Add a link: {item}", panorama, _panorama);
         if (answer is null)
         {
             return;
@@ -446,73 +446,6 @@ public sealed partial class ProjectsViewModel : ObservableObject
             await SaveAsync([folder], $"{item}: {what}").ConfigureAwait(true);
         }).ConfigureAwait(true);
         await ReloadAsync(project).ConfigureAwait(true);
-    }
-
-    /// <summary>
-    /// Chooses a folder on Panorama. Signs in with PanoramaBridge's saved sign-in, else
-    /// ChargeState's, and asks for an API key or a user name and password only when neither works.
-    /// </summary>
-    private async Task<string?> BrowsePanoramaAsync(Window owner)
-    {
-        PanoramaCredential? working = null;
-        string? rejected = null;
-        foreach (var candidate in _panorama.Candidates())
-        {
-            var problem = await TryPanoramaAsync(candidate).ConfigureAwait(true);
-            if (problem is null)
-            {
-                working = candidate;
-                break;
-            }
-
-            if (!problem.IsSignInProblem)
-            {
-                MessageBox.Show(owner, problem.Message, AppInfo.ProductName, MessageBoxButton.OK, MessageBoxImage.Warning);
-                return null;
-            }
-
-            _log.LogInformation("Panorama did not accept the sign-in saved by {Source}.", candidate.Source);
-            rejected ??= $"Panorama did not accept the sign-in saved by {candidate.Source} ({candidate}); the API key may have expired. ";
-        }
-
-        if (working is null)
-        {
-            var message = (rejected ?? "Neither PanoramaBridge nor ChargeState has a Panorama sign-in saved on this computer. ")
-                + "Sign in once to browse Panorama's folders; ChargeState keeps the sign-in for next time.";
-            if (PanoramaSignInWindow.Ask(owner, message, _panorama.Server,
-                    async c => (await TryPanoramaAsync(c).ConfigureAwait(true))?.Message) is not { } typed)
-            {
-                return null;
-            }
-
-            try
-            {
-                working = _panorama.Save(typed);
-            }
-            catch (InvalidOperationException ex)
-            {
-                _log.LogWarning(ex, "Could not save the Panorama sign-in.");
-                working = typed;
-            }
-        }
-
-        using var files = new PanoramaFiles(_panorama.Server, working);
-        return PanoramaBrowserWindow.Ask(owner, new PanoramaBrowserViewModel(files)).Folder;
-    }
-
-    /// <summary>Lists Panorama's projects with a sign-in: null when it works, else why not.</summary>
-    private async Task<PanoramaException?> TryPanoramaAsync(PanoramaCredential credential)
-    {
-        using var files = new PanoramaFiles(_panorama.Server, credential);
-        try
-        {
-            await files.ListAsync("/_webdav/").ConfigureAwait(true);
-            return null;
-        }
-        catch (PanoramaException ex)
-        {
-            return ex;
-        }
     }
 
     /// <summary>Removes a Panorama folder or a notebook recorded by mistake or moved.</summary>
