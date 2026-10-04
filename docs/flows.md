@@ -1,0 +1,232 @@
+# How it works, step by step
+
+These follow the main actions through the app, the engines, git, GitHub, Claude and Panorama.
+[How ChargeState fits together](architecture.md) introduces the pieces.
+
+- [Saving a change](#saving-a-change)
+- [Staying in sync, and what happens on a conflict](#staying-in-sync-and-what-happens-on-a-conflict)
+- [A conversation with Claude](#a-conversation-with-claude)
+- [Organizing a collaborator's sample sheet](#organizing-a-collaborators-sample-sheet)
+- [Choosing a Panorama folder or notebook](#choosing-a-panorama-folder-or-notebook)
+- [First-run setup](#first-run-setup)
+
+## Saving a change
+
+Every button that changes something works the same way: bring in others' work first, run the
+engine, then save and share. Here, marking a step done in the Projects area:
+
+```mermaid
+sequenceDiagram
+    actor You
+    participant App as ChargeState
+    participant Git as git, in the clone
+    participant Engine as project.py
+    participant GitHub
+    participant Actions as GitHub Actions
+
+    You->>App: Done on "Plate layout", with a date and a note
+    App->>Git: fetch, rebase --autostash origin/main, push
+    Note over App,Git: Bring in others' work first, so the change starts from the latest
+    App->>Engine: uv run --frozen python scripts/project.py --json stage MNRF-BioTRACK plate_layout done ...
+    Engine-->>App: JSON: the project, its steps and any warnings
+    App->>Git: add -A projects/UW-MacCoss/MNRF-BioTRACK
+    App->>Engine: check --staged (lab-projects only)
+    alt the check finds identifying information
+        Engine-->>App: ERROR problems
+        App->>Git: unstage, so nothing is committed
+        App-->>You: Not saved, and why
+    else nothing to stop it
+        App->>Git: commit "MNRF-BioTRACK: plate layout done"
+        App->>Git: fetch, rebase --autostash origin/main
+        App->>GitHub: push HEAD:main (rebases and retries up to 3 times if GitHub moved)
+        GitHub->>Actions: check: engine tests and validation
+        GitHub->>Actions: index: rebuild the README table, commit it as github-actions
+        App->>Engine: list (reload the screen)
+        App-->>You: The step shows as done
+    end
+```
+
+- **The engine does the work.** The app passes what you chose; the engine edits the YAML, keeps
+  its comments, and validates the result.
+- **lab-projects checks every commit twice.** The app runs `check --staged` before it commits, and
+  the repository's own pre-commit hook runs it again. Either refusal leaves the files changed but
+  uncommitted.
+- **The Quotes area is the same,** without the identifier check: for example Send runs
+  `quote.py send`, then saves `"<number>: sent"`.
+
+## Staying in sync, and what happens on a conflict
+
+The app never merges. It rebases your commits onto GitHub's, the way the pwiz-ai repository works.
+Every 5 minutes it also brings in others' work when you have nothing unsaved (and checks for an app
+update every 4 hours).
+
+```mermaid
+flowchart LR
+    when(["Before every action,<br/>after every save,<br/>every 5 minutes"]) --> fetch["Fetch GitHub's main"]
+    fetch --> rebase["Put your commits<br/>on top of it (rebase)"]
+    rebase --> push["Push your commits"]
+    push --> done(["Up to date"])
+    push -->|"someone pushed meanwhile:<br/>try again, up to 3 times"| fetch
+    fetch -->|"offline"| wait(["Your commits wait<br/>until you are online"])
+    rebase -->|"a conflict"| conflict(["See below"])
+```
+
+Two people working on different quotes or projects never conflict, because each item has its own
+folder. When a rebase does stop on a conflict, what happens depends on the file:
+
+```mermaid
+flowchart TD
+    conflict{"Which file<br/>conflicts?"}
+    conflict -->|"README.md"| readme["Take GitHub's version;<br/>the index workflow rebuilds it"]
+    conflict -->|"calculation.md or quote.md"| rebuild["Rebuild the quote<br/>with quote.py build"]
+    readme --> resume["Continue the rebase"]
+    rebuild --> resume
+    conflict -->|"a file a person edits,<br/>such as quote.yaml or project.yaml"| ask{"Set your version aside<br/>and use theirs?"}
+    ask -->|"No"| keep["Your commit stays on this computer,<br/>not shared, until you choose"]
+    ask -->|"Yes"| aside["Your work goes to a local branch,<br/>set-aside/yyyyMMdd-HHmmss;<br/>the clone matches GitHub again"]
+    aside --> redo["Claude: Redo my change.<br/>It reads the set-aside branch<br/>and makes your change again."]
+```
+
+It never guesses between two people's versions of the same file.
+
+## A conversation with Claude
+
+```mermaid
+sequenceDiagram
+    actor You
+    participant App as ChargeState
+    participant Tools as App tool server, on 127.0.0.1
+    participant Claude as Claude Code
+    participant Clone as Clone folder
+
+    App->>Tools: start once per run (random port, secret token)
+    You->>App: New project, New quote, or Ask Claude
+    App->>Claude: start claude.exe in the clone, with stream-json,<br/>pre-approved tools, git writes forbidden,<br/>the tool server, and the app's instructions
+    App->>Claude: your request, as text
+    Claude->>Clone: read CLAUDE.md and the skill, edit YAML,<br/>run the engine (pre-approved)
+    opt a step that is not pre-approved
+        Claude->>Tools: approve(tool, input)
+        Tools->>App: remembered for this run? else ask you
+        App-->>Claude: allow or deny
+    end
+    opt Claude needs an answer
+        Claude->>Tools: ask_user(question, options)
+        Tools->>App: shows the question in the chat
+        App-->>Claude: your answer
+    end
+    Claude-->>App: turn finished, with a short summary<br/>(quotes: report_quote_summary draws the quote card)
+    App->>Clone: save what changed under quotes/ or projects/<br/>(the check, commit and push from "Saving a change")
+    App-->>You: Saved and shared
+```
+
+- **What Claude may do without asking:** read and edit files, search, run the repository's
+  engine, and look at files with `git status`, `git diff`, `git log`, `git show`, `cat`, `head`,
+  `tail`, `sed -n`, `wc` and `ls`. It may never commit, push, pull, rebase, reset, check out or
+  stash, and it has no web access.
+- **Anything else asks you.** Choosing "Allow ... until ChargeState closes" remembers that program
+  for this repository until you close the app. A command that hides another one inside `$(...)` is
+  asked about every time.
+- **The conversation belongs to one item.** Its id is kept in `settings.json`, so Ask Claude can
+  continue it later.
+- **After a turn,** only changes inside `quotes/` or `projects/` are saved. In the Quotes area an
+  approver is asked about changes elsewhere (the engine, templates); in the Projects area they are
+  never saved. If the identifier check refuses, the app tells Claude what it found and asks it to
+  fix the files.
+
+## Organizing a collaborator's sample sheet
+
+```mermaid
+sequenceDiagram
+    actor You
+    participant App as ChargeState
+    participant Inbox as inbox/MNRF-BioTRACK/<br/>ignored by git
+    participant Engine as project.py
+    participant Claude as Claude Code
+    participant Octopus as Octopus, in the browser
+
+    You->>App: Organize metadata with Claude, and choose the file
+    App->>Inbox: copy the original (it never leaves this computer)
+    App->>Engine: scan (column names and patterns only)
+    alt names, contact details, record numbers or dates of birth
+        Engine-->>App: errors
+        App-->>You: Claude will not read it until those columns are removed
+    else nothing identifying
+        App->>Claude: organize-metadata skill, with the file and the scan's warnings
+        Claude->>Engine: sheet (prints the sheet as text)
+        Claude-->>App: metadata/samples.csv written, turn finished
+        App->>App: check --staged, commit, push
+    end
+    You->>App: Open in Octopus
+    App->>Engine: octopus-input (writes the CSV to inbox/)
+    App->>Octopus: opens it, and you load the file and lay out plates
+    You->>App: Import Octopus layout (the exported JSON)
+    App->>Engine: import-layout: keeps the layout, marks the plate layout step done
+```
+
+## Choosing a Panorama folder or notebook
+
+**Add link** on an experiment records where its raw data and results are on Panorama, or its ELN
+notebook. **Browse...** finds them on Panorama, signed in the way PanoramaBridge is.
+
+```mermaid
+sequenceDiagram
+    actor You
+    participant App as ChargeState
+    participant Creds as Credential Manager
+    participant Panorama as panoramaweb.org
+    participant Engine as project.py
+
+    You->>App: Add link, Browse...
+    App->>Creds: PanoramaBridge:https://panoramaweb.org, then ChargeState:https://panoramaweb.org
+    loop each saved sign-in, until one works
+        App->>Panorama: GET /_webdav/?method=json
+    end
+    opt none saved, or none accepted
+        App-->>You: Sign in: an API key, or a user name and password
+        App->>Panorama: checked the same way
+        App->>Creds: kept as ChargeState:https://panoramaweb.org
+    end
+    alt a folder
+        App->>Panorama: GET /_webdav/MacCoss/?method=json, then each folder you open
+        You->>App: choose .../2026-09-BioTRACK-Quant/@files/RawFiles
+    else a notebook
+        App->>Panorama: GET /MacCoss/query-selectRows.api (labbook.Notebook)
+        You->>App: search and choose ELN-1567-20250730-131
+    end
+    App->>Engine: link 2026-09-BioTRACK-DIA panorama ... --kind raw<br/>(or notebook --id ...)
+    App->>App: commit and push
+```
+
+- **Read-only.** Only `GET` requests go to Panorama; what you choose is written to lab-projects.
+- **Folders:** raw files are in a folder's `@files` area (where PanoramaBridge uploads), and are
+  recorded with that part, for example
+  `/MacCoss/Collaborations/MNRF/BioTRACK/2026-09-BioTRACK-Quant/@files/RawFiles`. The folder itself,
+  with the Skyline documents, is recorded as **results**.
+- **Notebooks:** the number at the end of an ELN ID is the notebook's, so the link is
+  `https://panoramaweb.org/MacCoss/samplemanager-app.view#/notebooks/131`. A notebook recorded by
+  ID alone gets that link too.
+
+## First-run setup
+
+```mermaid
+flowchart TB
+    subgraph programs["1. Programs"]
+        direction LR
+        gitStep["Git<br/>winget install"] ~~~ ghStep["GitHub CLI<br/>winget install"] ~~~ claudeStep["Claude Code<br/>claude.ai install script"]
+    end
+    subgraph signIns["2. Sign-ins"]
+        direction LR
+        ghSign["GitHub<br/>gh auth login, in the browser"] ~~~ claudeSign["Claude<br/>claude auth login"]
+    end
+    subgraph repos["3. Repositories and engines"]
+        direction LR
+        lpClone["lab-projects<br/>gh repo clone, or a copy you have"] --> lpEngine["Project engine<br/>uv sync: Python and packages"]
+        sqClone["services-quotes, optional<br/>only if GitHub gives access"] --> sqEngine["Quote engine<br/>uv sync"]
+    end
+    identity["4. Git identity<br/>your name and GitHub no-reply email, in each clone"]
+    programs --> signIns --> repos --> identity
+```
+
+Each clone is set to rebase on pull with autostash, and lab-projects to use its `.githooks`. Setup
+runs again whenever something is missing, for example after the engines are deleted or a sign-in
+expires.

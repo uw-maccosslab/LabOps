@@ -3,12 +3,15 @@
 A Windows desktop app (.NET 10, WPF) for the MacCoss Lab, with two areas over two repositories:
 
 - **Projects** over [lab-projects](https://github.com/uw-maccosslab/lab-projects) (open to the whole
-  lab): collaborations and experiments, a stage timeline, sample metadata and Octopus plate layouts.
+  lab): labs, projects and experiments, step timelines with assignees, sample metadata, Octopus
+  plate layouts, and Panorama folders and ELN notebooks chosen by browsing Panorama (read-only).
 - **Quotes** over [services-quotes](https://github.com/uw-maccosslab/services-quotes) (private, for
   the people who prepare quotes): lists and searches quotes, runs the quote engine as buttons.
 
 It keeps each clone in sync with GitHub and hosts Claude Code in a chat pane. Built on the same
-foundations as PanoramaBridge.
+foundations as PanoramaBridge. [docs/architecture.md](docs/architecture.md) and
+[docs/flows.md](docs/flows.md) explain the design with figures; keep them current when a flow
+they draw changes.
 
 Write American English and do not use em dashes, in code, comments, docs, commit messages and UI
 text alike.
@@ -48,13 +51,15 @@ release-notes/               one file per version; becomes the GitHub Release bo
 src/ChargeState.Core/     all logic, no UI types                     net10.0
   Claude/                    stream-json session, parser, in-app MCP server (AppTools), PermissionMemory
   Engines/                   what both engines share: uv run, JSON answers, EngineException
-  Projects/                  ProjectEngine (project.py), experiment models
+  Projects/                  ProjectEngine (project.py), lab, project and experiment models
+  Panorama/                  read-only Panorama client, sign-in (PanoramaBridge's, then ours)
   Quotes/                    QuoteEngine (quote.py), RepoConfig, QuoteSearch
   Repositories/              RepositoryProfile, Repository, RepositoryFactory
   Sync/                      GitClient, SyncService, ItemHistory (the Modified column)
   Setup/, GitHub/            first-run checks; the gh CLI
 src/ChargeState.App/      WPF shell (MVVM with CommunityToolkit.Mvvm) net10.0-windows
 src/ChargeState.Tests/    xUnit v3 + Shouldly                        net10.0-windows
+docs/                        how the app, repositories, engines, Claude and Panorama fit together
 ```
 
 ## Building, testing, running
@@ -88,6 +93,8 @@ dotnet test --project src/ChargeState.Tests/ChargeState.Tests.csproj
   `RepositoryPath` for quotes) pointing at scratch clones there to try the app without touching
   your own setup. It runs beside your installed copy: the single-instance lock is per data folder. A scratch clone still
   pushes to GitHub; repoint its `origin` to a local bare repository for anything that saves.
+- `CHARGESTATE_PANORAMA=<server>` points Panorama browsing at another server, for example a local
+  stand-in; sign-ins are kept per server, so a test server never sees the real one's.
 - Screenshot the running app with `PrintWindow(hwnd, hdc, PW_RENDERFULLCONTENT)`; a plain screen
   capture misses WPF and WebView2 content.
 
@@ -133,7 +140,7 @@ let CI go green, then push tag `v{version}`. `release.yml` runs the tests, downl
 update check reads. The update check authenticates with the user's gh token because this
 repository is not public. Installed copies check at startup and every four hours.
 
-Engine changes have their own notes and `engine-v{version}` tags in the quotes repository.
+Engine changes have their own notes and `engine-v{version}` tags in each data repository.
 
 ## House style (from PanoramaBridge)
 
