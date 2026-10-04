@@ -728,21 +728,43 @@ public sealed partial class ProjectsViewModel : ObservableObject
 
     // -- helpers -----------------------------------------------------------------------------
 
-    /// <summary>Brings in others' work before changing anything, so edits start from the latest.</summary>
+    /// <summary>
+    /// Brings in others' work before changing anything (see <see cref="WorkTracker.PullFirstAsync"/>).
+    /// No reload here: a sync that brings in commits reloads the list itself (RepositoryUpdated),
+    /// and doing both ran project.py list twice at once.
+    /// </summary>
     private async Task PullFirstAsync()
     {
-        var result = await Repository!.Sync.SyncAsync().ConfigureAwait(true);
-        await HandleSaveResultAsync(result).ConfigureAwait(true);
-        if (result.Conflict is null)
+        if (await WorkTracker.PullFirstAsync(Repository!).ConfigureAwait(true) is { } result)
         {
-            await ReloadAsync().ConfigureAwait(true);
+            await HandleSaveResultAsync(result).ConfigureAwait(true);
         }
     }
 
+    /// <summary>
+    /// Commits the change on this computer, so the screen can show it right away, and shares it
+    /// with GitHub in the background.
+    /// </summary>
     private async Task SaveAsync(IReadOnlyList<string> paths, string message)
     {
-        var result = await Repository!.Sync.SaveAsync(paths, message).ConfigureAwait(true);
-        await HandleSaveResultAsync(result).ConfigureAwait(true);
+        var repository = Repository!;
+        var result = await repository.Sync.SaveLocallyAsync(paths, message).ConfigureAwait(true);
+        if (!result.Succeeded)
+        {
+            await HandleSaveResultAsync(result).ConfigureAwait(true);
+        }
+        else if (result.Committed)
+        {
+            _ = ShareAsync(repository);
+        }
+    }
+
+    private async Task ShareAsync(Repository repository)
+    {
+        if (await WorkTracker.ShareInBackgroundAsync(repository).ConfigureAwait(true) is { Succeeded: false } problem)
+        {
+            await HandleSaveResultAsync(problem).ConfigureAwait(true);
+        }
     }
 
     /// <summary>Reports a save or sync problem; after a conflict, offers to redo the change with Claude.</summary>

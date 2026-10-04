@@ -12,8 +12,9 @@ These follow the main actions through the app, the engines, git, GitHub, Claude 
 
 ## Saving a change
 
-Every button that changes something works the same way: bring in others' work first, run the
-engine, then save and share. Here, marking a step done in the Projects area:
+Every button that changes something works the same way: make sure the copy is current, run the
+engine, commit on this computer and show the result, then share with GitHub in the background.
+Here, marking a step done in the Projects area:
 
 ```mermaid
 sequenceDiagram
@@ -25,8 +26,9 @@ sequenceDiagram
     participant Actions as GitHub Actions
 
     You->>App: Done on "Plate layout", with a date and a note
-    App->>Git: fetch, rebase --autostash origin/main, push
-    Note over App,Git: Bring in others' work first, so the change starts from the latest
+    opt not synced with GitHub in the last minute
+        App->>Git: fetch, rebase --autostash origin/main
+    end
     App->>Engine: uv run --frozen python scripts/project.py --json stage MNRF-BioTRACK plate_layout done ...
     Engine-->>App: JSON: the project, its steps and any warnings
     App->>Git: add -A projects/UW-MacCoss/MNRF-BioTRACK
@@ -36,23 +38,35 @@ sequenceDiagram
         App->>Git: unstage, so nothing is committed
         App-->>You: Not saved, and why
     else nothing to stop it
-        App->>Git: commit "MNRF-BioTRACK: plate layout done"
+        App->>Git: commit "MNRF-BioTRACK: plate layout done"<br/>(the hook is told which tree was just checked)
+        App->>Engine: list (reload the screen)
+        App-->>You: The step shows as done
+        Note over App,GitHub: In the background, while you carry on
         App->>Git: fetch, rebase --autostash origin/main
         App->>GitHub: push HEAD:main (rebases and retries up to 3 times if GitHub moved)
         GitHub->>Actions: check: engine tests and validation
         GitHub->>Actions: index: rebuild the README table, commit it as github-actions
-        App->>Engine: list (reload the screen)
-        App-->>You: The step shows as done
     end
 ```
 
 - **The engine does the work.** The app passes what you chose; the engine edits the YAML, keeps
   its comments, and validates the result.
-- **lab-projects checks every commit twice.** The app runs `check --staged` before it commits, and
-  the repository's own pre-commit hook runs it again. Either refusal leaves the files changed but
-  uncommitted.
+- **You see the change before GitHub does.** Sharing takes about 3 seconds (a fetch, a rebase
+  and a push), so it happens after the screen updates. The next action, and anything Claude
+  does, waits for a share still running. Offline, the commit waits on this computer and the
+  status bar says so; the next sync shares it.
+- **No fetch right after a sync.** If the copy synced with GitHub in the last minute (usually
+  because the previous change was just shared), the action starts at once; the rebase before
+  sharing still brings in anything newer.
+- **lab-projects checks every commit.** The app runs `check --staged` before it commits and tells
+  the repository's pre-commit hook which staged tree it checked (`CHARGESTATE_CHECKED_TREE`). The
+  hook skips only that exact tree and checks anything else, including every commit made outside
+  the app. A refusal leaves the files changed but uncommitted.
+- **After a Claude turn,** the app saves and waits for GitHub before saying "Saved and shared".
 - **The Quotes area is the same,** without the identifier check: for example Send runs
   `quote.py send`, then saves `"<number>: sent"`.
+- **Timings are in the log** (`%LOCALAPPDATA%\ChargeState\logs`): each engine command, each commit
+  and each sync with GitHub, with how long it took.
 
 ## Staying in sync, and what happens on a conflict
 
@@ -62,7 +76,7 @@ update every 4 hours).
 
 ```mermaid
 flowchart LR
-    when(["Before every action,<br/>after every save,<br/>every 5 minutes"]) --> fetch["Fetch GitHub's main"]
+    when(["Before an action, unless synced<br/>in the last minute; after a save,<br/>in the background; every 5 minutes"]) --> fetch["Fetch GitHub's main"]
     fetch --> rebase["Put your commits<br/>on top of it (rebase)"]
     rebase --> push["Push your commits"]
     push --> done(["Up to date"])

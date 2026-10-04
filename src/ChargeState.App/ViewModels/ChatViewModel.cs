@@ -224,6 +224,13 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
         IsBusy = true;
         try
         {
+            // A button's change may still be sharing with GitHub, which rebases the folder Claude
+            // works in. Let it finish before Claude starts editing.
+            if (_repository is not null)
+            {
+                await _repository.Sync.WhenIdleAsync().ConfigureAwait(true);
+            }
+
             await _session!.SendAsync(text).ConfigureAwait(true);
         }
         catch (Exception ex) when (ex is IOException or ObjectDisposedException)

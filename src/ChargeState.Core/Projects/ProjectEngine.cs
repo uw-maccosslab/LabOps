@@ -211,9 +211,11 @@ public sealed class ProjectEngine : IPreCommitCheck
 
     private async Task<JsonDocument> RunAsync(IReadOnlyList<string> args, CancellationToken cancellationToken, bool allowNotOk = false)
     {
-        _log.LogDebug("project.py {Arguments}", string.Join(' ', args));
+        var started = System.Diagnostics.Stopwatch.GetTimestamp();
         var result = await EngineJson.RunAsync(_runner, _tools, RequireRepository(), Script, args, cancellationToken)
             .ConfigureAwait(false);
+        _log.LogDebug("project.py {Arguments} ({Milliseconds} ms)", string.Join(' ', args),
+            (int)System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds);
         return Parse(result, allowNotOk);
     }
 

@@ -334,10 +334,16 @@ public sealed partial class MainViewModel : ObservableObject
         WorkingText = _work.WorkingText;
     }
 
-    /// <summary>Ends Claude and stops the tool server, while the UI thread still runs.</summary>
+    /// <summary>
+    /// Ends Claude and stops the tool server, while the UI thread still runs. A share still
+    /// running gets a few seconds to finish; one that does not leaves its commit on this computer,
+    /// and the next start shares it.
+    /// </summary>
     public async Task ShutdownAsync()
     {
         _timer?.Stop();
+        var sharing = Task.WhenAll(OpenRepositories().Select(r => r.Sync.WhenIdleAsync()));
+        await Task.WhenAny(sharing, Task.Delay(TimeSpan.FromSeconds(6))).ConfigureAwait(true);
         await Chat.EndSessionAsync().ConfigureAwait(true);
         await _workspace.DisposeAsync().ConfigureAwait(true);
     }
@@ -798,7 +804,7 @@ public sealed partial class MainViewModel : ObservableObject
             var verb = turn.IsNew ? "draft" : "changed";
             string[] paths = shareOutside ? [repository.Profile.RootFolder, .. outside] : [repository.Profile.RootFolder];
             await _work.RunAsync("Saving Claude's changes...", async () =>
-                await SaveAsync(paths, $"{number ?? "Quotes"}: {verb} with Claude").ConfigureAwait(true)).ConfigureAwait(true);
+                await SaveAsync(paths, $"{number ?? "Quotes"}: {verb} with Claude", waitForGitHub: true).ConfigureAwait(true)).ConfigureAwait(true);
             Chat.Items.Add(new NoticeItem("Saved and shared.", isError: false));
         }
 
@@ -807,21 +813,49 @@ public sealed partial class MainViewModel : ObservableObject
 
     // -- helpers -----------------------------------------------------------------------------
 
-    /// <summary>Brings in others' quotes before changing anything, so edits start from the latest.</summary>
+    /// <summary>
+    /// Brings in others' quotes before changing anything (see <see cref="WorkTracker.PullFirstAsync"/>).
+    /// A sync that brings in commits reloads the list itself (RepositoryUpdated).
+    /// </summary>
     private async Task PullFirstAsync()
     {
-        var result = await QuotesRepository!.Sync.SyncAsync().ConfigureAwait(true);
-        await HandleSaveResultAsync(result).ConfigureAwait(true);
-        if (result.Conflict is null)
+        if (await WorkTracker.PullFirstAsync(QuotesRepository!).ConfigureAwait(true) is { } result)
         {
-            await ReloadQuotesAsync().ConfigureAwait(true);
+            await HandleSaveResultAsync(result).ConfigureAwait(true);
         }
     }
 
-    private async Task SaveAsync(IReadOnlyList<string> paths, string message)
+    /// <summary>
+    /// Commits the change on this computer and shares it with GitHub in the background, or, with
+    /// <paramref name="waitForGitHub"/>, before returning (after a Claude turn, which then says
+    /// "Saved and shared").
+    /// </summary>
+    private async Task SaveAsync(IReadOnlyList<string> paths, string message, bool waitForGitHub = false)
     {
-        var result = await QuotesRepository!.Sync.SaveAsync(paths, message).ConfigureAwait(true);
-        await HandleSaveResultAsync(result).ConfigureAwait(true);
+        var repository = QuotesRepository!;
+        if (waitForGitHub)
+        {
+            await HandleSaveResultAsync(await repository.Sync.SaveAsync(paths, message).ConfigureAwait(true)).ConfigureAwait(true);
+            return;
+        }
+
+        var result = await repository.Sync.SaveLocallyAsync(paths, message).ConfigureAwait(true);
+        if (!result.Succeeded)
+        {
+            await HandleSaveResultAsync(result).ConfigureAwait(true);
+        }
+        else if (result.Committed)
+        {
+            _ = ShareAsync(repository);
+        }
+    }
+
+    private async Task ShareAsync(Repository repository)
+    {
+        if (await WorkTracker.ShareInBackgroundAsync(repository).ConfigureAwait(true) is { Succeeded: false } problem)
+        {
+            await HandleSaveResultAsync(problem).ConfigureAwait(true);
+        }
     }
 
     private async Task HandleSaveResultAsync(SaveResult result)

@@ -21,14 +21,23 @@ public sealed partial class WorkTracker(ILogger<WorkTracker> log) : ObservableOb
     [ObservableProperty]
     public partial string? WorkingText { get; private set; }
 
+    /// <summary>
+    /// How recent a sync with GitHub makes a fetch before the next change unnecessary. After a
+    /// save the app shares in the background, so a person clicking through steps gets no fetch
+    /// between them; the rebase before each share still brings in anything newer.
+    /// </summary>
+    public static readonly TimeSpan RecentSync = TimeSpan.FromSeconds(60);
+
     /// <summary>Runs <paramref name="work"/>, showing <paramref name="text"/>, and reports failures to the user.</summary>
     public async Task RunAsync(string text, Func<Task> work)
     {
         IsWorking = true;
         WorkingText = text;
+        var started = System.Diagnostics.Stopwatch.GetTimestamp();
         try
         {
             await work().ConfigureAwait(true);
+            log.LogDebug("{Work} took {Milliseconds} ms", text, (int)System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds);
         }
         catch (Exception ex) when (ex is EngineException or GitException or ToolMissingException or InvalidOperationException or IOException)
         {
@@ -40,6 +49,28 @@ public sealed partial class WorkTracker(ILogger<WorkTracker> log) : ObservableOb
             IsWorking = false;
             WorkingText = null;
         }
+    }
+
+    /// <summary>
+    /// Brings in others' work before a change, so it starts from the latest. Waits for any share
+    /// still running, and skips the fetch when this copy synced in the last minute.
+    /// </summary>
+    /// <returns>The sync's result, or null when none was needed.</returns>
+    public static async Task<SaveResult?> PullFirstAsync(Repository repository)
+    {
+        await repository.Sync.WhenIdleAsync().ConfigureAwait(true);
+        return repository.Sync.SyncedWithin(RecentSync) ? null : await repository.Sync.SyncAsync().ConfigureAwait(true);
+    }
+
+    /// <summary>
+    /// Shares a saved change with GitHub while the person carries on, and reports what that ran
+    /// into. Being offline is left to the status bar: the commit waits on this computer, and the
+    /// next sync shares it.
+    /// </summary>
+    public static async Task<SaveResult?> ShareInBackgroundAsync(Repository repository)
+    {
+        var result = await repository.Sync.ShareAsync().ConfigureAwait(true);
+        return result.Error is not null && result.Conflict is null && repository.Sync.Status.State == SyncState.Offline ? null : result;
     }
 
     /// <summary>

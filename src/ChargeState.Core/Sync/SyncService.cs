@@ -142,6 +142,8 @@ public sealed partial class SyncService
     private readonly IPreCommitCheck? _check;
     private readonly ILogger<SyncService> _log;
     private readonly SemaphoreSlim _gate = new(1, 1);
+    private readonly object _sharingLock = new();
+    private Task _sharing = Task.CompletedTask;
 
     public SyncService(
         GitClient git, RepositoryProfile profile, IGeneratedFileRebuilder rebuilder, IPreCommitCheck? check = null,
@@ -168,6 +170,79 @@ public sealed partial class SyncService
     public event Action? RepositoryUpdated;
 
     public SyncStatus Status { get; private set; } = new(SyncState.Unknown);
+
+    /// <summary>
+    /// The environment variable that tells lab-projects' pre-commit hook which staged tree this
+    /// app has just checked, so the hook need not check the same tree again.
+    /// </summary>
+    public const string CheckedTreeVariable = "CHARGESTATE_CHECKED_TREE";
+
+    /// <summary>
+    /// True when this copy finished a sync with GitHub within <paramref name="span"/> and nothing
+    /// has gone wrong since: then a fetch before the next change would almost always find nothing.
+    /// </summary>
+    public bool SyncedWithin(TimeSpan span) =>
+        Status is { State: SyncState.UpToDate or SyncState.Ahead, LastSynced: { } last } && DateTimeOffset.Now - last < span;
+
+    /// <summary>Completes when every share started with <see cref="ShareAsync"/> so far has finished.</summary>
+    public Task WhenIdleAsync()
+    {
+        lock (_sharingLock)
+        {
+            return _sharing;
+        }
+    }
+
+    /// <summary>
+    /// Shares local commits with GitHub (and brings in others' work), as <see cref="SyncAsync"/>,
+    /// while the caller carries on. <see cref="WhenIdleAsync"/> waits for it.
+    /// </summary>
+    public Task<SaveResult> ShareAsync(CancellationToken cancellationToken = default)
+    {
+        lock (_sharingLock)
+        {
+            var share = SyncAsync(cancellationToken);
+            var before = _sharing;
+            _sharing = Task.WhenAll(before, share);
+            return share;
+        }
+    }
+
+    /// <summary>
+    /// Commits the given paths (if anything changed) without contacting GitHub; follow it with
+    /// <see cref="ShareAsync"/>. The screen can show the change as soon as this returns, instead
+    /// of after a fetch, rebase and push.
+    /// </summary>
+    public async Task<SaveResult> SaveLocallyAsync(IEnumerable<string> paths, string message, CancellationToken cancellationToken = default)
+    {
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            Publish(Status with { State = SyncState.Syncing, Message = "Saving..." });
+            var committed = await CommitAsync(paths.ToList(), message, cancellationToken).ConfigureAwait(false);
+            Publish((await ReadStatusAsync(cancellationToken).ConfigureAwait(false)) with
+            {
+                Message = committed ? "Saved; sharing with GitHub..." : null,
+                LastSynced = Status.LastSynced,
+            });
+            return new SaveResult(committed, false);
+        }
+        catch (CommitRefusedException refused)
+        {
+            const string text = "Not saved: the check found information that must not be shared.";
+            Publish((await ReadStatusAsync(cancellationToken).ConfigureAwait(false)) with { State = SyncState.Error, Message = text });
+            return new SaveResult(false, false, Error: text, Refused: refused.Problems);
+        }
+        catch (GitException ex)
+        {
+            Publish(new SyncStatus(SyncState.Error, Message: Friendly(ex.Message), LastSynced: Status.LastSynced));
+            return new SaveResult(false, false, Error: Friendly(ex.Message));
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
 
     /// <summary>Re-reads ahead/behind and local changes, fetching first when asked.</summary>
     public async Task<SyncStatus> RefreshAsync(bool fetch, CancellationToken cancellationToken = default)
@@ -284,6 +359,7 @@ public sealed partial class SyncService
             return false;
         }
 
+        var started = System.Diagnostics.Stopwatch.GetTimestamp();
         await _git.RequireAsync(["add", "-A", "--", .. paths], ct).ConfigureAwait(false);
 
         // Exit code 1 means something is staged; 0 means there is nothing to commit.
@@ -306,13 +382,37 @@ public sealed partial class SyncService
         }
 
         // The repository's own hook (if any) runs too, except for a local-only set-aside commit.
+        // When the check above has just passed, the hook is told which staged tree it passed
+        // (git write-tree names the index exactly), and skips checking that same tree again.
         string[] commit = localOnly ? ["commit", "--quiet", "--no-verify", "-m", message] : ["commit", "--quiet", "-m", message];
-        await _git.RequireAsync(commit, ct).ConfigureAwait(false);
-        _log.LogInformation("Committed: {Message}", message);
+        var environment = new Dictionary<string, string?>();
+        if (_check is not null && !localOnly)
+        {
+            environment[CheckedTreeVariable] = (await _git.RequireAsync(["write-tree"], ct).ConfigureAwait(false)).Trim();
+        }
+
+        var committed = await _git.RunAsync(commit, environment, ct).ConfigureAwait(false);
+        if (!committed.Succeeded)
+        {
+            throw new GitException(committed.ErrorText);
+        }
+
+        _log.LogInformation("Committed: {Message} ({Milliseconds} ms)", message,
+            (int)System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds);
         return true;
     }
 
     private async Task<SaveResult> SyncCoreAsync(CancellationToken ct)
+    {
+        var started = System.Diagnostics.Stopwatch.GetTimestamp();
+        var result = await SyncCoreUntimedAsync(ct).ConfigureAwait(false);
+        _log.LogDebug("Synced with GitHub ({Milliseconds} ms): {Outcome}",
+            (int)System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds,
+            result.Pushed ? "pushed" : result.Succeeded ? "nothing to push" : result.Conflict is not null ? "conflict" : result.Error);
+        return result;
+    }
+
+    private async Task<SaveResult> SyncCoreUntimedAsync(CancellationToken ct)
     {
         Publish(Status with { State = SyncState.Syncing, Message = "Syncing with GitHub..." });
 

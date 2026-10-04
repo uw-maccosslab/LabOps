@@ -125,9 +125,11 @@ public sealed class QuoteEngine
     private async Task<JsonDocument> RunAsync(
         IReadOnlyList<string> args, CancellationToken cancellationToken, bool allowNotOk = false)
     {
-        _log.LogDebug("quote.py {Arguments}", string.Join(' ', args));
+        var started = System.Diagnostics.Stopwatch.GetTimestamp();
         var result = await EngineJson.RunAsync(_runner, _tools, RequireRepository(), "scripts/quote.py", args, cancellationToken)
             .ConfigureAwait(false);
+        _log.LogDebug("quote.py {Arguments} ({Milliseconds} ms)", string.Join(' ', args),
+            (int)System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds);
         return Parse(result, allowNotOk);
     }
 

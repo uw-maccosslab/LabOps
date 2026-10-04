@@ -38,6 +38,25 @@ public sealed class GitClient
             Timeout,
             cancellationToken);
 
+    /// <summary>Runs git with extra environment variables, returning the result whatever the exit code.</summary>
+    public Task<ProcessResult> RunAsync(
+        IEnumerable<string> arguments, IReadOnlyDictionary<string, string?> environment, CancellationToken cancellationToken = default)
+    {
+        var merged = new Dictionary<string, string?>(NoEditor);
+        foreach (var (name, value) in environment)
+        {
+            merged[name] = value;
+        }
+
+        return _runner.RunAsync(
+            _tools.Require(Tool.Git),
+            arguments,
+            RepositoryPath ?? throw new GitException("No repository is set up yet."),
+            merged,
+            Timeout,
+            cancellationToken);
+    }
+
     /// <summary>Runs git and returns its output, throwing <see cref="GitException"/> on failure.</summary>
     public async Task<string> RequireAsync(IEnumerable<string> arguments, CancellationToken cancellationToken = default)
     {

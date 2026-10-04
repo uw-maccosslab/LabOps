@@ -107,4 +107,68 @@ public sealed class ProjectsSyncTests : IDisposable
 
         Should.Throw<ArgumentException>(() => new SyncService(git, RepositoryProfile.Projects, new NoGeneratedFiles()));
     }
+
+    [Fact]
+    public async Task Saving_locally_commits_without_GitHub_and_sharing_pushes_it_after()
+    {
+        var alice = _git.Clone("Alice");
+        var sync = _git.ProjectsSyncFor(alice, new MarkerCheck(alice));
+        GitFixture.Write(alice, "projects/Lab/2026-10-Pilot/experiment.yaml", "experiment: 2026-10-Pilot\nstatus: on_hold\nsamples: 10\n");
+
+        var saved = await sync.SaveLocallyAsync(["projects/Lab/2026-10-Pilot"], "2026-10-Pilot: on hold");
+
+        saved.Committed.ShouldBeTrue();
+        saved.Pushed.ShouldBeFalse();
+        GitFixture.Git(alice, "log", "-1", "--format=%s").ShouldBe("2026-10-Pilot: on hold\n");
+        GitFixture.Git(_git.Clone("Before"), "log", "--format=%s").ShouldBe("seed\n");
+        sync.SyncedWithin(TimeSpan.FromMinutes(1)).ShouldBeFalse();
+
+        var shared = sync.ShareAsync();
+        await sync.WhenIdleAsync();
+
+        shared.IsCompleted.ShouldBeTrue();
+        (await shared).Pushed.ShouldBeTrue();
+        GitFixture.Git(_git.Clone("After"), "log", "-1", "--format=%s").ShouldBe("2026-10-Pilot: on hold\n");
+        sync.SyncedWithin(TimeSpan.FromMinutes(1)).ShouldBeTrue();
+        sync.SyncedWithin(TimeSpan.Zero).ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Shares_run_one_after_another_and_idle_waits_for_all_of_them()
+    {
+        var alice = _git.Clone("Alice");
+        var sync = _git.ProjectsSyncFor(alice, new MarkerCheck(alice));
+        foreach (var status in new[] { "on_hold", "closed" })
+        {
+            GitFixture.Write(alice, "projects/Lab/2026-10-Pilot/experiment.yaml", $"experiment: 2026-10-Pilot\nstatus: {status}\nsamples: 10\n");
+            (await sync.SaveLocallyAsync(["projects/Lab/2026-10-Pilot"], $"2026-10-Pilot: {status}")).Committed.ShouldBeTrue();
+            _ = sync.ShareAsync();
+        }
+
+        await sync.WhenIdleAsync();
+
+        GitFixture.Git(_git.Clone("After"), "log", "--format=%s").ShouldBe("2026-10-Pilot: closed\n2026-10-Pilot: on_hold\nseed\n");
+    }
+
+    [Fact]
+    public async Task The_commit_tells_the_hook_which_tree_the_check_passed()
+    {
+        var alice = _git.Clone("Alice");
+        // A hook that records what it was told and what is being committed.
+        var hooks = Path.Combine(alice, ".test-hooks");
+        Directory.CreateDirectory(hooks);
+        File.WriteAllText(Path.Combine(hooks, "pre-commit"),
+            "#!/bin/sh\necho \"$CHARGESTATE_CHECKED_TREE $(git write-tree)\" > .git/hook-saw\n");
+        GitFixture.Git(alice, "config", "core.hooksPath", ".test-hooks");
+        GitFixture.Write(alice, "projects/Lab/2026-10-Pilot/experiment.yaml", "experiment: 2026-10-Pilot\nstatus: closed\nsamples: 10\n");
+
+        (await _git.ProjectsSyncFor(alice, new MarkerCheck(alice)).SaveLocallyAsync(["projects/Lab/2026-10-Pilot"], "closed"))
+            .Committed.ShouldBeTrue();
+
+        var saw = File.ReadAllText(Path.Combine(alice, ".git", "hook-saw")).Trim().Split(' ');
+        saw.Length.ShouldBe(2);
+        saw[0].ShouldBe(saw[1]);
+        saw[0].ShouldBe(GitFixture.Git(alice, "rev-parse", "HEAD^{tree}").Trim());
+        SyncService.CheckedTreeVariable.ShouldBe("CHARGESTATE_CHECKED_TREE");
+    }
 }
