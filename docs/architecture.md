@@ -73,7 +73,7 @@ flowchart LR
         folder["Folder<br/>.../2026-09-BioTRACK-Quant"]
         eln["ELN notebooks<br/>in the MacCoss project"]
     end
-    rawFiles --> browse["ChargeState: Add link, Browse<br/>lists them, read-only"]
+    rawFiles --> browse["ChargeState: Add raw data folder, Browse<br/>lists them, read-only"]
     folder --> browse
     eln --> browse
     creds["Windows Credential Manager<br/>PanoramaBridge's saved sign-in"] -.-> browse
@@ -173,9 +173,9 @@ flowchart LR
 | Start, Done, Skip, Reopen a step | `project.py stage <item> <step> start\|done\|skip` | `<item>: <step> done` |
 | Assign | `project.py assign <item> <steps> --to <login>` | `<item>: <step> assigned to <login>` |
 | Add a step, Remove a step | `project.py add-step`, `remove-step` | `<item>: added step ...` |
-| Add link, Remove a link | `project.py link`, `unlink` | `<item>: raw data on Panorama` |
-| Organize metadata with Claude | `project.py scan <file>`, then Claude | `<project>: updated with Claude` |
-| Open in Octopus, Import Octopus layout | `project.py octopus-input`, `import-layout` | `<project>: plate layout from Octopus` |
+| Add notebook, Add raw data folder, Add results folder, Remove a link | `project.py link`, `unlink` | `<item>: raw data on Panorama` |
+| Organize with Claude | `project.py scan <file>`, then Claude | `<project>: updated with Claude` |
+| Open in Octopus, Import layout | `project.py octopus-input`, `import-layout` | `<project>: plate layout from Octopus` |
 | Every commit in lab-projects | `project.py check --staged` | refuses the commit on an error |
 | Send, PO received, Invoiced, Declined | `quote.py send`, `quote.py status` | `<number>: sent` |
 | Make a revision | `quote.py revise` | `<revision>: revision of <number>` |

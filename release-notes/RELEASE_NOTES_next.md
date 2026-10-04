@@ -6,6 +6,19 @@ the GitHub Release description and fails if it is missing.
 
 ## New Features
 
+- **Each step has the buttons for its work.** The project's row of buttons is down to Ask Claude
+  to update it, New experiment, Folder and On GitHub; the rest moved onto the steps they belong
+  to, where what they record is shown too:
+  - Metadata organized: Organize with Claude, View samples. An experiment's own metadata step,
+    such as unblinded metadata, has them as well.
+  - Plate layout: Open in Octopus, Import layout.
+  - Sample prep: Add notebook. On an experiment, Add notebook is on assay development or data
+    acquisition.
+  - Data deposited to Panorama: Add raw data folder. Signal processing: Add results folder.
+
+  They work whatever the step's status, since a Panorama folder or a notebook is often set up
+  before the work starts. A timeline without the step keeps its buttons beside its heading. Add
+  link now asks for one kind of link, the one its button names.
 - **View samples.** A project with an organized sample table has a View samples button. It opens
   the table (`metadata/samples.csv`) in a grid: click a heading to sort (numbers sort as
   numbers, and identifiers such as 0012 keep their zeros), type to keep only the rows containing

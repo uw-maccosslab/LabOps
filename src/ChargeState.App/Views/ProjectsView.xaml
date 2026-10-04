@@ -21,79 +21,97 @@
             </StackPanel>
         </DataTemplate>
 
+        <!-- A step's tool, such as Open in Octopus. CommandParameter comes first so the command never sees it unset. -->
+        <DataTemplate x:Key="ToolTemplate">
+            <Button Content="{Binding Label}" CommandParameter="{Binding Parameter}" Command="{Binding Command}"
+                    ToolTip="{Binding ToolTip}" ToolTipService.ShowOnDisabled="True"
+                    Padding="9,2" FontSize="12" Margin="0,5,6,0" Foreground="{StaticResource AccentBrush}" />
+        </DataTemplate>
+
+        <ItemsPanelTemplate x:Key="ToolPanel">
+            <WrapPanel />
+        </ItemsPanelTemplate>
+
         <DataTemplate x:Key="IssueTemplate">
             <Border Background="{StaticResource DangerLightBrush}" CornerRadius="3" Padding="8,4" Margin="0,0,0,4">
                 <TextBlock Text="{Binding}" TextWrapping="Wrap" Foreground="{StaticResource DangerBrush}" />
             </Border>
         </DataTemplate>
 
-        <!-- One step: its mark, label, status, assignee and note, and the buttons that apply -->
+        <!-- One step: its mark, label, status, assignee and note, the buttons that apply, then its links and tools -->
         <DataTemplate x:Key="StageTemplate">
             <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,7">
-                <DockPanel>
-                    <TextBlock DockPanel.Dock="Left" Width="26" FontSize="15" VerticalAlignment="Top">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="Text" Value="&#x25CB;" />
-                                <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding Status}" Value="done">
-                                        <Setter Property="Text" Value="&#x2713;" />
-                                        <Setter Property="Foreground" Value="{StaticResource OkBrush}" />
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding Status}" Value="in_progress">
-                                        <Setter Property="Text" Value="&#x25CF;" />
-                                        <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding Status}" Value="skipped">
-                                        <Setter Property="Text" Value="&#x2013;" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
-                    <WrapPanel DockPanel.Dock="Right" VerticalAlignment="Center" MaxWidth="330" HorizontalAlignment="Right">
-                        <Button Content="Start" CommandParameter="{Binding}"
-                                Command="{Binding DataContext.StartStageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                Visibility="{Binding CanStart, Converter={StaticResource BoolToVisibility}}" />
-                        <Button Content="Done" CommandParameter="{Binding}"
-                                Command="{Binding DataContext.FinishStageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                Visibility="{Binding CanFinish, Converter={StaticResource BoolToVisibility}}" />
-                        <Button Content="Skip" CommandParameter="{Binding}"
-                                Command="{Binding DataContext.SkipStageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                Visibility="{Binding CanSkip, Converter={StaticResource BoolToVisibility}}" />
-                        <Button Content="Reopen" CommandParameter="{Binding}"
-                                Command="{Binding DataContext.ReopenStageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                Visibility="{Binding CanReopen, Converter={StaticResource BoolToVisibility}}" />
-                        <Button Content="Assign" CommandParameter="{Binding}"
-                                Command="{Binding DataContext.AssignCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                Visibility="{Binding CanAssign, Converter={StaticResource BoolToVisibility}}"
-                                ToolTip="Choose who does this step." />
-                        <Button Content="Remove" CommandParameter="{Binding}"
-                                Command="{Binding DataContext.RemoveStepCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                Visibility="{Binding CanRemove, Converter={StaticResource BoolToVisibility}}"
-                                ToolTip="Remove a step added by mistake. A step that does not apply is skipped instead." />
-                    </WrapPanel>
-                    <StackPanel>
-                        <TextBlock Text="{Binding Label}" TextWrapping="Wrap">
+                <StackPanel>
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Left" Width="26" FontSize="15" VerticalAlignment="Top">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">
+                                    <Setter Property="Text" Value="&#x25CB;" />
+                                    <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
                                     <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsCurrent}" Value="True">
-                                            <Setter Property="FontWeight" Value="SemiBold" />
+                                        <DataTrigger Binding="{Binding Status}" Value="done">
+                                            <Setter Property="Text" Value="&#x2713;" />
+                                            <Setter Property="Foreground" Value="{StaticResource OkBrush}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Status}" Value="in_progress">
+                                            <Setter Property="Text" Value="&#x25CF;" />
                                             <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Status}" Value="skipped">
+                                            <Setter Property="Text" Value="&#x2013;" />
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
                             </TextBlock.Style>
                         </TextBlock>
-                        <TextBlock Text="{Binding StatusText}" Style="{StaticResource Muted}" />
-                        <TextBlock Text="{Binding AssignedText}" Style="{StaticResource Muted}"
-                                   Visibility="{Binding AssignedText, Converter={StaticResource NullToVisibility}}" />
-                        <TextBlock Text="{Binding Note}" Style="{StaticResource Muted}" FontStyle="Italic" TextWrapping="Wrap"
-                                   Visibility="{Binding Note, Converter={StaticResource NullToVisibility}}" />
-                    </StackPanel>
-                </DockPanel>
+                        <WrapPanel DockPanel.Dock="Right" VerticalAlignment="Center" MaxWidth="330" HorizontalAlignment="Right">
+                            <Button Content="Start" CommandParameter="{Binding}"
+                                    Command="{Binding DataContext.StartStageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    Visibility="{Binding CanStart, Converter={StaticResource BoolToVisibility}}" />
+                            <Button Content="Done" CommandParameter="{Binding}"
+                                    Command="{Binding DataContext.FinishStageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    Visibility="{Binding CanFinish, Converter={StaticResource BoolToVisibility}}" />
+                            <Button Content="Skip" CommandParameter="{Binding}"
+                                    Command="{Binding DataContext.SkipStageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    Visibility="{Binding CanSkip, Converter={StaticResource BoolToVisibility}}" />
+                            <Button Content="Reopen" CommandParameter="{Binding}"
+                                    Command="{Binding DataContext.ReopenStageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    Visibility="{Binding CanReopen, Converter={StaticResource BoolToVisibility}}" />
+                            <Button Content="Assign" CommandParameter="{Binding}"
+                                    Command="{Binding DataContext.AssignCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    Visibility="{Binding CanAssign, Converter={StaticResource BoolToVisibility}}"
+                                    ToolTip="Choose who does this step." />
+                            <Button Content="Remove" CommandParameter="{Binding}"
+                                    Command="{Binding DataContext.RemoveStepCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    Visibility="{Binding CanRemove, Converter={StaticResource BoolToVisibility}}"
+                                    ToolTip="Remove a step added by mistake. A step that does not apply is skipped instead." />
+                        </WrapPanel>
+                        <StackPanel>
+                            <TextBlock Text="{Binding Label}" TextWrapping="Wrap">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                                                <Setter Property="FontWeight" Value="SemiBold" />
+                                                <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBlock Text="{Binding StatusText}" Style="{StaticResource Muted}" />
+                            <TextBlock Text="{Binding AssignedText}" Style="{StaticResource Muted}"
+                                       Visibility="{Binding AssignedText, Converter={StaticResource NullToVisibility}}" />
+                            <TextBlock Text="{Binding Note}" Style="{StaticResource Muted}" FontStyle="Italic" TextWrapping="Wrap"
+                                       Visibility="{Binding Note, Converter={StaticResource NullToVisibility}}" />
+                        </StackPanel>
+                    </DockPanel>
+                    <!-- What was recorded for the step, and its tools, across the full width under it -->
+                    <ItemsControl ItemsSource="{Binding Links}" ItemTemplate="{StaticResource LinkTemplate}" Margin="26,4,0,0"
+                                  Visibility="{Binding HasLinks, Converter={StaticResource BoolToVisibility}}" />
+                    <ItemsControl ItemsSource="{Binding Tools}" ItemTemplate="{StaticResource ToolTemplate}" ItemsPanel="{StaticResource ToolPanel}"
+                                  Margin="26,0,0,0" Visibility="{Binding HasTools, Converter={StaticResource BoolToVisibility}}" />
+                </StackPanel>
             </Border>
         </DataTemplate>
     </UserControl.Resources>
@@ -154,16 +172,6 @@
                                     ToolTip="Record progress, add a notebook, Panorama folder or analysis repository, or change anything else, by telling Claude." />
                             <Button Content="New experiment" Command="{Binding NewExperimentCommand}"
                                     ToolTip="Another measurement of these samples, for example PRM on the Stellar after DIA on the Astral. Claude asks what it is." />
-                            <Button Content="Organize metadata with Claude" Command="{Binding OrganizeMetadataCommand}"
-                                    ToolTip="Choose the collaborator's sample sheet. It is checked for identifying information first; then Claude turns it into the sample table." ToolTipService.ShowOnDisabled="True" />
-                            <Button Content="View samples" Command="{Binding ViewSamplesCommand}"
-                                    ToolTip="The organized sample table in a grid you can sort and search, and the files it was made from. Needs the organized sample table." ToolTipService.ShowOnDisabled="True" />
-                            <Button Content="Open in Octopus" Command="{Binding OpenInOctopusCommand}"
-                                    ToolTip="Write the sample table for Octopus and open Octopus, to lay the samples out on plates. Needs the organized sample table." ToolTipService.ShowOnDisabled="True" />
-                            <Button Content="Import Octopus layout" Command="{Binding ImportLayoutCommand}"
-                                    ToolTip="Keep the layout file exported from Octopus with the project, and mark the plate layout done." ToolTipService.ShowOnDisabled="True" />
-                            <Button Content="Add link" Command="{Binding AddProjectLinkCommand}"
-                                    ToolTip="Record the project's ELN notebook on Panorama. Panorama folders go on each experiment." />
                             <Button Content="Folder" Command="{Binding OpenFolderCommand}" />
                             <Button Content="On GitHub" Command="{Binding OpenOnGitHubCommand}" />
                         </WrapPanel>
@@ -183,10 +191,8 @@
                                                 <Button DockPanel.Dock="Right" Content="Add a step" CommandParameter="{Binding}" Margin="0"
                                                         Command="{Binding DataContext.AddStepCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                         ToolTip="For work this timeline does not show yet: a second shipment, unblinded metadata, assay development, another analysis." />
-                                                <Button DockPanel.Dock="Right" Content="Add link" CommandParameter="{Binding}"
-                                                        Command="{Binding DataContext.AddLinkCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                        Visibility="{Binding IsExperiment, Converter={StaticResource BoolToVisibility}}"
-                                                        ToolTip="Record where this experiment's raw data and results are on Panorama, or its ELN notebook." />
+                                                <ItemsControl DockPanel.Dock="Right" ItemsSource="{Binding Tools}" ItemTemplate="{StaticResource ToolTemplate}"
+                                                              ItemsPanel="{StaticResource ToolPanel}" VerticalAlignment="Center" Margin="8,-5,4,0" />
                                                 <TextBlock Text="{Binding Heading}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" TextWrapping="Wrap" />
                                             </DockPanel>
                                         </Border>

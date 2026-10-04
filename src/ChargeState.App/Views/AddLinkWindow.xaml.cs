@@ -1,5 +1,4 @@
 using System.Windows;
-using System.Windows.Controls;
 using ChargeState.App.Services;
 using ChargeState.Core.Infrastructure;
 
@@ -11,60 +10,57 @@ namespace ChargeState.App.Views;
 /// <param name="NotebookId">The notebook's ID, for a notebook.</param>
 public sealed record AddLinkAnswer(string? PanoramaKind, string? Address, string? NotebookId);
 
-/// <summary>Asks for a Panorama folder (raw data or results) or an ELN notebook, by pasting its address.</summary>
+/// <summary>Asks for a Panorama folder (raw data or results) or an ELN notebook, by browsing or pasting its address.</summary>
 public partial class AddLinkWindow : Window
 {
     private const string PanoramaHome = "https://panoramaweb.org/MacCoss/maccoss/project-begin.view";
     private const string NotebooksUrl = "https://panoramaweb.org/MacCoss/samplemanager-app.view#/notebooks";
 
     private readonly PanoramaPicker? _picker;
+    private readonly string _kind;
     private AddLinkAnswer? _answer;
 
-    private AddLinkWindow(Window? owner, string heading, bool panorama, PanoramaPicker? picker)
+    private AddLinkWindow(Window? owner, string heading, string kind, PanoramaPicker? picker)
     {
         _picker = picker;
+        _kind = kind;
         InitializeComponent();
         Owner = owner;
         Title = AppInfo.ProductName;
         Heading.Text = heading;
-        Message.Text = panorama
-            ? "Choose the Panorama folder with Browse, paste its address from your browser, or type its path, "
-              + "for example /MacCoss/maccoss/@files/2026-BioTRACK. For a notebook, choose it with Browse or give its ID."
-            : "Choose the notebook with Browse, or give its ID (the link is filled in from it). Panorama folders go on each experiment.";
-        List<Choice> choices = panorama
-            ? [new("raw", "Raw data on Panorama"), new("results", "Results on Panorama"), new(null, "ELN notebook")]
-            : [new(null, "ELN notebook")];
-        What.ItemsSource = choices;
-        What.SelectedIndex = 0;
-        What.IsEnabled = choices.Count > 1;
-        Loaded += (_, _) => Address.Focus();
-    }
+        Message.Text = kind switch
+        {
+            "raw" => "The folder the raw files go to, where PanoramaBridge uploads them. Choose it with Browse, paste its address "
+                + "from your browser, or type its path, for example /MacCoss/maccoss/@files/2026-BioTRACK. It can be recorded "
+                + "before acquisition starts.",
+            "results" => "The folder with the Skyline documents. Choose it with Browse, paste its address from your browser, "
+                + "or type its path, for example /MacCoss/Collaborations/MNRF/BioTRACK/2026-09-BioTRACK-Quant.",
+            _ => "Choose the notebook with Browse, or give its ID (the link is filled in from it).",
+        };
 
-    /// <summary>The link to add, or null if cancelled.</summary>
-    /// <param name="panorama">True for an experiment, which can have Panorama folders.</param>
-    /// <param name="picker">Browses Panorama for a folder or a notebook; null hides Browse.</param>
-    public static AddLinkAnswer? Ask(Window? owner, string heading, bool panorama, PanoramaPicker? picker = null)
-    {
-        var window = new AddLinkWindow(owner, heading, panorama, picker);
-        return window.ShowDialog() == true ? window._answer : null;
-    }
-
-    private bool IsNotebook => (What.SelectedItem as Choice)?.Kind is null;
-
-    private void OnWhatChanged(object sender, SelectionChangedEventArgs e)
-    {
         AddressLabel.Text = IsNotebook ? "Link" : "Folder";
         FindIt.Content = IsNotebook ? "Find it in the notebooks on Panorama" : "Find it on Panorama";
         Address.ToolTip = IsNotebook
             ? "The notebook's address, copied from your browser"
             : "The folder's address copied from your browser, or its path, for example /MacCoss/maccoss/2026-BioTRACK";
-        var notebook = IsNotebook ? Visibility.Visible : Visibility.Collapsed;
-        IdLabel.Visibility = NotebookId.Visibility = notebook;
+        IdLabel.Visibility = NotebookId.Visibility = IsNotebook ? Visibility.Visible : Visibility.Collapsed;
         Browse.Visibility = _picker is null ? Visibility.Collapsed : Visibility.Visible;
         Browse.ToolTip = IsNotebook
             ? "Choose the notebook from the lab's notebooks on Panorama"
             : "Choose the folder on Panorama, signed in the way PanoramaBridge is";
+        Loaded += (_, _) => Address.Focus();
     }
+
+    /// <summary>The link to add, or null if cancelled.</summary>
+    /// <param name="kind">raw or results for a Panorama folder; notebook for an ELN notebook.</param>
+    /// <param name="picker">Browses Panorama for a folder or a notebook; null hides Browse.</param>
+    public static AddLinkAnswer? Ask(Window? owner, string heading, string kind, PanoramaPicker? picker = null)
+    {
+        var window = new AddLinkWindow(owner, heading, kind, picker);
+        return window.ShowDialog() == true ? window._answer : null;
+    }
+
+    private bool IsNotebook => _kind == "notebook";
 
     private async void OnBrowse(object sender, RoutedEventArgs e)
     {
@@ -116,13 +112,7 @@ public partial class AddLinkWindow : Window
             return;
         }
 
-        _answer = new AddLinkAnswer((What.SelectedItem as Choice)?.Kind, address, IsNotebook ? id : null);
+        _answer = new AddLinkAnswer(IsNotebook ? null : _kind, address, IsNotebook ? id : null);
         DialogResult = true;
-    }
-
-    private sealed record Choice(string? Kind, string Label)
-    {
-        // What screen readers and UI Automation read for the list item.
-        public override string ToString() => Label;
     }
 }

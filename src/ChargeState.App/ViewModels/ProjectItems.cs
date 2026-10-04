@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
 using ChargeState.Core.Projects;
+using CommunityToolkit.Mvvm.Input;
 
 namespace ChargeState.App.ViewModels;
 
@@ -69,10 +70,14 @@ public sealed record ProjectRow(LabSummary Lab, ProjectSummary Project, DateTime
 
 /// <summary>
 /// One timeline on the project page: the samples' steps (on the project) or one experiment's
-/// measurement and analysis steps, with what is linked to it.
+/// measurement and analysis steps, with what is linked to it. Tools and links go on the step they
+/// belong to (see <see cref="StepHomes"/>); the section keeps those with no such step.
 /// </summary>
 public sealed class TimelineSection
 {
+    private readonly List<LinkItem> _links;
+    private readonly List<StepTool> _tools = [];
+
     public TimelineSection(
         ITimeline timeline, string folder, string heading, string detail, IEnumerable<LinkItem> links, IEnumerable<string> issues,
         Func<string, string>? nameOf = null)
@@ -82,7 +87,7 @@ public sealed class TimelineSection
         Folder = folder;
         Heading = heading;
         Detail = detail;
-        Links = [.. links];
+        _links = [.. links];
         Issues = [.. issues];
         Stages = [.. timeline.Stages.Select(s => new StageRowViewModel(this, s, s.Stage == timeline.CurrentStage))];
     }
@@ -109,16 +114,87 @@ public sealed class TimelineSection
 
     public ObservableCollection<StageRowViewModel> Stages { get; }
 
-    public IReadOnlyList<LinkItem> Links { get; }
+    /// <summary>Links with no step to go on.</summary>
+    public IReadOnlyList<LinkItem> Links => _links;
 
     public bool HasLinks => Links.Count > 0;
 
+    /// <summary>Tools with no step to go on, shown beside the section's heading.</summary>
+    public IReadOnlyList<StepTool> Tools => _tools;
+
     public IReadOnlyList<string> Issues { get; }
+
+    /// <summary>The first step of the first kind in <paramref name="kinds"/> this timeline has.</summary>
+    public StageRowViewModel? Home(IReadOnlyList<string> kinds) =>
+        kinds.Select(k => Stages.FirstOrDefault(s => (s.Entry.Kind ?? s.Stage) == k)).FirstOrDefault(s => s is not null);
+
+    /// <summary>Shows a link on its step, or on the section when the timeline has no such step.</summary>
+    public void Place(LinkItem link, IReadOnlyList<string> kinds)
+    {
+        if (Home(kinds) is { } step)
+        {
+            step.AddLink(link);
+        }
+        else
+        {
+            _links.Add(link);
+        }
+    }
+
+    /// <summary>Offers a tool on its step, or on the section when the timeline has no such step.</summary>
+    public void Place(StepTool tool, IReadOnlyList<string> kinds)
+    {
+        if (Home(kinds) is { } step)
+        {
+            step.AddTool(tool);
+        }
+        else
+        {
+            _tools.Add(tool);
+        }
+    }
 }
+
+/// <summary>
+/// Which step each tool and link belongs on: the first of these kinds a timeline has. They work
+/// whatever the step's status, since a Panorama folder or a notebook is often set up before the
+/// work starts.
+/// </summary>
+public static class StepHomes
+{
+    /// <summary>Organize with Claude, View samples.</summary>
+    public static IReadOnlyList<string> Metadata { get; } = ["metadata_organized"];
+
+    /// <summary>Open in Octopus, Import layout.</summary>
+    public static IReadOnlyList<string> Layout { get; } = ["plate_layout"];
+
+    /// <summary>The ELN notebook: where the bench work is written up.</summary>
+    public static IReadOnlyList<string> Notebook { get; } = ["sample_prep", "assay_development", "data_acquisition"];
+
+    /// <summary>The Panorama folder the raw files go to.</summary>
+    public static IReadOnlyList<string> RawData { get; } = ["data_deposited", "data_acquisition"];
+
+    /// <summary>The Panorama folder with the Skyline documents.</summary>
+    public static IReadOnlyList<string> Results { get; } = ["signal_processing", "data_analysis", "results_returned"];
+
+    /// <summary>The analysis repository folder.</summary>
+    public static IReadOnlyList<string> Analysis { get; } = ["data_analysis"];
+}
+
+/// <summary>A button that does the work of a step, such as Open in Octopus on Plate layout.</summary>
+/// <param name="Parameter">What the command acts on, when it needs more than the selected project.</param>
+public sealed record StepTool(string Label, string ToolTip, IRelayCommand Command, object? Parameter = null);
+
+/// <summary>What Add raw data folder, Add results folder or Add notebook records, and on what.</summary>
+/// <param name="Kind">raw, results or notebook.</param>
+public sealed record LinkRequest(TimelineSection Section, string Kind);
 
 /// <summary>One step of a timeline, with the buttons that apply to it.</summary>
 public sealed class StageRowViewModel(TimelineSection section, StageEntry entry, bool isCurrent)
 {
+    private readonly List<LinkItem> _links = [];
+    private readonly List<StepTool> _tools = [];
+
     /// <summary>The timeline it belongs to, which says what to update.</summary>
     public TimelineSection Section { get; } = section;
 
@@ -170,6 +246,20 @@ public sealed class StageRowViewModel(TimelineSection section, StageEntry entry,
     /// <summary>Only a step with nothing recorded can go; anything else is skipped instead.</summary>
     public bool CanRemove => Entry.IsPending && Entry.Started is null && Entry.Finished is null && Entry.By is null
         && string.IsNullOrWhiteSpace(Entry.Note) && Section.Stages.Count > 1;
+
+    /// <summary>What was recorded for this step: its notebook, its Panorama folder.</summary>
+    public IReadOnlyList<LinkItem> Links => _links;
+
+    public bool HasLinks => _links.Count > 0;
+
+    /// <summary>The buttons that do this step's work.</summary>
+    public IReadOnlyList<StepTool> Tools => _tools;
+
+    public bool HasTools => _tools.Count > 0;
+
+    internal void AddLink(LinkItem link) => _links.Add(link);
+
+    internal void AddTool(StepTool tool) => _tools.Add(tool);
 }
 
 /// <summary>A link shown for a project or experiment; with no URL it is shown as text only.</summary>

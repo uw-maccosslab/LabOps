@@ -158,7 +158,7 @@ sequenceDiagram
     participant Claude as Claude Code
     participant Octopus as Octopus, in the browser
 
-    You->>App: Organize metadata with Claude, and choose the file
+    You->>App: Organize with Claude (on Metadata organized), and choose the file
     App->>Inbox: copy the original (it never leaves this computer)
     App->>Engine: scan (column names and patterns only)
     alt names, contact details, record numbers or dates of birth
@@ -170,17 +170,20 @@ sequenceDiagram
         Claude-->>App: metadata/samples.csv written, turn finished
         App->>App: check --staged, commit, push
     end
-    You->>App: Open in Octopus
+    You->>App: Open in Octopus (on Plate layout)
     App->>Engine: octopus-input (writes the CSV to inbox/)
     App->>Octopus: opens it, and you load the file and lay out plates
-    You->>App: Import Octopus layout (the exported JSON)
+    You->>App: Import layout (the exported JSON)
     App->>Engine: import-layout: keeps the layout, marks the plate layout step done
 ```
 
 ## Choosing a Panorama folder or notebook
 
-**Add link** on an experiment records where its raw data and results are on Panorama, or its ELN
-notebook. **Browse...** finds them on Panorama, signed in the way PanoramaBridge is.
+**Add raw data folder** (on Data deposited to Panorama) and **Add results folder** (on Signal
+processing) record where an experiment's raw data and Skyline documents are on Panorama; **Add
+notebook** (on Sample prep, or an experiment's first bench step) records its ELN notebook. Each
+works whatever the step's status. **Browse...** finds them on Panorama, signed in the way
+PanoramaBridge is.
 
 ```mermaid
 sequenceDiagram
@@ -190,7 +193,7 @@ sequenceDiagram
     participant Panorama as panoramaweb.org
     participant Engine as project.py
 
-    You->>App: Add link, Browse...
+    You->>App: Add raw data folder, Browse...
     App->>Creds: PanoramaBridge:https://panoramaweb.org, then ChargeState:https://panoramaweb.org
     loop each saved sign-in, until one works
         App->>Panorama: GET /_webdav/?method=json

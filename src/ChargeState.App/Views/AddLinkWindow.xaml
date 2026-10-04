@@ -12,19 +12,17 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
-            <TextBlock Grid.Row="0" Text="What" VerticalAlignment="Center" />
-            <ComboBox x:Name="What" Grid.Row="0" Grid.Column="1" DisplayMemberPath="Label" Margin="0,2,0,6" SelectionChanged="OnWhatChanged" />
-            <TextBlock x:Name="AddressLabel" Grid.Row="1" Text="Address" VerticalAlignment="Center" />
-            <DockPanel Grid.Row="1" Grid.Column="1" Margin="0,2,0,2">
+            <TextBlock x:Name="AddressLabel" Grid.Row="0" Text="Address" VerticalAlignment="Center" />
+            <DockPanel Grid.Row="0" Grid.Column="1" Margin="0,2,0,2">
                 <Button x:Name="Browse" DockPanel.Dock="Right" Content="Browse..." Margin="6,0,0,0" Click="OnBrowse" />
                 <TextBox x:Name="Address" />
             </DockPanel>
-            <Button x:Name="FindIt" Grid.Row="2" Grid.Column="1" Style="{StaticResource LinkButton}" HorizontalAlignment="Left"
+            <Button x:Name="FindIt" Grid.Row="1" Grid.Column="1" Style="{StaticResource LinkButton}" HorizontalAlignment="Left"
                     Margin="0,0,0,6" Click="OnFindIt" />
-            <TextBlock x:Name="IdLabel" Grid.Row="3" Text="Notebook ID" VerticalAlignment="Center" />
-            <TextBox x:Name="NotebookId" Grid.Row="3" Grid.Column="1" Margin="0,2,0,6"
+            <TextBlock x:Name="IdLabel" Grid.Row="2" Text="Notebook ID" VerticalAlignment="Center" />
+            <TextBox x:Name="NotebookId" Grid.Row="2" Grid.Column="1" Margin="0,2,0,6"
                      ToolTip="For example ELN-4485-20230314-179, shown at the top of the notebook" />
         </Grid>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">

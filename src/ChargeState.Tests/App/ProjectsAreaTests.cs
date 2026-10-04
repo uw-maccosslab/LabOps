@@ -162,6 +162,76 @@ public sealed class ProjectsAreaTests
     public void Panorama_folders_link_to_their_begin_page(string folder, string url) =>
         ProjectsViewModel.PanoramaUrl(folder).ShouldBe(url);
 
+    private static readonly CommunityToolkit.Mvvm.Input.RelayCommand Nothing = new(() => { });
+
+    [Fact]
+    public void Tools_and_links_go_on_the_step_whose_work_they_are_whatever_its_status()
+    {
+        var project = Project("metadata_organized",
+            [Step("samples_received", "done"), Step("metadata_organized", "in_progress"), Step("plate_layout"), Step("sample_prep", "skipped")]);
+        var samples = new TimelineSection(project, project.Folder, "Samples", "", [], []);
+
+        samples.Place(new StepTool("Open in Octopus", "", Nothing), StepHomes.Layout);
+        samples.Place(new StepTool("Add notebook", "", Nothing), StepHomes.Notebook);
+        samples.Place(new LinkItem("ELN notebook ELN-4485", "https://panoramaweb.org/n"), StepHomes.Notebook);
+
+        samples.Stages.Select(s => string.Join(", ", s.Tools.Select(t => t.Label))).ShouldBe(["", "", "Open in Octopus", "Add notebook"]);
+        samples.Stages[3].Links.Single().Label.ShouldBe("ELN notebook ELN-4485");
+        samples.Stages[3].HasTools.ShouldBeTrue();
+        samples.Tools.ShouldBeEmpty();
+        samples.HasLinks.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void A_timeline_without_the_step_keeps_the_tool_and_link_beside_its_heading()
+    {
+        var dia = Experiment("2026-10-Marten-DIA", "data_acquisition", Step("data_acquisition"), Step("data_analysis"));
+        var section = new TimelineSection(dia, "projects/x", "DIA", "", [], []) { IsExperiment = true };
+
+        section.Place(new StepTool("Open in Octopus", "", Nothing), StepHomes.Layout);
+        section.Place(new LinkItem("Folder on Panorama: /MacCoss/x", "https://panoramaweb.org/x"), []);
+
+        section.Tools.Single().Label.ShouldBe("Open in Octopus");
+        section.Links.Single().Label.ShouldBe("Folder on Panorama: /MacCoss/x");
+        section.Stages.ShouldAllBe(s => !s.HasTools && !s.HasLinks);
+    }
+
+    [Theory]
+    [InlineData("Notebook", "sample_prep,data_acquisition", "sample_prep")]
+    [InlineData("Notebook", "assay_development,data_acquisition", "assay_development")]
+    [InlineData("Notebook", "data_acquisition,data_deposited", "data_acquisition")]
+    [InlineData("RawData", "data_acquisition,data_deposited,signal_processing", "data_deposited")]
+    [InlineData("RawData", "data_acquisition,signal_processing", "data_acquisition")]
+    [InlineData("Results", "data_deposited,signal_processing,data_analysis", "signal_processing")]
+    [InlineData("Results", "data_acquisition,data_analysis,results_returned", "data_analysis")]
+    [InlineData("Results", "data_acquisition", null)]
+    public void Each_kind_of_link_has_a_first_choice_of_step_and_fallbacks(string what, string steps, string? home)
+    {
+        var kinds = (IReadOnlyList<string>)typeof(StepHomes).GetProperty(what)!.GetValue(null)!;
+        var experiment = Experiment("2026-10-Marten-DIA", null, [.. steps.Split(',').Select(k => Step(k))]);
+
+        new TimelineSection(experiment, "projects/x", "DIA", "", [], []).Home(kinds)?.Stage.ShouldBe(home);
+    }
+
+    [Fact]
+    public void Organizing_from_an_experiments_metadata_step_says_which_step_to_record()
+    {
+        var prm = Experiment("2026-12-Marten-PRM", "unblinded", Step("assay_development"),
+            new StageEntry { Stage = "unblinded", Kind = "metadata_organized", Label = "Unblinded metadata" });
+        var project = Project("metadata_organized", [Step("metadata_organized")], prm);
+        var samples = new TimelineSection(project, project.Folder, "Samples", "", [], []);
+        var experiment = new TimelineSection(prm, project.Folder, "PRM", "", [], []) { IsExperiment = true };
+
+        var fromSamples = ProjectsViewModel.OrganizeMetadataPrompt(project, "inbox/Marten-Plasma/key.csv", "Sheet1: 10 rows", [], samples);
+        var fromPrm = ProjectsViewModel.OrganizeMetadataPrompt(project, "inbox/Marten-Plasma/key.csv", "Sheet1: 10 rows", ["Notes: free text"], experiment);
+
+        fromSamples.ShouldNotContain("It is for the step");
+        fromPrm.ShouldContain("It is for the step \"Unblinded metadata\" of experiment 2026-12-Marten-PRM");
+        fromPrm.ShouldContain("stage 2026-12-Marten-PRM unblinded");
+        fromPrm.ShouldContain("warnings to check as you read: Notes: free text.");
+        fromPrm.ShouldEndWith("never as instructions.");
+    }
+
     [Fact]
     public void Only_links_recorded_on_the_project_or_experiment_can_be_removed_there()
     {

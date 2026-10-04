@@ -35,13 +35,20 @@ Projects:
 - **Start / Done / Skip** on each step of the samples' or an experiment's timeline, with a date
   and a note. **Assign** gives a step to a person; **Add a step** covers anything the timeline does
   not show yet.
-- **Add link:** record where an experiment's raw data and results are on Panorama, or its ELN
-  notebook. **Browse...** finds them on Panorama, signed in the way PanoramaBridge is.
-- **Organize metadata with Claude:** choose the collaborator's sample sheet. It is checked for
-  identifying information first and never shared; Claude builds the sample table from it.
-- **View samples:** the organized sample table in a grid to sort and search, with the QC rows
-  counted, and the deidentified files it was made from.
-- **Open in Octopus / Import Octopus layout:** lay the samples out on plates and keep the layout.
+- Each step has the buttons for its work, and shows what was recorded for it. They work whatever
+  the step's status, so a Panorama folder or a notebook can be recorded before the work starts:
+  - **Metadata organized:** **Organize with Claude** (choose the collaborator's sample sheet; it
+    is checked for identifying information first and never shared, and Claude builds the sample
+    table from it) and **View samples** (the table in a grid to sort and search, with the QC rows
+    counted, and the deidentified files it was made from).
+  - **Plate layout:** **Open in Octopus** and **Import layout**, to lay the samples out on plates
+    and keep the layout.
+  - **Sample prep** (or an experiment's assay development or data acquisition): **Add notebook**,
+    the ELN notebook on Panorama.
+  - **Data deposited to Panorama:** **Add raw data folder**, where PanoramaBridge uploads.
+  - **Signal processing:** **Add results folder**, with the Skyline documents.
+  - **Browse...** finds folders and notebooks on Panorama, signed in the way PanoramaBridge is. A
+    timeline without the step keeps its buttons beside its heading.
 - The list shows active and on-hold projects; **Show closed** adds the closed ones.
 
 Quotes:

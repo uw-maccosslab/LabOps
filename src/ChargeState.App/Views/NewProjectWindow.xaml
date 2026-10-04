@@ -8,7 +8,7 @@
         <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
             <TextBlock Text="New project" Style="{StaticResource Heading}" />
             <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,0"
-                       Text="Describe the work, or paste an email about it, and fill in anything you already know. Claude creates the project (and the lab, if it is new) with an experiment for each measurement of the samples, and asks about anything missing. To measure an existing project's samples again, select the project and choose New experiment instead. Leave sample sheets for Organize metadata: do not paste names or other details about the people the samples came from." />
+                       Text="Describe the work, or paste an email about it, and fill in anything you already know. Claude creates the project (and the lab, if it is new) with an experiment for each measurement of the samples, and asks about anything missing. To measure an existing project's samples again, select the project and choose New experiment instead. Leave sample sheets for Organize with Claude, on the Metadata organized step: do not paste names or other details about the people the samples came from." />
         </StackPanel>
         <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
             <Button Content="Cancel" IsCancel="True" />
