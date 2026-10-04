@@ -50,6 +50,13 @@ the GitHub Release description and fails if it is missing.
 
 ## Bug Fixes
 
+- **ChargeState now quits when its window closes.** Closing it while a Claude conversation was
+  open left the process running without a window (a deadlock while ending Claude), and the app
+  would then not start again until it was ended in Task Manager. Claude is now ended while the
+  window closes ("ChargeState: closing..." for a few seconds at most), and the process is ended
+  within 10 seconds of the window closing whatever else happens. If a copy is ever stuck again,
+  starting ChargeState says so and offers to end it, instead of silently doing nothing.
+
 - **Fewer permission prompts.** "Allow" with the box checked now remembers each program in the step
   (for example `uv` and `sed` in `quote.py build ... && sed -n ...`) until ChargeState closes,
   instead of only the first program and only for one conversation, which asked again for almost

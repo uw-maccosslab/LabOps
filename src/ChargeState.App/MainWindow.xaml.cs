@@ -12,6 +12,7 @@ public partial class MainWindow : Window
     private readonly MainViewModel _vm;
     private readonly AppPaths _paths;
     private bool _previewReady;
+    private bool _shutDown;
 
     public MainWindow(MainViewModel vm, AppPaths paths)
     {
@@ -92,14 +93,48 @@ public partial class MainWindow : Window
         }
     }
 
-    private void OnClosing(object? sender, CancelEventArgs e)
+    /// <summary>
+    /// Ends Claude and stops the tool server before the window goes, then closes it for real.
+    /// </summary>
+    /// <remarks>
+    /// The first close is cancelled so the shutdown can be awaited while the UI thread keeps
+    /// running. Waiting for it synchronously in App.OnExit deadlocked: ending a Claude session
+    /// resumes on the UI thread, which was blocked waiting for it, so the process outlived its
+    /// window and kept the single-instance lock.
+    /// </remarks>
+    private async void OnClosing(object? sender, CancelEventArgs e)
     {
+        if (_shutDown)
+        {
+            return;
+        }
+
         if (_vm.Chat.IsBusy || _vm.IsWorking)
         {
             var answer = MessageBox.Show(
                 "Work is still in progress. Close anyway? Anything Claude has not finished will not be saved.",
                 AppInfo.ProductName, MessageBoxButton.YesNo, MessageBoxImage.Warning);
-            e.Cancel = answer != MessageBoxResult.Yes;
+            if (answer != MessageBoxResult.Yes)
+            {
+                e.Cancel = true;
+                return;
+            }
         }
+
+        e.Cancel = true;
+        _shutDown = true;
+        IsEnabled = false;
+        Title = $"{AppInfo.ProductName}: closing...";
+        try
+        {
+            await _vm.ShutdownAsync().WaitAsync(TimeSpan.FromSeconds(10));
+        }
+        catch (Exception ex)
+        {
+            // Closing must not fail; the exit watchdog ends anything left behind.
+            Serilog.Log.Warning(ex, "Shutdown did not finish cleanly.");
+        }
+
+        Close();
     }
 }

@@ -185,6 +185,12 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
         IsOpen = false;
     }
 
+    /// <summary>
+    /// Ends Claude's process at once, without waiting for anything. For App.OnExit, where nothing
+    /// may wait on the UI thread; a normal close ends the session properly first.
+    /// </summary>
+    public void KillSession() => _session?.Stop();
+
     public async Task EndSessionAsync()
     {
         foreach (var question in Items.OfType<QuestionItem>())

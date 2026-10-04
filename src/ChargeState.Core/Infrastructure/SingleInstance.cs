@@ -1,3 +1,6 @@
+using System.Diagnostics;
+using System.Globalization;
+
 namespace ChargeState.Core.Infrastructure;
 
 /// <summary>
@@ -16,21 +19,30 @@ namespace ChargeState.Core.Infrastructure;
 /// is shared by the account across sessions. The operating system releases the lock when the
 /// process dies, so a crash cannot leave a stale lock behind.
 /// </para>
+/// <para>
+/// A process that is alive but stuck (its window closed, its UI thread blocked) still holds the
+/// lock. So the running copy acknowledges a second launch from its UI thread, and a launch that
+/// gets no answer can offer to end the stuck copy, whose process ID is kept beside the lock.
+/// </para>
 /// </remarks>
 public sealed class SingleInstance : IDisposable
 {
     private readonly FileStream? _lock;
+    private readonly string _pidFile;
     private readonly EventWaitHandle? _wakeExisting;
+    private readonly EventWaitHandle? _acknowledged;
     private readonly ManualResetEventSlim _stopping = new(false);
 
     private Thread? _listener;
     private bool _disposed;
 
-    private SingleInstance(bool isFirst, FileStream? heldLock, EventWaitHandle? wakeExisting)
+    private SingleInstance(bool isFirst, FileStream? heldLock, string pidFile, EventWaitHandle? wakeExisting, EventWaitHandle? acknowledged)
     {
         IsFirst = isFirst;
         _lock = heldLock;
+        _pidFile = pidFile;
         _wakeExisting = wakeExisting;
+        _acknowledged = acknowledged;
     }
 
     /// <summary>True when this process is the only one running.</summary>
@@ -47,16 +59,9 @@ public sealed class SingleInstance : IDisposable
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentException.ThrowIfNullOrWhiteSpace(lockFile);
 
-        EventWaitHandle? wake = null;
-
-        try
-        {
-            wake = new EventWaitHandle(false, EventResetMode.AutoReset, $@"Local\{name}.wake");
-        }
-        catch (Exception)
-        {
-            // Only costs the ability to raise the running window; exclusion does not depend on it.
-        }
+        var pidFile = Path.ChangeExtension(lockFile, ".pid");
+        var wake = Event($@"Local\{name}.wake");
+        var acknowledged = Event($@"Local\{name}.ack");
 
         try
         {
@@ -68,22 +73,45 @@ public sealed class SingleInstance : IDisposable
                 bufferSize: 1,
                 FileOptions.DeleteOnClose);
 
-            return new SingleInstance(isFirst: true, held, wake);
+            try
+            {
+                File.WriteAllText(pidFile, Environment.ProcessId.ToString(CultureInfo.InvariantCulture));
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Only costs a later launch the ability to end exactly this process if it gets stuck.
+            }
+
+            return new SingleInstance(isFirst: true, held, pidFile, wake, acknowledged);
         }
         catch (IOException)
         {
             // Another copy holds it.
-            return new SingleInstance(isFirst: false, heldLock: null, wake);
+            return new SingleInstance(isFirst: false, heldLock: null, pidFile, wake, acknowledged);
         }
         catch (Exception)
         {
             // An unwritable directory or a policy denying the open: start anyway (see remarks).
-            return new SingleInstance(isFirst: true, heldLock: null, wake);
+            return new SingleInstance(isFirst: true, heldLock: null, pidFile, wake, acknowledged);
+        }
+    }
+
+    private static EventWaitHandle? Event(string name)
+    {
+        try
+        {
+            return new EventWaitHandle(false, EventResetMode.AutoReset, name);
+        }
+        catch (Exception)
+        {
+            // Only costs the ability to raise the running window; exclusion does not depend on it.
+            return null;
         }
     }
 
     /// <summary>
     /// Runs <paramref name="show"/> when another launch asks for the window. First instance only.
+    /// <paramref name="show"/> should call <see cref="Acknowledge"/> once the window is shown.
     /// </summary>
     /// <remarks>
     /// A background thread blocked on a wait handle rather than a timer, so it costs nothing idle.
@@ -120,22 +148,107 @@ public sealed class SingleInstance : IDisposable
         _listener.Start();
     }
 
-    /// <summary>Asks the running instance to show itself.</summary>
-    /// <returns>True when there was one to ask.</returns>
-    public bool SignalExisting()
+    /// <summary>Tells a second launch that this copy is alive and has come forward.</summary>
+    public void Acknowledge()
     {
-        if (IsFirst || _wakeExisting is null)
+        try
+        {
+            _acknowledged?.Set();
+        }
+        catch (ObjectDisposedException)
+        {
+            // Shutting down.
+        }
+    }
+
+    /// <summary>Asks the running instance to show itself, and waits for it to answer.</summary>
+    /// <returns>True when the running copy answered within <paramref name="timeout"/>.</returns>
+    public bool SignalExisting(TimeSpan timeout)
+    {
+        if (IsFirst || _wakeExisting is null || _acknowledged is null)
         {
             return false;
         }
 
         try
         {
-            return _wakeExisting.Set();
+            // An answer left over from an earlier launch must not count for this one.
+            _acknowledged.Reset();
+            return _wakeExisting.Set() && _acknowledged.WaitOne(timeout);
         }
         catch (Exception)
         {
             return false;
+        }
+    }
+
+    /// <summary>The process ID the running copy recorded, if it did (copies before 26.3.0 did not).</summary>
+    public int? ExistingProcessId()
+    {
+        try
+        {
+            return int.TryParse(File.ReadAllText(_pidFile).Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var pid)
+                ? pid
+                : null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Ends a stuck copy of the app: the recorded process, else (a copy from before the ID was
+    /// recorded) every other process of this executable. Waits a few seconds for each to go.
+    /// </summary>
+    public static void EndStuckCopy(int? processId)
+    {
+        using var self = Process.GetCurrentProcess();
+        if (processId == self.Id)
+        {
+            return;
+        }
+
+        var targets = new List<Process>();
+        if (processId is { } id)
+        {
+            try
+            {
+                var p = Process.GetProcessById(id);
+                if (string.Equals(p.ProcessName, self.ProcessName, StringComparison.OrdinalIgnoreCase))
+                {
+                    targets.Add(p);
+                }
+                else
+                {
+                    p.Dispose();
+                }
+            }
+            catch (ArgumentException)
+            {
+                // Already gone.
+            }
+        }
+        else
+        {
+            targets.AddRange(Process.GetProcessesByName(self.ProcessName).Where(p => p.Id != self.Id && p.SessionId == self.SessionId));
+        }
+
+        foreach (var p in targets)
+        {
+            try
+            {
+                p.Kill(entireProcessTree: true);
+                p.WaitForExit(5000);
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
+            {
+                // Exited meanwhile, or not ours to end; the next Acquire reports it.
+            }
+            finally
+            {
+                p.Dispose();
+            }
         }
     }
 
@@ -152,15 +265,21 @@ public sealed class SingleInstance : IDisposable
 
         try
         {
+            if (_lock is not null)
+            {
+                File.Delete(_pidFile);
+            }
+
             // DeleteOnClose removes the file as the handle closes.
             _lock?.Dispose();
         }
-        catch (IOException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             // The lock is released by the handle closing either way.
         }
 
         _wakeExisting?.Dispose();
+        _acknowledged?.Dispose();
         _stopping.Dispose();
     }
 }

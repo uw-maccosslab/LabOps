@@ -36,6 +36,9 @@ public partial class App : Application
             }
 
             window.Activate();
+
+            // Answered from the UI thread, so a copy whose UI is stuck does not seem alive.
+            _instance.Acknowledge();
         }));
 
         window.Show();
@@ -43,9 +46,11 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
-        // End Claude politely and stop the tool server; a few seconds at most.
-        Services.GetRequiredService<ChatViewModel>().EndSessionAsync().GetAwaiter().GetResult();
-        Services.GetRequiredService<Workspace>().DisposeAsync().AsTask().GetAwaiter().GetResult();
+        // The window's closing has already ended Claude and stopped the tool server. Nothing here
+        // may wait on async work: it would need this (UI) thread, which is the one waiting. If the
+        // app is going without its window closing (Windows signing out), end Claude's process
+        // outright rather than leave it running.
+        Services.GetRequiredService<ChatViewModel>().KillSession();
         base.OnExit(e);
     }
 

@@ -334,6 +334,14 @@ public sealed partial class MainViewModel : ObservableObject
         WorkingText = _work.WorkingText;
     }
 
+    /// <summary>Ends Claude and stops the tool server, while the UI thread still runs.</summary>
+    public async Task ShutdownAsync()
+    {
+        _timer?.Stop();
+        await Chat.EndSessionAsync().ConfigureAwait(true);
+        await _workspace.DisposeAsync().ConfigureAwait(true);
+    }
+
     // -- areas -------------------------------------------------------------------------------
 
     [RelayCommand]
