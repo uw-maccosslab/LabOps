@@ -42,23 +42,33 @@ public sealed class ClaudeChoicesTests : IDisposable
     public void Every_level_claude_code_takes_is_offered_and_a_model_set_by_hand_is_kept()
     {
         ClaudeChoices.Efforts(null, null).Select(c => c.Value).ShouldBe([null, "low", "medium", "high", "xhigh", "max"]);
-        ClaudeChoices.Models(null, null).Select(c => c.Value).ShouldBe([null, "opus", "sonnet", "haiku"]);
+        ClaudeChoices.Models(null, null).Select(c => c.Value).ShouldBe(
+            [null, "claude-opus-5-5", "claude-opus-5", "claude-sonnet-5-5", "claude-sonnet-5", "claude-haiku-4-5"]);
 
-        var models = ClaudeChoices.Models("claude-sonnet-5-5", null);
-        models.Last().ShouldBe(new ClaudeChoice("claude-sonnet-5-5", "claude-sonnet-5-5"));
-        ClaudeChoices.Find(models, "claude-sonnet-5-5").ShouldBe(models.Last());
-        ClaudeChoices.Find(models, "OPUS").Value.ShouldBe("opus");
+        var models = ClaudeChoices.Models("claude-opus-4-8", null);
+        models.Last().ShouldBe(new ClaudeChoice("claude-opus-4-8", "claude-opus-4-8"));
+        ClaudeChoices.Find(models, "claude-opus-4-8").ShouldBe(models.Last());
+        ClaudeChoices.Find(models, "CLAUDE-SONNET-5-5").Value.ShouldBe("claude-sonnet-5-5");
         ClaudeChoices.Find(models, " ").Value.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Every_model_is_named_with_its_version()
+    {
+        ClaudeChoices.Models(null, null).Skip(1).Select(c => c.Label.Split(':')[0])
+            .ShouldBe(["Opus 5.5", "Opus 5", "Sonnet 5.5", "Sonnet 5", "Haiku 4.5"]);
+        // An alias chosen in LabOps 26.8.1 or 26.8.2 is kept, and says what it means.
+        ClaudeChoices.Models("opus", null).Last().ShouldBe(new ClaudeChoice("opus", "Opus, the latest version"));
     }
 
     [Fact]
     public void A_choice_in_setup_is_saved_at_once_and_the_default_saves_nothing_to_pass()
     {
-        var settings = new AppSettings { ClaudeModel = "sonnet" };
+        var settings = new AppSettings { ClaudeModel = "claude-sonnet-5-5" };
         var saves = 0;
         var vm = new ClaudeSettingsViewModel(settings, () => saves++, (null, "high"));
 
-        vm.Model.Value.ShouldBe("sonnet");
+        vm.Model.Label.ShouldStartWith("Sonnet 5.5");
         vm.Effort.Label.ShouldBe("Your Claude Code default (high)");
         saves.ShouldBe(0);
 

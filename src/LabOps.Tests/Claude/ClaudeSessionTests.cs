@@ -91,10 +91,10 @@ public sealed class ClaudeSessionTests
     [Fact]
     public void The_model_and_effort_chosen_in_setup_go_on_the_command_line()
     {
-        var args = new ClaudeSessionOptions { ClaudePath = "claude.exe", WorkingDirectory = "C:\\Quotes", Model = "sonnet", Effort = "high" }
+        var args = new ClaudeSessionOptions { ClaudePath = "claude.exe", WorkingDirectory = "C:\\Quotes", Model = "claude-sonnet-5-5", Effort = "high" }
             .BuildArguments();
 
-        Following(args, "--model").ShouldBe("sonnet");
+        Following(args, "--model").ShouldBe("claude-sonnet-5-5");
         Following(args, "--effort").ShouldBe("high");
     }
 

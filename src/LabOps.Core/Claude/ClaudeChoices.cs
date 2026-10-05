@@ -18,13 +18,27 @@ public static class ClaudeChoices
 {
     private const string Default = "Your Claude Code default";
 
-    /// <summary>Aliases Claude Code takes for <c>--model</c>, which always mean the latest of each model.</summary>
+    /// <summary>
+    /// Models by their full names, so the version shown is the one used: versions of the same model
+    /// differ a lot, and the bare aliases ("opus") move to each new version unannounced. Add a
+    /// model here when it comes out.
+    /// </summary>
     private static readonly ClaudeChoice[] KnownModels =
     [
-        new("opus", "Opus: the most capable; uses your plan the fastest"),
-        new("sonnet", "Sonnet: capable and quicker; uses less of your plan"),
-        new("haiku", "Haiku: the quickest; uses the least, for small changes"),
+        new("claude-opus-5-5", "Opus 5.5: the most capable; uses your plan the fastest"),
+        new("claude-opus-5", "Opus 5: the previous Opus"),
+        new("claude-sonnet-5-5", "Sonnet 5.5: capable and quicker; uses less of your plan"),
+        new("claude-sonnet-5", "Sonnet 5: the previous Sonnet"),
+        new("claude-haiku-4-5", "Haiku 4.5: the quickest; uses the least, for small changes"),
     ];
+
+    /// <summary>The aliases LabOps 26.8.1 and 26.8.2 offered, still kept for whoever chose one.</summary>
+    private static readonly Dictionary<string, string> AliasLabels = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["opus"] = "Opus, the latest version",
+        ["sonnet"] = "Sonnet, the latest version",
+        ["haiku"] = "Haiku, the latest version",
+    };
 
     /// <summary>The levels Claude Code takes for <c>--effort</c>.</summary>
     private static readonly ClaudeChoice[] KnownEfforts =
@@ -82,7 +96,7 @@ public static class ClaudeChoices
         choices.AddRange(known);
         if (Normalize(current) is { } value && !known.Any(c => string.Equals(c.Value, value, StringComparison.OrdinalIgnoreCase)))
         {
-            choices.Add(new ClaudeChoice(value, value));
+            choices.Add(new ClaudeChoice(value, AliasLabels.GetValueOrDefault(value, value)));
         }
 
         return choices;

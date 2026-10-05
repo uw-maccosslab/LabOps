@@ -16,7 +16,7 @@ public sealed record ClaudeSessionOptions
     /// <summary>Continue an earlier conversation instead of starting fresh.</summary>
     public string? ResumeSessionId { get; init; }
 
-    /// <summary>A model alias such as "opus"; null uses the user's own default.</summary>
+    /// <summary>A model such as "claude-opus-5-5" (or an alias such as "opus"); null uses the user's own default.</summary>
     public string? Model { get; init; }
 
     /// <summary>An effort level such as "high"; null uses the user's own default.</summary>

@@ -24,7 +24,7 @@ public sealed class AppSettings
     /// </summary>
     public Dictionary<string, string> ClaudeSessions { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>The Claude model alias chosen in Setup (for example "opus"); empty uses the person's Claude Code default.</summary>
+    /// <summary>The Claude model chosen in Setup (for example "claude-opus-5-5"); empty uses the person's Claude Code default.</summary>
     public string? ClaudeModel { get; set; }
 
     /// <summary>The Claude effort level chosen in Setup (for example "high"); empty uses the person's Claude Code default.</summary>
