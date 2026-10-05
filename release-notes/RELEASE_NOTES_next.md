@@ -38,6 +38,13 @@ the GitHub Release description and fails if it is missing.
   wrong conversation. When what is on screen differs, the chat now says so at the top ("This
   conversation is about QC aliquots. You are looking at SAX KFKF.") with **Talk about SAX KFKF**,
   and Send asks before the message goes to the conversation about the other one.
+- **The protocol and wiki previews no longer run scripts.** A protocol's page showed any script
+  written into its text, so a draft pushed by anyone could run code in LabOps and send out what
+  it could read. Both previews now run no scripts, and the protocol page loads nothing from the
+  web or from other files on the computer (its figures are part of the page).
+- **A protocol LabOps cannot read no longer breaks the Protocols area.** A version written as
+  `1.0` in a protocol.yaml stopped the list from loading with an unexplained failure; the area now
+  says the protocols could not be loaded, and why.
 
 ## Performance
 

@@ -43,6 +43,8 @@ public partial class WikiWindow : Window
             await Preview.EnsureCoreWebView2Async(environment).ConfigureAwait(true);
             Preview.CoreWebView2.Settings.AreDevToolsEnabled = false;
             Preview.CoreWebView2.Settings.IsStatusBarEnabled = false;
+            // The page needs no scripts (its icons are a stylesheet), so the project's text cannot run code here.
+            Preview.CoreWebView2.Settings.IsScriptEnabled = false;
             Preview.CoreWebView2.NavigationStarting += OnNavigating;
             Preview.CoreWebView2.NewWindowRequested += (_, e) =>
             {

@@ -58,6 +58,17 @@ public partial class ProtocolsView : UserControl
             await Preview.EnsureCoreWebView2Async(environment);
             Preview.CoreWebView2.Settings.AreDevToolsEnabled = false;
             Preview.CoreWebView2.Settings.IsStatusBarEnabled = false;
+            // The page is the engine's, with its figures inside it: it needs no scripts and nothing
+            // from the web, so a protocol's text can neither run code here nor send anything out.
+            Preview.CoreWebView2.Settings.IsScriptEnabled = false;
+            Preview.CoreWebView2.AddWebResourceRequestedFilter("*", CoreWebView2WebResourceContext.All);
+            Preview.CoreWebView2.WebResourceRequested += (_, args) =>
+            {
+                if (IsBlocked(args.Request.Uri, args.ResourceContext))
+                {
+                    args.Response = environment.CreateWebResourceResponse(null, 403, "Blocked", "");
+                }
+            };
             Preview.CoreWebView2.NavigationStarting += OnNavigating;
             Preview.CoreWebView2.NewWindowRequested += (_, args) =>
             {
@@ -113,6 +124,15 @@ public partial class ProtocolsView : UserControl
         e.Cancel = true;
         OpenOutside(e.Uri);
     }
+
+    /// <summary>
+    /// What the page may not load: anything from the web, and any file other than the page itself
+    /// (the engine puts its figures inside the page). Following a link is a navigation, handled
+    /// by <see cref="OnNavigating"/>.
+    /// </summary>
+    internal static bool IsBlocked(string uri, CoreWebView2WebResourceContext context) =>
+        context != CoreWebView2WebResourceContext.Document
+        && !uri.StartsWith("data:", StringComparison.Ordinal) && !uri.StartsWith("about:", StringComparison.Ordinal);
 
     private static void OpenOutside(string uri)
     {

@@ -2,6 +2,7 @@ using LabOps.App.ViewModels;
 using LabOps.App.Views;
 using LabOps.Core.Projects;
 using LabOps.Core.Protocols;
+using Microsoft.Web.WebView2.Core;
 
 namespace LabOps.Tests.App;
 
@@ -163,4 +164,13 @@ public sealed class ProtocolsAreaTests
         onStep.CanRemove.ShouldBeTrue();
         section.Home(StepHomes.Protocol)!.Stage.ShouldBe("sample_prep");
     }
+
+    [Theory]
+    [InlineData("https://example.org/pixel.png", CoreWebView2WebResourceContext.Image, true)]
+    [InlineData("https://example.org/steal.js", CoreWebView2WebResourceContext.Script, true)]
+    [InlineData("file:///C:/Users/someone/.ssh/id_ed25519", CoreWebView2WebResourceContext.Image, true)]
+    [InlineData("data:image/png;base64,iVBORw0KGgo=", CoreWebView2WebResourceContext.Image, false)]
+    [InlineData("file:///C:/Users/someone/AppData/Local/LabOps/protocols/s-trap-v1.html", CoreWebView2WebResourceContext.Document, false)]
+    public void The_protocol_page_loads_nothing_but_itself_and_its_figures(string uri, CoreWebView2WebResourceContext context, bool blocked) =>
+        ProtocolsView.IsBlocked(uri, context).ShouldBe(blocked);
 }

@@ -158,8 +158,11 @@ public sealed partial class ProtocolsViewModel : ObservableObject
         {
             list = await _engine.ListAsync().ConfigureAwait(true);
         }
-        catch (Exception ex) when (ex is EngineException or ToolMissingException or GitException)
+        catch (Exception ex) when (ex is EngineException or ToolMissingException or GitException
+            or System.Text.Json.JsonException)
         {
+            // A JsonException: the engine listed something LabOps cannot read, such as a version
+            // written as 1.0 in a protocol.yaml. The banner says so instead of the app failing.
             Banner = $"The lab protocols could not be loaded: {ex.Message}";
             return;
         }
