@@ -817,6 +817,13 @@ public sealed partial class MainViewModel : ObservableObject
             return;
         }
 
+        if (_updates.Status is { Stage: UpdateStage.ReadyToApply, Error: { } why }
+            && MessageBox.Show(why + "\n\nTry again now?", AppInfo.ProductName, MessageBoxButton.YesNo, MessageBoxImage.Warning)
+                != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
         _updates.ApplyAndRestart();
     }
 
@@ -1030,11 +1037,15 @@ public sealed partial class MainViewModel : ObservableObject
     private void ShowUpdate(UpdateStatus status)
     {
         UpdateReady = status.Stage == UpdateStage.ReadyToApply;
-        UpdateText = status.Stage switch
-        {
-            UpdateStage.Downloading => $"Downloading update {status.AvailableVersion} ({status.DownloadPercent}%)",
-            UpdateStage.ReadyToApply => $"Update {status.AvailableVersion} ready: restart to install",
-            _ => null,
-        };
+        UpdateText = UpdateTextFor(status);
     }
+
+    /// <summary>The update button's text; after a restart that did not install the update, it says so.</summary>
+    internal static string? UpdateTextFor(UpdateStatus status) => status.Stage switch
+    {
+        UpdateStage.Downloading => $"Downloading update {status.AvailableVersion} ({status.DownloadPercent}%)",
+        UpdateStage.ReadyToApply when status.Error is not null => $"Update {status.AvailableVersion} did not install: see why",
+        UpdateStage.ReadyToApply => $"Update {status.AvailableVersion} ready: restart to install",
+        _ => null,
+    };
 }

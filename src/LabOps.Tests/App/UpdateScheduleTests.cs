@@ -30,4 +30,26 @@ public sealed class UpdateScheduleTests
     [InlineData(UpdateStage.NotInstalled)]
     public void Never_while_busy_staged_or_unmanaged(UpdateStage stage) =>
         UpdateService.IsCheckDue(new UpdateStatus(stage), Now.AddDays(-2), Now, Interval).ShouldBeFalse();
+
+    [Fact]
+    public void A_restart_that_left_the_update_waiting_did_not_install_it()
+    {
+        UpdateService.InstallFailed(restartedByInstaller: true, updateStillWaiting: true).ShouldBeTrue();
+        // Installed: the update is the version running now, and nothing newer is waiting.
+        UpdateService.InstallFailed(restartedByInstaller: true, updateStillWaiting: false).ShouldBeFalse();
+        // Started by hand with an update downloaded: the ordinary "ready" case.
+        UpdateService.InstallFailed(restartedByInstaller: false, updateStillWaiting: true).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void The_button_says_when_an_update_did_not_install_and_why()
+    {
+        LabOps.App.ViewModels.MainViewModel.UpdateTextFor(new UpdateStatus(UpdateStage.ReadyToApply, "26.8.2", 100))
+            .ShouldBe("Update 26.8.2 ready: restart to install");
+        var why = UpdateService.InstallFailedMessage("26.8.2");
+        LabOps.App.ViewModels.MainViewModel.UpdateTextFor(new UpdateStatus(UpdateStage.ReadyToApply, "26.8.2", 100, why))
+            .ShouldBe("Update 26.8.2 did not install: see why");
+        why.ShouldContain("another program was still using LabOps's folder");
+        why.ShouldContain("Close those (or restart Windows), then try again.");
+    }
 }

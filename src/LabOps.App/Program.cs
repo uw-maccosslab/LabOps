@@ -25,13 +25,19 @@ public static class Program
     public static int Main(string[] args)
     {
         // Must be first. On an install, update or uninstall hook this call never returns.
-        VelopackApp.Build().Run();
+        VelopackApp.Build().OnRestarted(_ => UpdateService.RestartedByInstaller = true).Run();
 
         // LABOPS_DATA points the app at another data folder, so a developer can run a
         // build against a scratch clone without touching their own settings.
         var dataOverride = Environment.GetEnvironmentVariable("LABOPS_DATA");
         var paths = new AppPaths(dataOverride);
         paths.EnsureCreated();
+
+        // The installer starts the app in its program folder, and every program the app opens (a
+        // protocol's page in the browser, a quote's PDF or spreadsheet, Claude's sign-in) would
+        // inherit that as its working folder. One left open keeps the folder in use, so the next
+        // update cannot replace it. The data folder is never replaced.
+        Environment.CurrentDirectory = paths.Root;
 
         // The first start after the rename from ChargeState takes over its settings.
         var adopted = false;

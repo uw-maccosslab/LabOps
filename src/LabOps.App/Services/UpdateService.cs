@@ -47,6 +47,25 @@ public sealed class UpdateService
     /// <summary>How often a running copy looks for a new release, as in PanoramaBridge.</summary>
     public static readonly TimeSpan CheckInterval = TimeSpan.FromHours(4);
 
+    /// <summary>Set at startup when the installer started the app again after a restart to update.</summary>
+    public static bool RestartedByInstaller { get; set; }
+
+    // The last restart to update did not install it (see InstallFailed).
+    private bool _installFailed;
+
+    /// <summary>
+    /// Started again by the installer with the downloaded update still waiting: the restart did not
+    /// install it. The installer then starts the old version, so without this the app would offer
+    /// the same restart again and again.
+    /// </summary>
+    public static bool InstallFailed(bool restartedByInstaller, bool updateStillWaiting) => restartedByInstaller && updateStillWaiting;
+
+    /// <summary>What to tell the person when an update did not install.</summary>
+    public static string InstallFailedMessage(string version) =>
+        $"Update {version} could not be installed: another program was still using LabOps's folder. That is usually "
+        + "something opened from LabOps, such as a protocol's page in your browser, a quote's PDF or spreadsheet, a Word "
+        + "document, or Claude's sign-in window. Close those (or restart Windows), then try again.";
+
     public event Action<UpdateStatus>? StatusChanged;
 
     public UpdateStatus Status { get; private set; } = new(UpdateStage.Idle);
@@ -92,6 +111,17 @@ public sealed class UpdateService
             return Publish(new UpdateStatus(UpdateStage.NotInstalled));
         }
 
+        if (RestartedByInstaller)
+        {
+            RestartedByInstaller = false;
+            _installFailed = InstallFailed(true, _manager.UpdatePendingRestart is not null);
+            if (_installFailed)
+            {
+                _log.LogWarning("The restart to update did not install {Version}; see velopack_MacCossLab.LabOps.log.",
+                    _manager.UpdatePendingRestart?.Version);
+            }
+        }
+
         Publish(new UpdateStatus(UpdateStage.Checking));
         UpdateInfo? update;
         try
@@ -124,7 +154,7 @@ public sealed class UpdateService
         }
 
         _staged = update;
-        return Publish(new UpdateStatus(UpdateStage.ReadyToApply, version, 100));
+        return Publish(new UpdateStatus(UpdateStage.ReadyToApply, version, 100, Error: _installFailed ? InstallFailedMessage(version) : null));
     }
 
     /// <summary>Applies the staged update and restarts. Call only when nothing is in progress.</summary>
