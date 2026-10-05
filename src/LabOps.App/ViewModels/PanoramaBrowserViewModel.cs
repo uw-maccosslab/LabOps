@@ -107,7 +107,7 @@ public sealed partial class PanoramaBrowserViewModel(IPanoramaClient files) : Ob
 
     public bool CanChoose => Selected is { IsPlaceholder: false };
 
-    /// <summary>The folder as lab-projects records it: /MacCoss/maccoss/@files/2026-BioTRACK.</summary>
+    /// <summary>The folder as LabOps-Projects records it: /MacCoss/maccoss/@files/2026-BioTRACK.</summary>
     public string Chosen => Selected is { IsPlaceholder: false } s ? PanoramaPaths.ToFolder(s.Path) : "";
 
     /// <summary>Lists the projects, then opens the way down to <paramref name="start"/> and selects it.</summary>

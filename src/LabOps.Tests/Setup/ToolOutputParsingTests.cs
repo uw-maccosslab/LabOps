@@ -52,20 +52,44 @@ public sealed class ToolOutputParsingTests
     public void No_runs_yet_is_not_an_error() => GitHubCli.ParseCheckRun("[]").ShouldBeNull();
 
     [Theory]
-    [InlineData("https://github.com/uw-maccosslab/services-quotes.git", true)]
-    [InlineData("https://github.com/uw-maccosslab/services-quotes", true)]
-    [InlineData("git@github.com:uw-maccosslab/services-quotes.git", true)]
+    [InlineData("https://github.com/uw-maccosslab/LabOps-Quotes.git", true)]
+    [InlineData("https://github.com/uw-maccosslab/LabOps-Quotes", true)]
+    [InlineData("git@github.com:uw-maccosslab/LabOps-Quotes.git", true)]
     [InlineData("https://github.com/uw-maccosslab/LabOps.git", false)]
-    [InlineData("https://github.com/someone/services-quotes.git", false)]
+    [InlineData("https://github.com/someone/LabOps-Quotes.git", false)]
+    [InlineData("https://github.com/uw-maccosslab/services-quotes.git", true)]  // its name until October 2026
+    [InlineData("git@github.com:uw-maccosslab/services-quotes.git", true)]
     public void Only_the_quotes_repository_is_accepted_as_an_existing_copy(string url, bool accepted) =>
         RepositoryProfile.Quotes.IsRemote(url).ShouldBe(accepted);
 
     [Theory]
-    [InlineData("https://github.com/uw-maccosslab/lab-projects.git", true)]
-    [InlineData("git@github.com:uw-maccosslab/lab-projects", true)]
+    [InlineData("https://github.com/uw-maccosslab/LabOps-Projects.git", true)]
+    [InlineData("git@github.com:uw-maccosslab/LabOps-Projects", true)]
+    [InlineData("https://github.com/uw-maccosslab/LabOps-Quotes.git", false)]
+    [InlineData("https://github.com/uw-maccosslab/lab-projects.git", true)]  // its name until October 2026
     [InlineData("https://github.com/uw-maccosslab/services-quotes.git", false)]
     public void Only_the_projects_repository_is_accepted_as_a_projects_copy(string url, bool accepted) =>
         RepositoryProfile.Projects.IsRemote(url).ShouldBe(accepted);
+
+    [Theory]
+    [InlineData("https://github.com/uw-maccosslab/lab-projects.git", "https://github.com/uw-maccosslab/LabOps-Projects.git")]
+    [InlineData("https://github.com/uw-maccosslab/lab-projects", "https://github.com/uw-maccosslab/LabOps-Projects")]
+    [InlineData("git@github.com:uw-maccosslab/lab-projects.git\n", "git@github.com:uw-maccosslab/LabOps-Projects.git")]  // as git prints it
+    [InlineData("https://github.com/uw-maccosslab/LabOps-Projects.git", null)]
+    [InlineData("https://github.com/someone/lab-projects.git", null)]
+    public void A_clone_made_under_the_former_name_gets_its_remote_renamed(string url, string? renamed) =>
+        RepositoryProfile.Projects.RenamedRemote(url).ShouldBe(renamed);
+
+    [Fact]
+    public void The_quotes_remote_is_renamed_too_and_new_clones_get_the_new_folder_names()
+    {
+        RepositoryProfile.Quotes.RenamedRemote("https://github.com/uw-maccosslab/services-quotes.git")
+            .ShouldBe("https://github.com/uw-maccosslab/LabOps-Quotes.git");
+        (RepositoryProfile.Projects.GitHubName, RepositoryProfile.Quotes.GitHubName)
+            .ShouldBe(("uw-maccosslab/LabOps-Projects", "uw-maccosslab/LabOps-Quotes"));
+        (RepositoryProfile.Projects.DefaultFolderName, RepositoryProfile.Quotes.DefaultFolderName)
+            .ShouldBe(("LabOps-Projects", "LabOps-Quotes"));
+    }
 
     [Fact]
     public void The_quotes_are_optional_but_the_projects_are_not()

@@ -73,7 +73,7 @@ public sealed class QuoteEngineTests
         var repo = Environment.GetEnvironmentVariable("SERVICES_QUOTES_REPO");
         if (string.IsNullOrWhiteSpace(repo))
         {
-            Assert.Skip("Set SERVICES_QUOTES_REPO to a clone of services-quotes to run this.");
+            Assert.Skip("Set SERVICES_QUOTES_REPO to a clone of LabOps-Quotes to run this.");
         }
 
         var tools = new ToolLocator();

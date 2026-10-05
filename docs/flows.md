@@ -32,7 +32,7 @@ sequenceDiagram
     App->>Engine: uv run --frozen python scripts/project.py --json stage MNRF-BioTRACK plate_layout done ...
     Engine-->>App: JSON: the project, its steps and any warnings
     App->>Git: add -A projects/UW-MacCoss/MNRF-BioTRACK
-    App->>Engine: check --staged (lab-projects only)
+    App->>Engine: check --staged (LabOps-Projects only)
     alt the check finds identifying information
         Engine-->>App: ERROR problems
         App->>Git: unstage, so nothing is committed
@@ -58,7 +58,7 @@ sequenceDiagram
 - **No fetch right after a sync.** If the copy synced with GitHub in the last minute (usually
   because the previous change was just shared), the action starts at once; the rebase before
   sharing still brings in anything newer.
-- **lab-projects checks every commit.** The app runs `check --staged` before it commits and tells
+- **LabOps-Projects checks every commit.** The app runs `check --staged` before it commits and tells
   the repository's pre-commit hook which staged tree it checked (`LABOPS_CHECKED_TREE`). The
   hook skips only that exact tree and checks anything else, including every commit made outside
   the app. A refusal leaves the files changed but uncommitted.
@@ -215,7 +215,7 @@ sequenceDiagram
 ```
 
 - **Read-only.** Browsing sends only `GET` requests to Panorama; what you choose is written to
-  lab-projects. (The wiki page, below, is the one thing written to Panorama.)
+  LabOps-Projects. (The wiki page, below, is the one thing written to Panorama.)
 - **Folders:** raw files are in a folder's `@files` area (where PanoramaBridge uploads), and are
   recorded with that part, for example
   `/MacCoss/Collaborations/MNRF/BioTRACK/2026-09-BioTRACK-Quant/@files/RawFiles`. The folder itself,
@@ -238,14 +238,14 @@ flowchart TB
     end
     subgraph repos["3. Repositories and engines"]
         direction LR
-        lpClone["lab-projects<br/>gh repo clone, or a copy you have"] --> lpEngine["Project engine<br/>uv sync: Python and packages"]
-        sqClone["services-quotes, optional<br/>only if GitHub gives access"] --> sqEngine["Quote engine<br/>uv sync"]
+        lpClone["LabOps-Projects<br/>gh repo clone, or a copy you have"] --> lpEngine["Project engine<br/>uv sync: Python and packages"]
+        sqClone["LabOps-Quotes, optional<br/>only if GitHub gives access"] --> sqEngine["Quote engine<br/>uv sync"]
     end
     identity["4. Git identity<br/>your name and GitHub no-reply email, in each clone"]
     programs --> signIns --> repos --> identity
 ```
 
-Each clone is set to rebase on pull with autostash, and lab-projects to use its `.githooks`. Setup
+Each clone is set to rebase on pull with autostash, and LabOps-Projects to use its `.githooks`. Setup
 runs again whenever something is missing, for example after the engines are deleted or a sign-in
 expires.
 

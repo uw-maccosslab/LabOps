@@ -263,7 +263,7 @@ public sealed partial class PanoramaClient : IPanoramaClient, IDisposable
 
 /// <summary>
 /// Panorama paths three ways: WebDAV (/_webdav/MacCoss/maccoss/@files/2026-BioTRACK/, what the
-/// listing uses), folder (/MacCoss/maccoss/@files/2026-BioTRACK, what lab-projects records), and the
+/// listing uses), folder (/MacCoss/maccoss/@files/2026-BioTRACK, what LabOps-Projects records), and the
 /// address a browser opens.
 /// </summary>
 public static class PanoramaPaths

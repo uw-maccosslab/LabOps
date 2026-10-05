@@ -43,6 +43,23 @@ public sealed class Repository
 
     public void ReloadConfig() => Config = RepoConfig.Load(Path);
 
+    /// <summary>
+    /// Points origin at the repository's current name when the clone still uses a former one
+    /// (see <see cref="RepositoryProfile.FormerGitHubNames"/>). GitHub redirects the old name, so
+    /// this only tidies up; when it fails, nothing changes. Returns the new URL, or null.
+    /// </summary>
+    public async Task<string?> UpdateRenamedRemoteAsync(CancellationToken cancellationToken = default)
+    {
+        var current = await Git.RunAsync(["remote", "get-url", "origin"], cancellationToken).ConfigureAwait(false);
+        if (!current.Succeeded || Profile.RenamedRemote(current.StandardOutput) is not { } renamed)
+        {
+            return null;
+        }
+
+        var set = await Git.RunAsync(["remote", "set-url", "origin", renamed], cancellationToken).ConfigureAwait(false);
+        return set.Succeeded ? renamed : null;
+    }
+
     /// <summary>A path inside the clone from a repository-relative one (forward slashes).</summary>
     public string Combine(string relative) =>
         System.IO.Path.Combine(Path, relative.Replace('/', System.IO.Path.DirectorySeparatorChar));

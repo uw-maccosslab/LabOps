@@ -134,7 +134,7 @@ public sealed class ClaudeSessionTests
 
     [Theory]
     [InlineData(@"C:\Quotes\demo\hello.txt", "hello.txt")]
-    [InlineData(@"C:\Quotes\services-quotes\quotes\UW-Alder\2026\MacCoss-2026-UW-ALDER-GCF15\quote.yaml", "MacCoss-2026-UW-ALDER-GCF15/quote.yaml")]
+    [InlineData(@"C:\Quotes\LabOps-Quotes\quotes\UW-Alder\2026\MacCoss-2026-UW-ALDER-GCF15\quote.yaml", "MacCoss-2026-UW-ALDER-GCF15/quote.yaml")]
     [InlineData("quotes/G/2026/A/calculation.md", "A/calculation.md")]
     [InlineData(@"D:\repo\rates\rates.yaml", "rates.yaml")]
     public void Paths_are_shortened_only_for_real_quote_folders(string path, string expected) =>

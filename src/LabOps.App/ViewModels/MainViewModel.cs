@@ -250,6 +250,11 @@ public sealed partial class MainViewModel : ObservableObject
         foreach (var repository in OpenRepositories())
         {
             repository.ReloadConfig();
+            // Before the first sync, so it fetches from the repository's current name.
+            if (await repository.UpdateRenamedRemoteAsync().ConfigureAwait(true) is { } renamed)
+            {
+                _log.LogInformation("The {Repository} clone's origin now points at {Url}.", repository.Profile.Id, renamed);
+            }
         }
 
         _workspace.User = await _gh.GetUserAsync().ConfigureAwait(true);

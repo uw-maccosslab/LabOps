@@ -21,11 +21,13 @@ public sealed class RepositoryProfile
 {
     private RepositoryProfile(
         RepositoryKind kind, string id, string gitHubName, string displayName, string defaultFolderName,
-        string engineScript, string rootFolder, int itemDepth, IReadOnlyList<string> generatedFileNames, bool checksCommits)
+        string engineScript, string rootFolder, int itemDepth, IReadOnlyList<string> generatedFileNames, bool checksCommits,
+        IReadOnlyList<string> formerGitHubNames)
     {
         Kind = kind;
         Id = id;
         GitHubName = gitHubName;
+        FormerGitHubNames = formerGitHubNames;
         DisplayName = displayName;
         DefaultFolderName = defaultFolderName;
         EngineScript = engineScript;
@@ -35,15 +37,17 @@ public sealed class RepositoryProfile
         ChecksCommits = checksCommits;
     }
 
-    /// <summary>uw-maccosslab/lab-projects: labs, their projects and experiments, open to the whole lab.</summary>
+    /// <summary>uw-maccosslab/LabOps-Projects: labs, their projects and experiments, open to the whole lab.</summary>
     public static RepositoryProfile Projects { get; } = new(
-        RepositoryKind.Projects, "projects", "uw-maccosslab/lab-projects", "lab projects", "lab-projects",
-        "scripts/project.py", "projects", itemDepth: 3, generatedFileNames: [], checksCommits: true);
+        RepositoryKind.Projects, "projects", "uw-maccosslab/LabOps-Projects", "lab projects", "LabOps-Projects",
+        "scripts/project.py", "projects", itemDepth: 3, generatedFileNames: [], checksCommits: true,
+        formerGitHubNames: ["uw-maccosslab/lab-projects"]);
 
-    /// <summary>uw-maccosslab/services-quotes: Proteomics Services quotes, for the people who prepare them.</summary>
+    /// <summary>uw-maccosslab/LabOps-Quotes: Proteomics Services quotes, for the people who prepare them.</summary>
     public static RepositoryProfile Quotes { get; } = new(
-        RepositoryKind.Quotes, "quotes", "uw-maccosslab/services-quotes", "quotes", "services-quotes",
-        "scripts/quote.py", "quotes", itemDepth: 4, generatedFileNames: ["calculation.md", "quote.md"], checksCommits: false);
+        RepositoryKind.Quotes, "quotes", "uw-maccosslab/LabOps-Quotes", "quotes", "LabOps-Quotes",
+        "scripts/quote.py", "quotes", itemDepth: 4, generatedFileNames: ["calculation.md", "quote.md"], checksCommits: false,
+        formerGitHubNames: ["uw-maccosslab/services-quotes"]);
 
     public static IReadOnlyList<RepositoryProfile> All { get; } = [Projects, Quotes];
 
@@ -54,6 +58,12 @@ public sealed class RepositoryProfile
 
     /// <summary>owner/name on GitHub.</summary>
     public string GitHubName { get; }
+
+    /// <summary>
+    /// Names it had before (lab-projects and services-quotes, renamed in October 2026). A clone made
+    /// then still names them in its remote; GitHub redirects them, and the app updates the remote.
+    /// </summary>
+    public IReadOnlyList<string> FormerGitHubNames { get; }
 
     /// <summary>How the UI refers to it, in a sentence: "the lab projects".</summary>
     public string DisplayName { get; }
@@ -104,8 +114,28 @@ public sealed class RepositoryProfile
         && Directory.Exists(Path.Combine(path, ".git"))
         && File.Exists(Path.Combine(path, EngineScript.Replace('/', Path.DirectorySeparatorChar)));
 
-    /// <summary>True for the https and ssh forms of this repository's URL.</summary>
-    public bool IsRemote(string url)
+    /// <summary>True for the https and ssh forms of this repository's URL, under its name or a former one.</summary>
+    public bool IsRemote(string url) => NameIn(url) is not null;
+
+    /// <summary>
+    /// The same URL under the repository's current name, when <paramref name="url"/> uses a former
+    /// one (https://github.com/uw-maccosslab/lab-projects.git becomes .../LabOps-Projects.git);
+    /// null when it already uses the current name or is not this repository.
+    /// </summary>
+    public string? RenamedRemote(string url)
+    {
+        if (NameIn(url) is not { } name || string.Equals(name, GitHubName, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var trimmed = url.Trim().TrimEnd('/');
+        var at = trimmed.LastIndexOf(name, StringComparison.OrdinalIgnoreCase);
+        return trimmed[..at] + GitHubName + trimmed[(at + name.Length)..];
+    }
+
+    /// <summary>Which of the repository's names (current or former) the URL uses, or null.</summary>
+    private string? NameIn(string url)
     {
         var normalized = url.Trim().TrimEnd('/');
         if (normalized.EndsWith(".git", StringComparison.OrdinalIgnoreCase))
@@ -113,8 +143,9 @@ public sealed class RepositoryProfile
             normalized = normalized[..^4];
         }
 
-        return normalized.EndsWith("github.com/" + GitHubName, StringComparison.OrdinalIgnoreCase)
-            || normalized.EndsWith("github.com:" + GitHubName, StringComparison.OrdinalIgnoreCase);
+        return new[] { GitHubName }.Concat(FormerGitHubNames).FirstOrDefault(name =>
+            normalized.EndsWith("github.com/" + name, StringComparison.OrdinalIgnoreCase)
+            || normalized.EndsWith("github.com:" + name, StringComparison.OrdinalIgnoreCase));
     }
 
     public override string ToString() => Id;

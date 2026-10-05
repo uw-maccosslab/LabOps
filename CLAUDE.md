@@ -2,10 +2,10 @@
 
 A Windows desktop app (.NET 10, WPF) for the MacCoss Lab, with two areas over two repositories:
 
-- **Projects** over [lab-projects](https://github.com/uw-maccosslab/lab-projects) (open to the whole
+- **Projects** over [LabOps-Projects](https://github.com/uw-maccosslab/LabOps-Projects) (open to the whole
   lab): labs, projects and experiments, step timelines with assignees, sample metadata, Octopus
   plate layouts, and Panorama folders and ELN notebooks chosen by browsing Panorama (read-only).
-- **Quotes** over [services-quotes](https://github.com/uw-maccosslab/services-quotes) (private, for
+- **Quotes** over [LabOps-Quotes](https://github.com/uw-maccosslab/LabOps-Quotes) (private, for
   the people who prepare quotes): lists and searches quotes, runs the quote engine as buttons.
 
 It keeps each clone in sync with GitHub and hosts Claude Code in a chat pane. Built on the same
@@ -30,7 +30,7 @@ text alike.
   root folder and item depth, generated files, whether commits are checked);
   `RepositoryFactory` gives each open clone its own `GitClient` and `SyncService`. Never share a
   git client between repositories. `Workspace` holds the open ones; either may be missing.
-- **Nothing identifying reaches lab-projects' history.** Its `SyncService` runs the
+- **Nothing identifying reaches LabOps-Projects' history.** Its `SyncService` runs the
   `IPreCommitCheck` (`project.py check --staged`) before every commit and refuses on an error;
   clones also get `core.hooksPath=.githooks`. Originals stay in its git-ignored `inbox/`, and the
   app scans a collaborator's file before Claude may read it.
@@ -69,10 +69,10 @@ dotnet build LabOps.sln -c Debug
 dotnet test --project src/LabOps.Tests/LabOps.Tests.csproj
 ```
 
-- `SERVICES_QUOTES_REPO=<clone of services-quotes>` also runs the real quote engine in a test,
-  and `LAB_PROJECTS_REPO=<clone of lab-projects>` the real project engine.
+- `SERVICES_QUOTES_REPO=<clone of LabOps-Quotes>` also runs the real quote engine in a test,
+  and `LAB_PROJECTS_REPO=<clone of LabOps-Projects>` the real project engine.
 - `Fixtures/project-*.json` were recorded from the real `project.py`; re-record them when its JSON
-  changes (lab-projects' `tests/test_commands.py::test_list_returns_what_the_app_reads` guards
+  changes (LabOps-Projects' `tests/test_commands.py::test_list_returns_what_the_app_reads` guards
   that side).
 - The sync tests run real git against a temporary bare repository.
 - CI (`ci.yml`) builds and runs every test on Windows for each push; `release.yml` runs them again
@@ -82,7 +82,7 @@ dotnet test --project src/LabOps.Tests/LabOps.Tests.csproj
 
   ```bash
   ssh-keygen -t ed25519 -N "" -C "LabOps CI (read-only)" -f labops-ci
-  gh repo deploy-key add labops-ci.pub --repo uw-maccosslab/services-quotes --title "LabOps CI (read-only)"
+  gh repo deploy-key add labops-ci.pub --repo uw-maccosslab/LabOps-Quotes --title "LabOps CI (read-only)"
   gh secret set QUOTES_REPO_DEPLOY_KEY --repo uw-maccosslab/LabOps < labops-ci
   rm labops-ci labops-ci.pub
   ```

@@ -1,11 +1,11 @@
 # LabOps
 
 A Windows app for the MacCoss Lab. Its **Projects** area tracks the lab's work in
-[lab-projects](https://github.com/uw-maccosslab/lab-projects): labs, their projects (one set of
+[LabOps-Projects](https://github.com/uw-maccosslab/LabOps-Projects): labs, their projects (one set of
 samples each) and the projects' experiments, from samples received to results returned, with
 sample metadata, Octopus plate layouts, and links to the data and notebooks on Panorama. Its
 **Quotes** area, for the people who prepare them, works on the Proteomics Services quotes in
-[services-quotes](https://github.com/uw-maccosslab/services-quotes). Claude Code does the
+[LabOps-Quotes](https://github.com/uw-maccosslab/LabOps-Quotes). Claude Code does the
 paperwork in both, and everything stays in sync with GitHub.
 
 [How LabOps fits together](docs/architecture.md) explains, with figures, how the app works
@@ -41,17 +41,17 @@ What each person needs before Setup, and who gives it:
 |---|---|---|
 | A GitHub account in the [uw-maccosslab](https://github.com/uw-maccosslab) organization | Everyone | An organization owner invites them under the organization's People. Setup signs in to GitHub in the browser. |
 | [LabOps](https://github.com/uw-maccosslab/LabOps): read | Everyone | Nothing to do: the repository is internal, so every organization member can read it. The app downloads its updates from there. |
-| [lab-projects](https://github.com/uw-maccosslab/lab-projects): **write** | Everyone who records progress | The repository is internal, so every member can read it, but saving anything (a step, a link, a wiki page's text, Claude's work) pushes to it, which needs Write. An owner gives it on the repository's Settings > Collaborators and teams, best through a team (for example "lab", with Write). With Read only, LabOps shows the projects and refuses to save. |
-| [services-quotes](https://github.com/uw-maccosslab/services-quotes): **write** | Only the people who prepare quotes | The repository is private. An owner gives each of them Write on its Settings > Collaborators and teams. Its `config/app.yaml` lists who sees the Send button. |
+| [LabOps-Projects](https://github.com/uw-maccosslab/LabOps-Projects): **write** | Everyone who records progress | The repository is internal, so every member can read it, but saving anything (a step, a link, a wiki page's text, Claude's work) pushes to it, which needs Write. An owner gives it on the repository's Settings > Collaborators and teams, best through a team (for example "lab", with Write). With Read only, LabOps shows the projects and refuses to save. |
+| [LabOps-Quotes](https://github.com/uw-maccosslab/LabOps-Quotes): **write** | Only the people who prepare quotes | The repository is private. An owner gives each of them Write on its Settings > Collaborators and teams. Its `config/app.yaml` lists who sees the Send button. |
 | A Claude account in the lab's Claude organization | Everyone who uses Claude in the app | An admin of the lab's Claude organization adds them. Setup installs Claude Code and signs in. Tracking steps, links, View samples and the wiki page work without it; Claude's buttons do not. |
 | A [Panorama](https://panoramaweb.org) account | Everyone who browses Panorama from the app or publishes a wiki page | A panoramaweb.org account with access to the lab's folders in the MacCoss project. Browsing needs Reader in those folders; publishing a project's wiki page needs Editor (or higher) in the project's folder. A Panorama admin of the MacCoss project grants these. |
 
 The organization's base permission is **Read** today, which gives every member read access to
-every repository, including the private services-quotes (prices included). To keep the quotes to
+every repository, including the private LabOps-Quotes (prices included). To keep the quotes to
 the people who prepare them, an owner sets the base permission to **No permission** (Organization
-settings > Member privileges) and gives those people Write on services-quotes; LabOps and
-lab-projects stay readable to every member because they are internal. The same owner then gives
-lab-projects Write to everyone who records progress.
+settings > Member privileges) and gives those people Write on LabOps-Quotes; LabOps and
+LabOps-Projects stay readable to every member because they are internal. The same owner then gives
+LabOps-Projects Write to everyone who records progress.
 
 ### Panorama sign-in
 

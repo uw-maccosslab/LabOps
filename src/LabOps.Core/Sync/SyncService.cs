@@ -172,7 +172,7 @@ public sealed partial class SyncService
     public SyncStatus Status { get; private set; } = new(SyncState.Unknown);
 
     /// <summary>
-    /// The environment variable that tells lab-projects' pre-commit hook which staged tree this
+    /// The environment variable that tells LabOps-Projects' pre-commit hook which staged tree this
     /// app has just checked, so the hook need not check the same tree again.
     /// </summary>
     public const string CheckedTreeVariable = "LABOPS_CHECKED_TREE";

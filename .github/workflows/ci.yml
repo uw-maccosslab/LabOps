@@ -14,7 +14,7 @@ jobs:
   build:
     runs-on: windows-latest
     env:
-      # Set when a read-only deploy key for uw-maccosslab/services-quotes is stored as the
+      # Set when a read-only deploy key for uw-maccosslab/LabOps-Quotes is stored as the
       # QUOTES_REPO_DEPLOY_KEY secret (see CLAUDE.md). With it, the tests also run the real quote
       # engine against the real quotes; without it, that one test skips.
       HAS_QUOTES_KEY: ${{ secrets.QUOTES_REPO_DEPLOY_KEY != '' }}
@@ -30,9 +30,9 @@ jobs:
         if: env.HAS_QUOTES_KEY == 'true'
         uses: actions/checkout@v7
         with:
-          repository: uw-maccosslab/services-quotes
+          repository: uw-maccosslab/LabOps-Quotes
           ssh-key: ${{ secrets.QUOTES_REPO_DEPLOY_KEY }}
-          path: services-quotes
+          path: LabOps-Quotes
 
       - name: Set up uv
         if: env.HAS_QUOTES_KEY == 'true'
@@ -45,5 +45,5 @@ jobs:
       - name: Test
         shell: pwsh
         run: |
-          if ($env:HAS_QUOTES_KEY -eq 'true') { $env:SERVICES_QUOTES_REPO = "$env:GITHUB_WORKSPACE\services-quotes" }
+          if ($env:HAS_QUOTES_KEY -eq 'true') { $env:SERVICES_QUOTES_REPO = "$env:GITHUB_WORKSPACE\LabOps-Quotes" }
           dotnet test --project src/LabOps.Tests/LabOps.Tests.csproj -c Release --no-build

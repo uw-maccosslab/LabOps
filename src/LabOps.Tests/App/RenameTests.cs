@@ -14,7 +14,7 @@ public sealed class RenameTests
         var legacy = dir.Combine("ChargeState");
         Directory.CreateDirectory(Path.Combine(legacy, "claude", "MNRF-BioTRACK"));
         Directory.CreateDirectory(Path.Combine(legacy, "logs"));
-        File.WriteAllText(Path.Combine(legacy, "settings.json"), """{"ProjectsRepositoryPath":"D:\\lab-projects"}""");
+        File.WriteAllText(Path.Combine(legacy, "settings.json"), """{"ProjectsRepositoryPath":"D:\\LabOps-Projects"}""");
         File.WriteAllText(Path.Combine(legacy, "claude", "MNRF-BioTRACK", "mcp.json"), "{}");
         File.WriteAllText(Path.Combine(legacy, "logs", "chargestate-20261004.log"), "old log");
         var paths = new AppPaths(dir.Combine("LabOps"));
@@ -22,8 +22,8 @@ public sealed class RenameTests
 
         paths.AdoptLegacy(legacy).ShouldBeTrue();
 
-        File.ReadAllText(paths.SettingsFile).ShouldContain("lab-projects");
-        new SettingsStore(paths.SettingsFile).Load().ProjectsRepositoryPath.ShouldBe(@"D:\lab-projects");
+        File.ReadAllText(paths.SettingsFile).ShouldContain("LabOps-Projects");
+        new SettingsStore(paths.SettingsFile).Load().ProjectsRepositoryPath.ShouldBe(@"D:\LabOps-Projects");
         File.Exists(Path.Combine(paths.SessionDirectory, "MNRF-BioTRACK", "mcp.json")).ShouldBeTrue();
         Directory.EnumerateFiles(paths.LogDirectory).ShouldBeEmpty();
         File.Exists(Path.Combine(legacy, "settings.json")).ShouldBeTrue();  // copied, so ChargeState still works
@@ -31,7 +31,7 @@ public sealed class RenameTests
         // Only once: LabOps' own settings are never replaced.
         File.WriteAllText(Path.Combine(legacy, "settings.json"), """{"ProjectsRepositoryPath":"elsewhere"}""");
         paths.AdoptLegacy(legacy).ShouldBeFalse();
-        new SettingsStore(paths.SettingsFile).Load().ProjectsRepositoryPath.ShouldBe(@"D:\lab-projects");
+        new SettingsStore(paths.SettingsFile).Load().ProjectsRepositoryPath.ShouldBe(@"D:\LabOps-Projects");
     }
 
     [Fact]
@@ -55,6 +55,25 @@ public sealed class RenameTests
         page.IsLabOps.ShouldBeTrue();
         page.WrittenHash.ShouldBe("5b8ecc811ec6");
         page.EditedOnPanorama.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task A_clone_whose_remote_uses_the_repositorys_former_name_is_pointed_at_its_new_one()
+    {
+        using var git = new GitFixture();
+        var clone = git.Clone("Mike");
+        var tools = new LabOps.Core.Processes.ToolLocator();
+        var factory = new LabOps.Core.Repositories.RepositoryFactory(new LabOps.Core.Processes.ProcessRunner(tools), tools);
+        var repository = factory.Open(LabOps.Core.Repositories.RepositoryProfile.Projects, clone,
+            new LabOps.Core.Sync.NoGeneratedFiles(), new MarkerCheck(clone));
+
+        // A clone of another repository, or one already under the new name, is left alone.
+        (await repository.UpdateRenamedRemoteAsync()).ShouldBeNull();
+        GitFixture.Git(clone, "remote", "set-url", "origin", "https://github.com/uw-maccosslab/lab-projects.git");
+
+        (await repository.UpdateRenamedRemoteAsync()).ShouldBe("https://github.com/uw-maccosslab/LabOps-Projects.git");
+        GitFixture.Git(clone, "remote", "get-url", "origin").Trim().ShouldBe("https://github.com/uw-maccosslab/LabOps-Projects.git");
+        (await repository.UpdateRenamedRemoteAsync()).ShouldBeNull();
     }
 
     [Fact]

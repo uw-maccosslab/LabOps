@@ -8,8 +8,8 @@ step](flows.md) follows the main actions through them.
 Three ideas explain most of the design:
 
 1. **The records are git repositories.** Projects live in
-   [lab-projects](https://github.com/uw-maccosslab/lab-projects) and quotes in
-   [services-quotes](https://github.com/uw-maccosslab/services-quotes). Everyone works on their own
+   [LabOps-Projects](https://github.com/uw-maccosslab/LabOps-Projects) and quotes in
+   [LabOps-Quotes](https://github.com/uw-maccosslab/LabOps-Quotes). Everyone works on their own
    copy (a clone), and the app keeps it in step with GitHub: it saves each change as a commit and
    brings in everyone else's.
 2. **Each repository carries its own rules.** Its engine (`scripts/project.py` or
@@ -30,7 +30,7 @@ flowchart LR
     subgraph computer["Your Windows computer"]
         app["LabOps"]
         claude["Claude Code"]
-        subgraph clone["A clone: lab-projects or services-quotes"]
+        subgraph clone["A clone: LabOps-Projects or LabOps-Quotes"]
             records["Records<br/>projects/ or quotes/"]
             engine["Engine<br/>project.py or quote.py"]
             guide["Instructions for Claude<br/>CLAUDE.md and skills"]
@@ -78,7 +78,7 @@ flowchart LR
     folder --> browse
     eln --> browse
     creds["Windows Credential Manager<br/>PanoramaBridge's saved sign-in"] -.-> browse
-    browse -->|"records your choice"| experiment["lab-projects<br/>experiment.yaml"]
+    browse -->|"records your choice"| experiment["LabOps-Projects<br/>experiment.yaml"]
     folder -->|"Skyline documents counted"| wikiBuild["LabOps: Wiki page<br/>project.py wiki builds it"]
     wikiBuild -->|"publishes"| wikiPage["Wiki page<br/>.../BioTRACK, page default"]
     creds -.-> wikiBuild
@@ -104,8 +104,8 @@ flowchart LR
 | Piece | What it is | Where it runs | How it changes for everyone |
 |---|---|---|---|
 | LabOps | This app: .NET 10, WPF | Each person's Windows computer | A release (`v26.x.0` tag); installed copies update themselves |
-| lab-projects | Labs, projects, experiments, deidentified sample tables, plate layouts. Open to the lab. | GitHub, plus a clone on each computer | A push to `main`; others get it on their next sync |
-| services-quotes | Quotes, rates, templates. Private to the people who prepare quotes. | GitHub, plus a clone where needed | A push to `main` |
+| LabOps-Projects | Labs, projects, experiments, deidentified sample tables, plate layouts. Open to the lab. | GitHub, plus a clone on each computer | A push to `main`; others get it on their next sync |
+| LabOps-Quotes | Quotes, rates, templates. Private to the people who prepare quotes. | GitHub, plus a clone where needed | A push to `main` |
 | `project.py`, `quote.py` | The engines: every rule, command and generated file | Inside each clone, run with uv and Python | Pushed with the repository; tagged `engine-v...` for release notes |
 | `CLAUDE.md`, `.claude/skills/` | What Claude follows in each repository | Inside each clone | Pushed with the repository |
 | `config/app.yaml` | `min_app_version`, and for quotes the `approvers` who may send | Inside each clone | Pushed with the repository |
@@ -154,7 +154,7 @@ flowchart LR
   repositories: the GitHub name, the engine, the folder that holds the items
   (`projects/<Lab>/<Project>` or `quotes/<Group>/<year>/<number>`), the files the engine generates
   (`calculation.md`, `quote.md`), and whether commits must pass the identifier check
-  (lab-projects only). Each open clone gets its own `GitClient` and `SyncService`; `Workspace`
+  (LabOps-Projects only). Each open clone gets its own `GitClient` and `SyncService`; `Workspace`
   holds the ones that are open.
 - **Engines are separate programs.** `ProjectEngine` and `QuoteEngine` run
   `uv run --frozen python scripts/<engine>.py --json <command>` in the clone and read the JSON it
@@ -170,7 +170,7 @@ flowchart LR
   session's cookies. The app republishes a page on its own only when the page's footer marks it as
   LabOps's, nobody has edited it on Panorama since (the footer fingerprints the page), and its
   written parts are the ones published last; replacing a page written or edited by hand, and
-  publishing new text from Claude, are done in the Wiki page window. What you choose when browsing is written to lab-projects by `project.py link`.
+  publishing new text from Claude, are done in the Wiki page window. What you choose when browsing is written to LabOps-Projects by `project.py link`.
 - **The bundled tools.** The installer carries pinned copies of `uv` and `gh` in its `tools`
   folder. Git and Claude Code are installed by Setup.
 
@@ -189,7 +189,7 @@ flowchart LR
 | Wiki page, Publish; and after every saved change | `project.py wiki <project> --documents <file>`, then Panorama's `wiki-saveWiki.api` | nothing in git |
 | Write the text with Claude | the update-wiki skill writes `wiki.yaml` | `<project>: updated with Claude` |
 | Open in Octopus, Import layout | `project.py octopus-input`, `import-layout` | `<project>: plate layout from Octopus` |
-| Every commit in lab-projects | `project.py check --staged` | refuses the commit on an error |
+| Every commit in LabOps-Projects | `project.py check --staged` | refuses the commit on an error |
 | Send, PO received, Invoiced, Declined | `quote.py send`, `quote.py status` | `<number>: sent` |
 | Make a revision | `quote.py revise` | `<revision>: revision of <number>` |
 | Draft PDF | `quote.py pdf` | nothing (an untracked draft) |
@@ -204,7 +204,7 @@ The engines have more commands than the app uses (`new`, `new-project`, `new-exp
 
 ```mermaid
 flowchart LR
-    subgraph labProjects["lab-projects"]
+    subgraph labProjects["LabOps-Projects"]
         lab["Lab<br/>projects/UW-MacCoss/lab.yaml"]
         project["Project: one set of samples<br/>MNRF-BioTRACK/project.yaml<br/>funding, sample steps,<br/>metadata/samples.csv, layout/"]
         dia["Experiment<br/>2026-09-BioTRACK-DIA/experiment.yaml<br/>instrument, steps,<br/>Panorama folders, notebooks"]
@@ -214,7 +214,7 @@ flowchart LR
         project --> prm
     end
 
-    subgraph servicesQuotes["services-quotes"]
+    subgraph servicesQuotes["LabOps-Quotes"]
         group["Group<br/>quotes/ClearwaterZoo-Cole/"]
         year["Year<br/>2026/"]
         quote["Quote: MacCoss-2026-CWZG-MARTEN/<br/>quote.yaml (edited), rates.lock.yaml,<br/>calculation.md, quote.md (generated),<br/>PDF, spreadsheet, SOW (when sent)"]
@@ -236,7 +236,7 @@ release-notes/            one file per engine release (engine-v...)
 README.md                 the human index; its table is regenerated after every push
 ```
 
-lab-projects also has `inbox/`, where collaborators' original files go. Git ignores it, so
+LabOps-Projects also has `inbox/`, where collaborators' original files go. Git ignores it, so
 originals never leave the computer. Its `.githooks/pre-commit` runs the identifier check for
 people who use git directly; the app sets `core.hooksPath` to it.
 
@@ -248,7 +248,7 @@ people who use git directly; the app sets `core.hooksPath` to it.
 | Settings | `%LOCALAPPDATA%\LabOps\settings.json`: the two clone folders, Claude conversation ids per item, the sync interval (5 minutes), window size, beta updates. No passwords. |
 | Logs | `%LOCALAPPDATA%\LabOps\logs\`, one file a day, kept 14 days, secrets removed |
 | Claude's tool server address | `%LOCALAPPDATA%\LabOps\claude\mcp-*.json`, written each run |
-| Clones | `Documents\lab-projects`, `Documents\services-quotes` (or folders you choose) |
+| Clones | `Documents\LabOps-Projects`, `Documents\LabOps-Quotes` (or folders you choose) |
 | Engine environment | `.venv` inside each clone, made by `uv sync` |
 | Panorama sign-in | Windows Credential Manager: `PanoramaBridge:https://panoramaweb.org` (PanoramaBridge's, only read) and `LabOps:https://panoramaweb.org` (LabOps's own, only when needed) |
 | GitHub sign-in | The gh CLI's, set up during Setup |

@@ -7,7 +7,7 @@ namespace LabOps.Tests.Projects;
 
 /// <summary>
 /// The JSON contract with project.py. The fixtures were recorded from the real engine (see
-/// lab-projects); when project.py changes what it prints, re-record them and these tests show
+/// LabOps-Projects); when project.py changes what it prints, re-record them and these tests show
 /// what the app would misread.
 /// </summary>
 public sealed class ProjectEngineTests
@@ -107,7 +107,7 @@ public sealed class ProjectEngineTests
 
         scan.Errors.ShouldBe(1);
         scan.Sheets.Single().Columns.ShouldBe(["Sample_ID", "Patient Name", "Collection date", "Notes"]);
-        // Collection dates are kept (lab-projects engine 26.2.0); a name is still an error.
+        // Collection dates are kept (LabOps-Projects engine 26.2.0); a name is still an error.
         scan.Findings.Where(f => f.IsError).Select(f => f.Column).ShouldBe(["Patient Name"]);
         scan.Warnings.Single().Column.ShouldBe("Notes");
         json.ShouldNotContain("Pat Doe");
@@ -202,7 +202,7 @@ public sealed class ProjectEngineTests
     }
 
     /// <summary>
-    /// Runs the real project.py through uv against a clone of lab-projects. Opt-in: set
+    /// Runs the real project.py through uv against a clone of LabOps-Projects. Opt-in: set
     /// LAB_PROJECTS_REPO to the clone's path.
     /// </summary>
     [Fact]
@@ -211,7 +211,7 @@ public sealed class ProjectEngineTests
         var repo = Environment.GetEnvironmentVariable("LAB_PROJECTS_REPO");
         if (string.IsNullOrWhiteSpace(repo))
         {
-            Assert.Skip("Set LAB_PROJECTS_REPO to a clone of lab-projects to run this.");
+            Assert.Skip("Set LAB_PROJECTS_REPO to a clone of LabOps-Projects to run this.");
         }
 
         var tools = new ToolLocator();
