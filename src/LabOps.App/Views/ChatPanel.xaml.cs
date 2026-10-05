@@ -11,13 +11,21 @@ public partial class ChatPanel : UserControl
     public ChatPanel()
     {
         InitializeComponent();
-        ((INotifyCollectionChanged)Transcript.Items).CollectionChanged += (_, _) =>
+        ((INotifyCollectionChanged)Transcript.Items).CollectionChanged += (_, e) =>
+        {
             Dispatcher.InvokeAsync(Scroller.ScrollToEnd, System.Windows.Threading.DispatcherPriority.Background);
+            // A question is answered in the box below, so the cursor goes there.
+            if (e.NewItems?.OfType<QuestionItem>().Any() == true)
+            {
+                Dispatcher.InvokeAsync(() => ChatInput.Focus(), System.Windows.Threading.DispatcherPriority.Background);
+            }
+        };
     }
 
     /// <summary>
-    /// Enter sends the message, as in other chat apps; Shift+Enter starts a new line. While Claude
-    /// is still working, Enter keeps the text to send when it finishes.
+    /// Enter sends the message (or, while Claude waits on a question, answers it), as in other chat
+    /// apps; Shift+Enter starts a new line. While Claude is still working, Enter keeps the text to
+    /// send when it finishes.
     /// </summary>
     private void OnInputKeyDown(object sender, KeyEventArgs e)
     {
@@ -30,21 +38,6 @@ public partial class ChatPanel : UserControl
         if (chat.SendCommand.CanExecute(null))
         {
             chat.SendCommand.Execute(null);
-        }
-    }
-
-    /// <summary>Enter in the box under one of Claude's questions answers it.</summary>
-    private void OnAnswerKeyDown(object sender, KeyEventArgs e)
-    {
-        if (!IsPlainEnter(e) || (sender as FrameworkElement)?.DataContext is not QuestionItem question)
-        {
-            return;
-        }
-
-        e.Handled = true;
-        if (question.AnswerCommand.CanExecute(""))
-        {
-            question.AnswerCommand.Execute("");
         }
     }
 

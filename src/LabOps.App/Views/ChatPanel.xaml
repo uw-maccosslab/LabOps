@@ -78,11 +78,8 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <DockPanel Visibility="{Binding IsAnswered, Converter={StaticResource InverseBoolToVisibility}}">
-                        <Button x:Name="AnswerButton" DockPanel.Dock="Right" Content="Answer" Command="{Binding AnswerCommand}" CommandParameter="" Margin="6,0,0,0" />
-                        <TextBox x:Name="QuestionBox" Text="{Binding Typed, UpdateSourceTrigger=PropertyChanged}" PreviewKeyDown="OnAnswerKeyDown"
-                                 ToolTip="Type an answer; Enter answers." />
-                    </DockPanel>
+                    <TextBlock Text="{Binding Hint}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"
+                               Visibility="{Binding IsAnswered, Converter={StaticResource InverseBoolToVisibility}}" />
                     <TextBlock Text="{Binding Given, StringFormat=You answered: {0}}" Foreground="{StaticResource MutedBrush}"
                                Visibility="{Binding IsAnswered, Converter={StaticResource BoolToVisibility}}" />
                 </StackPanel>
@@ -129,11 +126,11 @@
                 </StackPanel>
                 <TextBox x:Name="ChatInput" Text="{Binding Input, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="52" MaxHeight="160"
                          VerticalScrollBarVisibility="Auto" PreviewKeyDown="OnInputKeyDown"
-                         ToolTip="Ask Claude for a change, or answer its question. Enter sends; Shift+Enter starts a new line." />
+                         ToolTip="Ask Claude for a change, or answer its question. Enter sends (or answers); Shift+Enter starts a new line." />
             </DockPanel>
         </Border>
 
-        <TextBlock DockPanel.Dock="Bottom" Text="Claude is working..." Margin="10,4" FontStyle="Italic" Foreground="{StaticResource MutedBrush}"
+        <TextBlock DockPanel.Dock="Bottom" Text="{Binding BusyText}" Margin="10,4" FontStyle="Italic" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"
                    Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}" />
 
         <ScrollViewer x:Name="Scroller" VerticalScrollBarVisibility="Auto" Padding="10">

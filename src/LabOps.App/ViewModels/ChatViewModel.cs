@@ -114,6 +114,7 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
         _repository = repository;
         _isNew = isNew;
         _started = new StartRequest(repository, title, item, prompt, isNew, resume);
+        IsWaitingForAnswer = false;
         _answered = false;
         _signInOffered = false;
         IsOpen = true;
@@ -157,6 +158,13 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
     {
         var text = Input.Trim();
         Input = "";
+        // While Claude waits on a question, what is typed here is the answer.
+        if (PendingQuestion is { } question)
+        {
+            question.AnswerWith(text);
+            return;
+        }
+
         if (_session is null || _session.HasEnded)
         {
             Items.Add(new NoticeItem("This conversation has ended. Start a new one from the quote or project.", isError: true));
@@ -166,7 +174,22 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
         await SendCoreAsync(text, show: true).ConfigureAwait(true);
     }
 
-    private bool CanSend() => !IsBusy && !string.IsNullOrWhiteSpace(Input);
+    /// <summary>Claude is working on a turn, unless it is waiting for an answer, which is typed below.</summary>
+    private bool CanSend() => (!IsBusy || IsWaitingForAnswer) && !string.IsNullOrWhiteSpace(Input);
+
+    /// <summary>The question Claude is waiting on, if any.</summary>
+    private QuestionItem? PendingQuestion => Items.OfType<QuestionItem>().LastOrDefault(q => !q.IsAnswered);
+
+    /// <summary>Claude asked a question and is waiting for the answer.</summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(SendCommand))]
+    [NotifyPropertyChangedFor(nameof(BusyText))]
+    public partial bool IsWaitingForAnswer { get; set; }
+
+    /// <summary>Under the conversation while Claude has the turn.</summary>
+    public string BusyText => IsWaitingForAnswer
+        ? "Claude is waiting for your answer: choose one above, or type it here and press Enter."
+        : "Claude is working...";
 
     [RelayCommand(CanExecute = nameof(IsBusy))]
     private void Stop()
@@ -425,11 +448,20 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
         var item = await _dispatcher.InvokeAsync(() =>
         {
             var q = new QuestionItem(question, options);
+            q.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(QuestionItem.IsAnswered))
+                {
+                    IsWaitingForAnswer = PendingQuestion is not null;
+                }
+            };
             Items.Add(q);
+            IsWaitingForAnswer = true;
             return q;
         });
 
-        using var registration = cancellationToken.Register(item.Abandon);
+        // On the UI thread, since abandoning it updates what the window shows.
+        using var registration = cancellationToken.Register(() => _dispatcher.InvokeAsync(item.Abandon));
         return await item.Response.ConfigureAwait(false);
     }
 

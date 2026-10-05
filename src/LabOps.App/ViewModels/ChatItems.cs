@@ -114,7 +114,10 @@ public sealed partial class SignInItem(Func<SignInItem, CancellationToken, Task<
     private bool CanTryAgain() => SignedIn && !IsWorking;
 }
 
-/// <summary>A question from Claude, answered with a button or by typing.</summary>
+/// <summary>
+/// A question from Claude, answered with one of its buttons or by typing in the chat's own box at
+/// the bottom (the chat sends what is typed there to the question while it waits).
+/// </summary>
 public sealed partial class QuestionItem : ChatItem
 {
     private readonly TaskCompletionSource<string> _answer = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -123,18 +126,18 @@ public sealed partial class QuestionItem : ChatItem
     {
         Question = question;
         Options = options;
-        Typed = "";
     }
 
     public string Question { get; }
 
     public IReadOnlyList<string> Options { get; }
 
-    public Task<string> Response => _answer.Task;
+    public bool HasOptions => Options.Count > 0;
 
-    [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(AnswerCommand))]
-    public partial string Typed { get; set; }
+    /// <summary>What to do, under the question while it waits.</summary>
+    public string Hint => HasOptions ? "Choose an answer, or type your own in the box below." : "Type your answer in the box below.";
+
+    public Task<string> Response => _answer.Task;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(AnswerCommand))]
@@ -143,24 +146,37 @@ public sealed partial class QuestionItem : ChatItem
     [ObservableProperty]
     public partial string? Given { get; set; }
 
+    /// <summary>One of the question's buttons.</summary>
     [RelayCommand(CanExecute = nameof(CanAnswer))]
-    private void Answer(string? option)
+    private void Answer(string? option) => AnswerWith(option);
+
+    private bool CanAnswer(string? option) => !IsAnswered && !string.IsNullOrWhiteSpace(option);
+
+    /// <summary>Answers with <paramref name="text"/>; false when it is empty or the question was already answered.</summary>
+    public bool AnswerWith(string? text)
     {
-        var text = string.IsNullOrWhiteSpace(option) ? Typed.Trim() : option;
-        if (string.IsNullOrWhiteSpace(text))
+        if (IsAnswered || string.IsNullOrWhiteSpace(text))
         {
-            return;
+            return false;
         }
 
-        Given = text;
+        Given = text.Trim();
         IsAnswered = true;
-        _answer.TrySetResult(text);
+        _answer.TrySetResult(Given);
+        return true;
     }
 
-    private bool CanAnswer(string? option) => !IsAnswered && (!string.IsNullOrWhiteSpace(option) || !string.IsNullOrWhiteSpace(Typed));
+    /// <summary>Ends the wait if the conversation closes, or Claude stops, before an answer.</summary>
+    public void Abandon()
+    {
+        if (!IsAnswered)
+        {
+            Given = "(no answer)";
+            IsAnswered = true;
+        }
 
-    /// <summary>Ends the wait if the conversation closes before an answer.</summary>
-    public void Abandon() => _answer.TrySetResult("");
+        _answer.TrySetResult("");
+    }
 }
 
 /// <summary>Claude's summary of the quote, shown as a card.</summary>
