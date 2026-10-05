@@ -157,12 +157,42 @@ public sealed class ProjectEngine : IPreCommitCheck
         using var doc = await RunAsync(args, cancellationToken).ConfigureAwait(false);
     }
 
-    /// <summary>Removes a Panorama folder or a notebook.</summary>
-    /// <param name="what">panorama or notebook.</param>
-    /// <param name="value">The folder, or the notebook's ID or link.</param>
-    public async Task UnlinkAsync(string item, string what, string value, CancellationToken cancellationToken = default)
+    /// <summary>Records the protocol a step followed, at the published version used.</summary>
+    /// <param name="item">The project (for its sample steps) or experiment, by name.</param>
+    /// <param name="protocol">The protocol's ID in LabOps-Protocols.</param>
+    /// <param name="version">The published version followed.</param>
+    /// <param name="step">The step's id, or null for the item as a whole.</param>
+    /// <param name="title">The protocol's title, shown on the wiki page.</param>
+    public async Task LinkProtocolAsync(
+        string item, string protocol, int version, string? step, string? title, CancellationToken cancellationToken = default)
     {
-        using var doc = await RunAsync(["unlink", item, what, value], cancellationToken).ConfigureAwait(false);
+        var args = new List<string> { "link", item, "protocol", protocol, "--version", version.ToString(System.Globalization.CultureInfo.InvariantCulture) };
+        if (!string.IsNullOrWhiteSpace(step))
+        {
+            args.AddRange(["--step", step]);
+        }
+
+        if (!string.IsNullOrWhiteSpace(title))
+        {
+            args.AddRange(["--title", title.Trim()]);
+        }
+
+        using var doc = await RunAsync(args, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Removes a Panorama folder, a notebook or a protocol.</summary>
+    /// <param name="what">panorama, notebook or protocol.</param>
+    /// <param name="value">The folder, the notebook's ID or link, or the protocol's ID.</param>
+    /// <param name="step">For a protocol: only its link for this step.</param>
+    public async Task UnlinkAsync(string item, string what, string value, string? step = null, CancellationToken cancellationToken = default)
+    {
+        var args = new List<string> { "unlink", item, what, value };
+        if (!string.IsNullOrWhiteSpace(step))
+        {
+            args.AddRange(["--step", step]);
+        }
+
+        using var doc = await RunAsync(args, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Records where the project's wiki page is: a Panorama folder (or its address) and the page's name.</summary>

@@ -141,6 +141,19 @@ public sealed class TimelineSection
         }
     }
 
+    /// <summary>Shows a link on the step with this id, or on the section when there is none (or no step is named).</summary>
+    public void PlaceOnStep(LinkItem link, string? stepId)
+    {
+        if (stepId is not null && Stages.FirstOrDefault(s => s.Stage == stepId) is { } step)
+        {
+            step.AddLink(link);
+        }
+        else
+        {
+            _links.Add(link);
+        }
+    }
+
     /// <summary>Offers a tool on its step, or on the section when the timeline has no such step.</summary>
     public void Place(StepTool tool, IReadOnlyList<string> kinds)
     {
@@ -182,6 +195,9 @@ public static class StepHomes
 
     /// <summary>The analysis repository folder.</summary>
     public static IReadOnlyList<string> Analysis { get; } = ["data_analysis"];
+
+    /// <summary>The protocol the bench work followed, at the version used: sample prep first.</summary>
+    public static IReadOnlyList<string> Protocol { get; } = ["sample_prep", "assay_development", "data_acquisition"];
 }
 
 /// <summary>A button that does the work of a step, such as Open in Octopus on Plate layout.</summary>
@@ -191,6 +207,10 @@ public sealed record StepTool(string Label, string ToolTip, IRelayCommand Comman
 /// <summary>What Add raw data folder, Add results folder or Add notebook records, and on what.</summary>
 /// <param name="Kind">raw, results, qc or notebook.</param>
 public sealed record LinkRequest(TimelineSection Section, string Kind);
+
+/// <summary>What Add protocol records a protocol for: a timeline, and the step that followed it.</summary>
+/// <param name="Step">The step's id; null for the timeline as a whole.</param>
+public sealed record ProtocolRequest(TimelineSection Section, string? Step);
 
 /// <summary>One step of a timeline, with the buttons that apply to it.</summary>
 public sealed class StageRowViewModel(TimelineSection section, StageEntry entry, bool isCurrent)
@@ -267,15 +287,35 @@ public sealed class StageRowViewModel(TimelineSection section, StageEntry entry,
 
 /// <summary>A link shown for a project or experiment; with no URL it is shown as text only.</summary>
 /// <param name="Item">The project or experiment it is recorded on, when it can be removed there.</param>
-/// <param name="What">panorama or notebook, for project.py unlink; null for links kept elsewhere.</param>
-/// <param name="Value">What unlink takes: the folder, or the notebook's ID or link.</param>
+/// <param name="What">panorama, notebook or protocol, for project.py unlink; null for links kept elsewhere.</param>
+/// <param name="Value">What unlink takes: the folder, the notebook's ID or link, or the protocol's ID.</param>
 /// <param name="Folder">The folder to save after removing it.</param>
-public sealed record LinkItem(string Label, string? Url, string? Item = null, string? What = null, string? Value = null, string? Folder = null)
+/// <param name="Step">For a protocol: the step it is recorded for.</param>
+public sealed record LinkItem(
+    string Label, string? Url, string? Item = null, string? What = null, string? Value = null, string? Folder = null, string? Step = null)
 {
+    /// <summary>The address of a protocol version in the app's own Protocols area.</summary>
+    public const string ProtocolScheme = "labops-protocol:";
+
     public bool HasUrl => Url is not null;
 
     public bool IsText => Url is null;
 
-    /// <summary>Panorama folders and notebooks recorded on this project or experiment.</summary>
+    /// <summary>Panorama folders, notebooks and protocols recorded on this project or experiment.</summary>
     public bool CanRemove => Item is not null && What is not null && Value is not null;
+
+    /// <summary>A protocol at a version, opened in the Protocols area: labops-protocol:id/3.</summary>
+    public static string ProtocolUrl(string id, int? version) => $"{ProtocolScheme}{id}/{version}";
+
+    /// <summary>The protocol and version a <see cref="ProtocolUrl"/> names, or null for any other link.</summary>
+    public static (string Id, int? Version)? ParseProtocolUrl(string? url)
+    {
+        if (url is null || !url.StartsWith(ProtocolScheme, StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        var parts = url[ProtocolScheme.Length..].Split('/', 2);
+        return (parts[0], parts.Length > 1 && int.TryParse(parts[1], out var v) ? v : null);
+    }
 }

@@ -20,17 +20,18 @@ using LabOps.Core.Sync;
 
 namespace LabOps.App.ViewModels;
 
-/// <summary>The two halves of the app.</summary>
+/// <summary>The parts of the app, one per repository.</summary>
 public enum AppArea
 {
     Projects,
     Quotes,
+    Protocols,
 }
 
 /// <summary>
 /// The main window: which area is showing, the Quotes area (the quote list, the selected quote
-/// and its actions), and the status bar for both repositories. The Projects area has its own
-/// view model, <see cref="ProjectsViewModel"/>.
+/// and its actions), and the status bar for every repository. The Projects and Protocols areas
+/// have their own view models, <see cref="ProjectsViewModel"/> and <see cref="ProtocolsViewModel"/>.
 /// </summary>
 /// <remarks>
 /// Every action that changes a quote ends with a save and sync, so the user never has to think
@@ -56,7 +57,8 @@ public sealed partial class MainViewModel : ObservableObject
 
     public MainViewModel(
         Workspace workspace, QuoteEngine engine, GitHubCli gh, SetupService setup, QuoteSearch search,
-        UpdateService updates, WorkTracker work, ChatViewModel chat, ProjectsViewModel projects, ILogger<MainViewModel> log)
+        UpdateService updates, WorkTracker work, ChatViewModel chat, ProjectsViewModel projects, ProtocolsViewModel protocols,
+        ILogger<MainViewModel> log)
     {
         _workspace = workspace;
         _engine = engine;
@@ -68,7 +70,13 @@ public sealed partial class MainViewModel : ObservableObject
         _log = log;
         Chat = chat;
         Projects = projects;
+        Protocols = protocols;
         _dispatcher = Dispatcher.CurrentDispatcher;
+        Projects.ProtocolRequested += (id, version) => _dispatcher.InvokeAsync(async () =>
+        {
+            Area = AppArea.Protocols;
+            await Protocols.ShowAsync(id, version).ConfigureAwait(true);
+        });
 
         Query = "";
         Filter = QuoteFilter.Current;
@@ -86,17 +94,21 @@ public sealed partial class MainViewModel : ObservableObject
 
     public ProjectsViewModel Projects { get; }
 
+    public ProtocolsViewModel Protocols { get; }
+
     public ObservableCollection<QuoteSummary> Quotes { get; } = [];
 
     public IReadOnlyList<QuoteFilter> Filters { get; } = Enum.GetValues<QuoteFilter>();
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsProjectsArea), nameof(IsQuotesArea))]
+    [NotifyPropertyChangedFor(nameof(IsProjectsArea), nameof(IsQuotesArea), nameof(IsProtocolsArea))]
     public partial AppArea Area { get; set; }
 
     public bool IsProjectsArea => Area == AppArea.Projects;
 
     public bool IsQuotesArea => Area == AppArea.Quotes;
+
+    public bool IsProtocolsArea => Area == AppArea.Protocols;
 
     /// <summary>The Quotes area exists only for people with a copy of the quotes.</summary>
     [ObservableProperty]
@@ -190,7 +202,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     private string? QuotesPath => _workspace.Quotes?.Path;
 
-    private IEnumerable<Repository> OpenRepositories() => new[] { _workspace.Projects, _workspace.Quotes }.OfType<Repository>();
+    private IEnumerable<Repository> OpenRepositories() => _workspace.OpenRepositories();
 
     // -- startup -----------------------------------------------------------------------------
 
@@ -206,7 +218,8 @@ public sealed partial class MainViewModel : ObservableObject
             }
         }
 
-        var items = await _setup.CheckAsync(_workspace.Projects?.Path, _workspace.Quotes?.Path).ConfigureAwait(true);
+        var items = await _setup.CheckAsync(_workspace.Projects?.Path, _workspace.Quotes?.Path, _workspace.Protocols?.Path)
+            .ConfigureAwait(true);
         if (!SetupService.AllDone(items))
         {
             SetupWindow.Show(owner, App.Services);
@@ -226,17 +239,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         var kind = repository.Profile.Kind;
         repository.Sync.StatusChanged += s => _dispatcher.InvokeAsync(() => ShowSync(kind, s));
-        repository.Sync.RepositoryUpdated += () => _dispatcher.InvokeAsync(async () =>
-        {
-            if (kind == RepositoryKind.Quotes)
-            {
-                await ReloadQuotesAsync().ConfigureAwait(true);
-            }
-            else
-            {
-                await Projects.ReloadAsync().ConfigureAwait(true);
-            }
-        });
+        repository.Sync.RepositoryUpdated += () => _dispatcher.InvokeAsync(() => ReloadAsync(kind));
 
         HasQuotes = _workspace.Quotes is not null;
         if (_workspace.Projects is null && HasQuotes)
@@ -270,6 +273,7 @@ public sealed partial class MainViewModel : ObservableObject
         }).ConfigureAwait(true);
 
         await Projects.ReloadAsync().ConfigureAwait(true);
+        await Protocols.ReloadAsync().ConfigureAwait(true);
         await ReloadQuotesAsync().ConfigureAwait(true);
         if (Area == AppArea.Quotes && !HasQuotes)
         {
@@ -335,6 +339,7 @@ public sealed partial class MainViewModel : ObservableObject
               + $"(it needs {old.Max(r => r.Config.MinAppVersion)}). Update the app to make changes.";
         OnPropertyChanged(nameof(CanSendSelected));
         Projects.RefreshCommands();
+        Protocols.RefreshCommands();
     }
 
     private void OnWorkChanged(object? sender, PropertyChangedEventArgs e)
@@ -366,6 +371,9 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(HasQuotes))]
     private void ShowQuotes() => Area = AppArea.Quotes;
 
+    [RelayCommand]
+    private void ShowProtocols() => Area = AppArea.Protocols;
+
     // -- list --------------------------------------------------------------------------------
 
     partial void OnQueryChanged(string value) => ApplyFilter();
@@ -376,12 +384,36 @@ public sealed partial class MainViewModel : ObservableObject
 
     partial void OnShowCalculationChanged(bool value) => ShowPreview();
 
-    /// <summary>Re-reads both areas from this computer, without contacting GitHub.</summary>
+    /// <summary>Re-reads every area from this computer, without contacting GitHub.</summary>
     [RelayCommand]
     private async Task RefreshAsync()
     {
         await Projects.ReloadAsync().ConfigureAwait(true);
+        await Protocols.ReloadAsync().ConfigureAwait(true);
+        // Each area re-reads its repository's config/app.yaml, which may have raised (or lowered)
+        // the version it needs. The quotes reload shows the banner itself, after this, so a
+        // problem loading the quotes is not cleared.
+        ShowBanner();
         await ReloadQuotesAsync().ConfigureAwait(true);
+    }
+
+    /// <summary>Re-reads the area of one repository, for example after a sync brought in others' work.</summary>
+    private async Task ReloadAsync(RepositoryKind kind)
+    {
+        switch (kind)
+        {
+            case RepositoryKind.Projects:
+                await Projects.ReloadAsync().ConfigureAwait(true);
+                ShowBanner();
+                break;
+            case RepositoryKind.Protocols:
+                await Protocols.ReloadAsync().ConfigureAwait(true);
+                ShowBanner();
+                break;
+            default:
+                await ReloadQuotesAsync().ConfigureAwait(true);
+                break;
+        }
     }
 
     private async Task ReloadQuotesAsync(string? select = null)
@@ -723,14 +755,12 @@ public sealed partial class MainViewModel : ObservableObject
             foreach (var repository in OpenRepositories().ToList())
             {
                 var result = await repository.Sync.SyncAsync().ConfigureAwait(true);
-                if (repository.Profile.Kind == RepositoryKind.Quotes)
+                await (repository.Profile.Kind switch
                 {
-                    await HandleSaveResultAsync(result).ConfigureAwait(true);
-                }
-                else
-                {
-                    await Projects.HandleSaveResultAsync(result).ConfigureAwait(true);
-                }
+                    RepositoryKind.Projects => Projects.HandleSaveResultAsync(result),
+                    RepositoryKind.Protocols => Protocols.HandleSaveResultAsync(result),
+                    _ => HandleSaveResultAsync(result),
+                }).ConfigureAwait(true);
             }
         }).ConfigureAwait(true);
         await RefreshChecksAsync().ConfigureAwait(true);
@@ -780,6 +810,12 @@ public sealed partial class MainViewModel : ObservableObject
         if (turn.Repository.Profile.Kind == RepositoryKind.Projects)
         {
             await Projects.OnClaudeTurnCompletedAsync(turn).ConfigureAwait(true);
+            return;
+        }
+
+        if (turn.Repository.Profile.Kind == RepositoryKind.Protocols)
+        {
+            await Protocols.OnClaudeTurnCompletedAsync(turn).ConfigureAwait(true);
             return;
         }
 
@@ -898,7 +934,7 @@ public sealed partial class MainViewModel : ObservableObject
 
         SyncText = _syncStatus.Count == 1
             ? Describe(_syncStatus.Values.Single())
-            : string.Join("     ", _syncStatus.OrderBy(p => p.Key).Select(p => $"{(p.Key == RepositoryKind.Projects ? "Projects" : "Quotes")}: {Describe(p.Value)}"));
+            : string.Join("     ", _syncStatus.OrderBy(p => p.Key).Select(p => $"{p.Key}: {Describe(p.Value)}"));
     }
 
     private async Task RefreshChecksAsync()
@@ -921,7 +957,7 @@ public sealed partial class MainViewModel : ObservableObject
         CheckFailed = failed.Run is not null;
         CheckUrl = failed.Run?.Url ?? running?.Url ?? any.FirstOrDefault()?.Url;
         CheckText = failed.Run is not null
-            ? $"Checks failed on GitHub for the {(failed.Kind == RepositoryKind.Projects ? "projects" : "quotes")} (click for details)"
+            ? $"Checks failed on GitHub for the {failed.Kind.ToString().ToLowerInvariant()} (click for details)"
             : running is not null ? "Checks running on GitHub"
             : any.Count > 0 && any.All(r => r.Passed) ? "Checks passed"
             : null;

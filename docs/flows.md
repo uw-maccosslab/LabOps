@@ -8,6 +8,7 @@ These follow the main actions through the app, the engines, git, GitHub, Claude 
 - [A conversation with Claude](#a-conversation-with-claude)
 - [Organizing a collaborator's sample sheet](#organizing-a-collaborators-sample-sheet)
 - [Choosing a Panorama folder or notebook](#choosing-a-panorama-folder-or-notebook)
+- [A protocol, from upload to bench](#a-protocol-from-upload-to-bench)
 - [First-run setup](#first-run-setup)
 
 ## Saving a change
@@ -223,6 +224,36 @@ sequenceDiagram
 - **Notebooks:** the number at the end of an ELN ID is the notebook's, so the link is
   `https://panoramaweb.org/MacCoss/samplemanager-app.view#/notebooks/131`. A notebook recorded by
   ID alone gets that link too.
+
+## A protocol, from upload to bench
+
+```mermaid
+sequenceDiagram
+    actor You
+    participant App as LabOps
+    participant Inbox as inbox/<id>/<br/>ignored by git
+    participant Engine as protocol.py
+    participant Claude as Claude Code
+    participant Projects as project.py
+
+    You->>App: New protocol: title, category, and the original (Word, PDF, LaTeX, ...)
+    App->>Engine: import (extracts the text and figures)
+    Engine->>Inbox: the original, text.md, images/
+    App->>Claude: format-protocol skill, with where the text is
+    Claude->>Engine: new, then check
+    Claude-->>App: protocol.md written, corrections and questions listed, turn finished
+    App->>App: check --staged, commit, push (a draft)
+    You->>App: review it (Ask Claude to change it), then Publish version 1
+    App->>Engine: publish: versions/v1.md, its fingerprint, the summary
+    App->>App: check --staged, commit, push
+    You->>App: Add protocol, on a project's Sample prep
+    App->>Projects: link <project> protocol <id> --version 1 --step sample_prep
+    Note over App,Projects: the step shows "Protocol: ..., version 1"; clicking it opens that version
+```
+
+A later change goes in the draft, never in a published version: Publish makes version 2, and a
+project that recorded version 1 still opens exactly what it followed. The pre-commit check and the
+`check` workflow refuse any change to a published version.
 
 ## First-run setup
 

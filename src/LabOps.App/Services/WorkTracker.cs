@@ -100,10 +100,11 @@ public sealed partial class WorkTracker(ILogger<WorkTracker> log) : ObservableOb
 
         if (result.Refused is { Count: > 0 } refused)
         {
+            var why = repository.Profile.Kind == RepositoryKind.Protocols
+                ? "Nothing was saved. A published version of a protocol never changes, and the check refused this:\n\n- "
+                : "Nothing was saved. The check found information that must not go into the shared repository:\n\n- ";
             MessageBox.Show(
-                "Nothing was saved. The check found information that must not go into the shared repository:\n\n- "
-                + string.Join("\n- ", refused)
-                + "\n\nFix these in the files, then try again.",
+                why + string.Join("\n- ", refused) + "\n\nFix these in the files, then try again.",
                 AppInfo.ProductName, MessageBoxButton.OK, MessageBoxImage.Warning);
         }
         else if (result.Error is { } error)

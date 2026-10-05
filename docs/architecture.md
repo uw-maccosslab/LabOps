@@ -30,9 +30,9 @@ flowchart LR
     subgraph computer["Your Windows computer"]
         app["LabOps"]
         claude["Claude Code"]
-        subgraph clone["A clone: LabOps-Projects or LabOps-Quotes"]
-            records["Records<br/>projects/ or quotes/"]
-            engine["Engine<br/>project.py or quote.py"]
+        subgraph clone["A clone: LabOps-Projects, LabOps-Protocols or LabOps-Quotes"]
+            records["Records<br/>projects/, protocols/ or quotes/"]
+            engine["Engine<br/>project.py, protocol.py or quote.py"]
             guide["Instructions for Claude<br/>CLAUDE.md and skills"]
         end
     end
@@ -105,15 +105,18 @@ flowchart LR
 |---|---|---|---|
 | LabOps | This app: .NET 10, WPF | Each person's Windows computer | A release (`v26.x.0` tag); installed copies update themselves |
 | LabOps-Projects | Labs, projects, experiments, deidentified sample tables, plate layouts. Open to the lab. | GitHub, plus a clone on each computer | A push to `main`; others get it on their next sync |
+| LabOps-Protocols | The lab's protocols, every published version, figures and originals. Open to the lab. | GitHub, plus a clone on each computer | A push to `main` |
 | LabOps-Quotes | Quotes, rates, templates. Private to the people who prepare quotes. | GitHub, plus a clone where needed | A push to `main` |
-| `project.py`, `quote.py` | The engines: every rule, command and generated file | Inside each clone, run with uv and Python | Pushed with the repository; tagged `engine-v...` for release notes |
+| `project.py`, `protocol.py`, `quote.py` | The engines: every rule, command and generated file | Inside each clone, run with uv and Python | Pushed with the repository; tagged `engine-v...` for release notes |
 | `CLAUDE.md`, `.claude/skills/` | What Claude follows in each repository | Inside each clone | Pushed with the repository |
 | `config/app.yaml` | `min_app_version`, and for quotes the `approvers` who may send | Inside each clone | Pushed with the repository |
 | Claude Code | `claude.exe`, one process per conversation | Started by the app in the clone's folder | Its own updates |
 | GitHub Actions | `check` (tests and validation), `index` (README table), `release` | GitHub | Workflow files in each repository |
 | Panorama | Raw data (WebDAV file areas), Skyline documents, the lab's ELN | panoramaweb.org | Not changed by LabOps |
 
-The quotes repository is optional. A lab member without access to it sees only the Projects area.
+The quotes repository is optional. A lab member without access to it sees the Projects and
+Protocols areas. The protocols are optional in Setup too, so an updated app opens before anyone
+downloads them; until then the Protocols area offers Setup.
 
 ## Inside the app
 
@@ -190,6 +193,14 @@ flowchart LR
 | Write the text with Claude | the update-wiki skill writes `wiki.yaml` | `<project>: updated with Claude` |
 | Open in Octopus, Import layout | `project.py octopus-input`, `import-layout` | `<project>: plate layout from Octopus` |
 | Every commit in LabOps-Projects | `project.py check --staged` | refuses the commit on an error |
+| Protocols list | `protocol.py list` | nothing |
+| Showing a version, Print | `protocol.py render <id> --version N --out <file>` | nothing |
+| Show changes | `protocol.py diff <id>` | nothing |
+| New protocol (from a file), Update from a file | `protocol.py import <file>`, then Claude (format-protocol, revise-protocol) | `<id>: added with Claude` |
+| Publish version N | `protocol.py publish <id> --summary ... --by <login>` | `<id>: version N` |
+| Retire, Make active | `protocol.py status <id> retired\|active` | `<id>: retired` |
+| Add protocol (on a step) | `project.py link <item> protocol <id> --version N --step <step>` | `<item>: protocol <id> version N for <step>` |
+| Every commit in LabOps-Protocols | `protocol.py check --staged` | refuses a change to a published version |
 | Send, PO received, Invoiced, Declined | `quote.py send`, `quote.py status` | `<number>: sent` |
 | Make a revision | `quote.py revise` | `<revision>: revision of <number>` |
 | Draft PDF | `quote.py pdf` | nothing (an untracked draft) |
@@ -220,9 +231,19 @@ flowchart LR
         quote["Quote: MacCoss-2026-CWZG-MARTEN/<br/>quote.yaml (edited), rates.lock.yaml,<br/>calculation.md, quote.md (generated),<br/>PDF, spreadsheet, SOW (when sent)"]
         group --> year --> quote
     end
+
+    subgraph labProtocols["LabOps-Protocols"]
+        protocol["Protocol: protocols/s-trap-micro-digestion/<br/>protocol.yaml (record, every version),<br/>protocol.md (the draft)"]
+        versions["versions/v1.md, v2.md<br/>published, never changed"]
+        files["attachments/ (figures),<br/>sources/ (the originals)"]
+        protocol --> versions
+        protocol --> files
+    end
+
+    project -. "sample prep followed<br/>version 2" .-> versions
 ```
 
-Both repositories have the same outline:
+All three repositories have the same outline:
 
 ```
 CLAUDE.md                 what Claude follows; conventions for people too
@@ -239,6 +260,11 @@ README.md                 the human index; its table is regenerated after every 
 LabOps-Projects also has `inbox/`, where collaborators' original files go. Git ignores it, so
 originals never leave the computer. Its `.githooks/pre-commit` runs the identifier check for
 people who use git directly; the app sets `core.hooksPath` to it.
+
+LabOps-Protocols has an `inbox/` too, for uploads being formatted, and its pre-commit hook refuses
+any change to a published version: its text (fingerprinted in `protocol.yaml`), its record, or a
+figure it shows. Its `check` workflow runs `protocol.py verify` against the commit before each
+push, so a change made without the hook is caught too.
 
 ## Where things live on a computer
 

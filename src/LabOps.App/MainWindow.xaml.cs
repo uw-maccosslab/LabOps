@@ -56,13 +56,17 @@ public partial class MainWindow : Window
 
     private void FocusSearch()
     {
-        if (_vm.IsQuotesArea)
+        switch (_vm.Area)
         {
-            SearchBox.Focus();
-        }
-        else
-        {
-            ProjectsArea.FocusSearch();
+            case AppArea.Quotes:
+                SearchBox.Focus();
+                break;
+            case AppArea.Protocols:
+                ProtocolsArea.FocusSearch();
+                break;
+            default:
+                ProjectsArea.FocusSearch();
+                break;
         }
     }
 

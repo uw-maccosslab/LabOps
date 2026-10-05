@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using LabOps.App.Services;
 using LabOps.App.ViewModels;
 using LabOps.Core.Projects;
+using LabOps.Core.Protocols;
 using LabOps.Core.Quotes;
 using LabOps.Core.Setup;
 
@@ -24,7 +25,8 @@ public partial class SetupWindow : Window
             services.GetRequiredService<SetupService>(),
             services.GetRequiredService<Workspace>(),
             services.GetRequiredService<QuoteEngine>(),
-            services.GetRequiredService<ProjectEngine>());
+            services.GetRequiredService<ProjectEngine>(),
+            services.GetRequiredService<ProtocolEngine>());
 
         var window = new SetupWindow(vm);
         if (owner is { IsVisible: true })

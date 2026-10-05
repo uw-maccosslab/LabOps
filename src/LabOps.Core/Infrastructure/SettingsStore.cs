@@ -15,9 +15,12 @@ public sealed class AppSettings
     /// <summary>Folder holding the clone of the lab projects repository.</summary>
     public string? ProjectsRepositoryPath { get; set; }
 
+    /// <summary>Folder holding the clone of the lab protocols repository.</summary>
+    public string? ProtocolsRepositoryPath { get; set; }
+
     /// <summary>
     /// Claude Code session per item, so "continue" picks up the conversation: keyed by quote
-    /// number, or <c>projects:</c> plus the project name.
+    /// number, or <c>projects:</c> plus the project name, or <c>protocols:</c> plus the protocol's ID.
     /// </summary>
     public Dictionary<string, string> ClaudeSessions { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 

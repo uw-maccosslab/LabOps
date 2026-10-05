@@ -5,6 +5,7 @@ public enum RepositoryKind
 {
     Projects,
     Quotes,
+    Protocols,
 }
 
 /// <summary>
@@ -13,9 +14,9 @@ public enum RepositoryKind
 /// commits must pass the engine's identifier check first.
 /// </summary>
 /// <remarks>
-/// Lab members work in the projects repository; only people who prepare quotes have the quotes
-/// repository, so the app must run with either one alone. Each open repository gets its own git
-/// client and sync service built from its profile (see <see cref="Repository"/>).
+/// Lab members work in the projects and protocols repositories; only people who prepare quotes
+/// have the quotes repository, so the app must run with any of them alone. Each open repository
+/// gets its own git client and sync service built from its profile (see <see cref="Repository"/>).
 /// </remarks>
 public sealed class RepositoryProfile
 {
@@ -49,7 +50,16 @@ public sealed class RepositoryProfile
         "scripts/quote.py", "quotes", itemDepth: 4, generatedFileNames: ["calculation.md", "quote.md"], checksCommits: false,
         formerGitHubNames: ["uw-maccosslab/services-quotes"]);
 
-    public static IReadOnlyList<RepositoryProfile> All { get; } = [Projects, Quotes];
+    /// <summary>
+    /// uw-maccosslab/LabOps-Protocols: the lab's protocols and every version ever published, open to
+    /// the whole lab. Its pre-commit check refuses any change to a published version.
+    /// </summary>
+    public static RepositoryProfile Protocols { get; } = new(
+        RepositoryKind.Protocols, "protocols", "uw-maccosslab/LabOps-Protocols", "lab protocols", "LabOps-Protocols",
+        "scripts/protocol.py", "protocols", itemDepth: 2, generatedFileNames: [], checksCommits: true,
+        formerGitHubNames: []);
+
+    public static IReadOnlyList<RepositoryProfile> All { get; } = [Projects, Quotes, Protocols];
 
     public RepositoryKind Kind { get; }
 
@@ -74,10 +84,10 @@ public sealed class RepositoryProfile
     /// <summary>The engine, relative to the repository root.</summary>
     public string EngineScript { get; }
 
-    /// <summary>The folder holding every item (quote or project) and nothing else.</summary>
+    /// <summary>The folder holding every item (quote, project or protocol) and nothing else.</summary>
     public string RootFolder { get; }
 
-    /// <summary>Path segments from the repository root to an item folder: quotes/Group/year/number is 4.</summary>
+    /// <summary>Path segments from the repository root to an item folder: quotes/Group/year/number is 4, protocols/id is 2.</summary>
     public int ItemDepth { get; }
 
     /// <summary>Files inside an item folder that the engine regenerates and nobody merges by hand.</summary>
@@ -85,7 +95,8 @@ public sealed class RepositoryProfile
 
     /// <summary>
     /// True when every commit must first pass <c>check --staged</c>, which keeps identifying
-    /// sample information out of git history (the projects repository).
+    /// sample information out of git history (the projects repository) and published protocol
+    /// versions unchanged (the protocols repository).
     /// </summary>
     public bool ChecksCommits { get; }
 

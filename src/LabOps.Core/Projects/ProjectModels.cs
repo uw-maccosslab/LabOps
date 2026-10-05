@@ -95,6 +95,17 @@ public sealed record PanoramaFolder(string? Folder, string? Kind);
 /// <summary>Where signal processing and analysis live.</summary>
 public sealed record AnalysisLocation(string? Repo, string? Folder);
 
+/// <summary>A protocol from LabOps-Protocols that a step followed, at the version used.</summary>
+/// <param name="Id">The protocol's ID.</param>
+/// <param name="Version">The published version followed; null when it was not recorded.</param>
+/// <param name="Title">Its title, as recorded when it was linked.</param>
+/// <param name="Step">The step's id; null when it belongs to the item as a whole.</param>
+public sealed record ProtocolLink(string? Id, int? Version, string? Title, string? Step)
+{
+    /// <summary>"S-Trap micro digestion, version 3".</summary>
+    public string Text => $"{(string.IsNullOrWhiteSpace(Title) ? Id : Title)}{(Version is { } v ? $", version {v}" : "")}";
+}
+
 /// <summary>The plate layout imported from Octopus.</summary>
 public sealed record LayoutInfo(int? Plates, int? Samples, string? Imported, string? OctopusVersion);
 
@@ -159,6 +170,9 @@ public sealed record ExperimentSummary : ITimeline
 
     public IReadOnlyList<PanoramaFolder> Panorama { get; init; } = [];
 
+    /// <summary>The protocols its steps followed (none from an engine older than 26.3.0).</summary>
+    public IReadOnlyList<ProtocolLink> Protocols { get; init; } = [];
+
     public AnalysisLocation Analysis { get; init; } = new(null, null);
 
     public string? CurrentStage { get; init; }
@@ -202,6 +216,9 @@ public sealed record ProjectSummary : ITimeline
     public int? ExpectedSamples { get; init; }
 
     public IReadOnlyList<Notebook> Notebooks { get; init; } = [];
+
+    /// <summary>The protocols its sample steps followed, such as the sample prep's.</summary>
+    public IReadOnlyList<ProtocolLink> Protocols { get; init; } = [];
 
     public AnalysisLocation Analysis { get; init; } = new(null, null);
 

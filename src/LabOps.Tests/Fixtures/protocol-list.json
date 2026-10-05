@@ -1,0 +1,535 @@
+{
+  "ok": true,
+  "engine_version": "26.1.0",
+  "protocols": [
+    {
+      "id": "c-elegans-15n-labeling",
+      "folder": "protocols/c-elegans-15n-labeling",
+      "title": "15N-labeled and 14N-unlabeled C. elegans, grown, staged, and lysed for proteomics",
+      "short_title": "15N worms",
+      "category": "sample-preparation",
+      "category_label": "Sample preparation",
+      "status": "draft",
+      "owner": "maccoss",
+      "authors": [
+        "maccoss"
+      ],
+      "tags": [
+        "C. elegans",
+        "worms",
+        "15N",
+        "metabolic labeling",
+        "hypochlorite",
+        "BCA"
+      ],
+      "applies_to": {
+        "sample_types": [
+          "C. elegans"
+        ],
+        "instruments": []
+      },
+      "replaced_by": null,
+      "versions": [],
+      "latest_version": null,
+      "latest_date": null,
+      "draft_changes": true,
+      "figures": [],
+      "sources": [
+        "15N labeled worms.pdf"
+      ],
+      "issues": []
+    },
+    {
+      "id": "fasp-10k-sds-dtt",
+      "folder": "protocols/fasp-10k-sds-dtt",
+      "title": "10K FASP digestion, 1% SDS with DTT in ammonium bicarbonate",
+      "short_title": "10K FASP",
+      "category": "sample-preparation",
+      "category_label": "Sample preparation",
+      "status": "draft",
+      "owner": "maccoss",
+      "authors": [
+        "maccoss"
+      ],
+      "tags": [
+        "FASP",
+        "digestion",
+        "urea",
+        "yeast"
+      ],
+      "applies_to": {
+        "sample_types": [
+          "yeast cell pellet",
+          "cell pellet"
+        ],
+        "instruments": []
+      },
+      "replaced_by": null,
+      "versions": [],
+      "latest_version": null,
+      "latest_date": null,
+      "draft_changes": true,
+      "figures": [],
+      "sources": [
+        "fasp.pdf"
+      ],
+      "issues": []
+    },
+    {
+      "id": "igg-dynabead-tap-purification",
+      "folder": "protocols/igg-dynabead-tap-purification",
+      "title": "Purification of TAP-tagged proteins on rabbit IgG Dynabeads",
+      "short_title": "IgG Dynabead TAP",
+      "category": "sample-preparation",
+      "category_label": "Sample preparation",
+      "status": "draft",
+      "owner": "maccoss",
+      "authors": [
+        "maccoss"
+      ],
+      "tags": [
+        "TAP",
+        "affinity purification",
+        "Dynabeads",
+        "IgG",
+        "TCA precipitation"
+      ],
+      "applies_to": {
+        "sample_types": [
+          "cultured cells"
+        ],
+        "instruments": []
+      },
+      "replaced_by": null,
+      "versions": [],
+      "latest_version": null,
+      "latest_date": null,
+      "draft_changes": true,
+      "figures": [],
+      "sources": [
+        "Dynabead_Purification.doc"
+      ],
+      "issues": []
+    },
+    {
+      "id": "in-gel-digestion",
+      "folder": "protocols/in-gel-digestion",
+      "title": "In-gel trypsin digestion of SDS-PAGE bands",
+      "short_title": "In-gel digestion",
+      "category": "sample-preparation",
+      "category_label": "Sample preparation",
+      "status": "draft",
+      "owner": "maccoss",
+      "authors": [
+        "maccoss"
+      ],
+      "tags": [
+        "in-gel digestion",
+        "SDS-PAGE",
+        "silver stain",
+        "trypsin",
+        "keratin"
+      ],
+      "applies_to": {
+        "sample_types": [
+          "SDS-PAGE gel bands"
+        ],
+        "instruments": []
+      },
+      "replaced_by": null,
+      "versions": [],
+      "latest_version": null,
+      "latest_date": null,
+      "draft_changes": true,
+      "figures": [],
+      "sources": [
+        "in gel digestion.pdf"
+      ],
+      "issues": []
+    },
+    {
+      "id": "kasil-capillary-frits",
+      "folder": "protocols/kasil-capillary-frits",
+      "title": "Kasil frits in fused silica capillary tubing",
+      "short_title": "Kasil frits",
+      "category": "lc-ms",
+      "category_label": "LC-MS",
+      "status": "active",
+      "owner": "maccoss",
+      "authors": [
+        "maccoss"
+      ],
+      "tags": [
+        "Kasil",
+        "frits",
+        "fused silica",
+        "column packing"
+      ],
+      "applies_to": {
+        "sample_types": [],
+        "instruments": []
+      },
+      "replaced_by": null,
+      "versions": [
+        {
+          "version": 1,
+          "date": null,
+          "by": "maccoss",
+          "summary": "The earlier method, in use before June 2020 (imported from Evernote)",
+          "imported": true
+        },
+        {
+          "version": 2,
+          "date": "2020-06",
+          "by": "maccoss",
+          "summary": "Baked potato method: 150 \u00b5m tubing, 75 \u00b5L formamide, frits sealed in foil and baked (imported from Evernote)",
+          "imported": true
+        }
+      ],
+      "latest_version": 2,
+      "latest_date": "2020-06",
+      "draft_changes": false,
+      "figures": [
+        "foil-1.jpg",
+        "foil-2.jpg",
+        "foil-3.jpg"
+      ],
+      "sources": [
+        "Kasil Frit making.pdf"
+      ],
+      "issues": []
+    },
+    {
+      "id": "mammalian-sbp-cbp-tap-purification",
+      "folder": "protocols/mammalian-sbp-cbp-tap-purification",
+      "title": "TAP purification of mammalian proteins on streptavidin and calmodulin, for LC-MS",
+      "short_title": "Mammalian TAP",
+      "category": "sample-preparation",
+      "category_label": "Sample preparation",
+      "status": "draft",
+      "owner": "maccoss",
+      "authors": [
+        "maccoss"
+      ],
+      "tags": [
+        "TAP",
+        "affinity purification",
+        "HEK293",
+        "streptavidin",
+        "calmodulin",
+        "RapiGest",
+        "stable cell lines"
+      ],
+      "applies_to": {
+        "sample_types": [
+          "HEK293 cells",
+          "293T cells"
+        ],
+        "instruments": []
+      },
+      "replaced_by": null,
+      "versions": [],
+      "latest_version": null,
+      "latest_date": null,
+      "draft_changes": true,
+      "figures": [],
+      "sources": [
+        "TAP protocol.doc"
+      ],
+      "issues": []
+    },
+    {
+      "id": "methanol-chloroform-precipitation",
+      "folder": "protocols/methanol-chloroform-precipitation",
+      "title": "Methanol-chloroform protein precipitation",
+      "short_title": "MeOH/CHCl3 precipitation",
+      "category": "sample-preparation",
+      "category_label": "Sample preparation",
+      "status": "draft",
+      "owner": "maccoss",
+      "authors": [
+        "maccoss"
+      ],
+      "tags": [
+        "precipitation",
+        "methanol",
+        "chloroform",
+        "lipid removal"
+      ],
+      "applies_to": {
+        "sample_types": [
+          "protein in water"
+        ],
+        "instruments": []
+      },
+      "replaced_by": null,
+      "versions": [],
+      "latest_version": null,
+      "latest_date": null,
+      "draft_changes": true,
+      "figures": [],
+      "sources": [
+        "methanol-chloroform digestion.pdf"
+      ],
+      "issues": []
+    },
+    {
+      "id": "mouse-diet-pellets",
+      "folder": "protocols/mouse-diet-pellets",
+      "title": "Synthetic mouse diet pellets",
+      "short_title": "Mouse diet pellets",
+      "category": "other",
+      "category_label": "Other",
+      "status": "draft",
+      "owner": "maccoss",
+      "authors": [
+        "maccoss"
+      ],
+      "tags": [
+        "mouse",
+        "diet",
+        "leucine",
+        "agar"
+      ],
+      "applies_to": {
+        "sample_types": [],
+        "instruments": []
+      },
+      "replaced_by": null,
+      "versions": [],
+      "latest_version": null,
+      "latest_date": null,
+      "draft_changes": true,
+      "figures": [],
+      "sources": [
+        "Making the Synthetic Mouse food into Pellets.pdf"
+      ],
+      "issues": []
+    },
+    {
+      "id": "olfactory-membrane-co-ip",
+      "folder": "protocols/olfactory-membrane-co-ip",
+      "title": "Co-immunoprecipitation of membrane proteins from mouse olfactory epithelium",
+      "short_title": "Olfactory membrane co-IP",
+      "category": "sample-preparation",
+      "category_label": "Sample preparation",
+      "status": "draft",
+      "owner": "maccoss",
+      "authors": [
+        "maccoss"
+      ],
+      "tags": [
+        "co-IP",
+        "membrane proteins",
+        "mouse",
+        "olfactory epithelium",
+        "TCA precipitation",
+        "RapiGest",
+        "MudPIT"
+      ],
+      "applies_to": {
+        "sample_types": [
+          "mouse olfactory epithelium"
+        ],
+        "instruments": []
+      },
+      "replaced_by": null,
+      "versions": [],
+      "latest_version": null,
+      "latest_date": null,
+      "draft_changes": true,
+      "figures": [],
+      "sources": [
+        "MembraneProteinIP_Sakano.doc"
+      ],
+      "issues": []
+    },
+    {
+      "id": "qc-standard-aliquots",
+      "folder": "protocols/qc-standard-aliquots",
+      "title": "QC Standard aliquots (PRTC and BSA digest)",
+      "short_title": "QC aliquots",
+      "category": "quality-control",
+      "category_label": "Quality control",
+      "status": "draft",
+      "owner": "maccoss",
+      "authors": [
+        "maccoss"
+      ],
+      "tags": [
+        "QC",
+        "PRTC",
+        "BSA",
+        "system suitability"
+      ],
+      "applies_to": {
+        "sample_types": [],
+        "instruments": []
+      },
+      "replaced_by": null,
+      "versions": [],
+      "latest_version": null,
+      "latest_date": null,
+      "draft_changes": true,
+      "figures": [],
+      "sources": [
+        "QC aliquots.pdf"
+      ],
+      "issues": []
+    },
+    {
+      "id": "s-trap-micro-digestion",
+      "folder": "protocols/s-trap-micro-digestion",
+      "title": "S-Trap micro digestion",
+      "short_title": "S-Trap micro",
+      "category": "sample-preparation",
+      "category_label": "Sample preparation",
+      "status": "draft",
+      "owner": "maccoss",
+      "authors": [
+        "maccoss"
+      ],
+      "tags": [
+        "S-Trap",
+        "digestion",
+        "SDS",
+        "lipid removal"
+      ],
+      "applies_to": {
+        "sample_types": [
+          "cell lysate",
+          "tissue homogenate",
+          "serum",
+          "immunoprecipitate"
+        ],
+        "instruments": []
+      },
+      "replaced_by": null,
+      "versions": [],
+      "latest_version": null,
+      "latest_date": null,
+      "draft_changes": true,
+      "figures": [],
+      "sources": [
+        "Strap protocol.pdf"
+      ],
+      "issues": []
+    },
+    {
+      "id": "sax-kfkf-ev-capture-digestion",
+      "folder": "protocols/sax-kfkf-ev-capture-digestion",
+      "title": "KingFisher membrane particle (EV) capture and protein digestion with MagReSyn SAX beads",
+      "short_title": "SAX KFKF",
+      "category": "sample-preparation",
+      "category_label": "Sample preparation",
+      "status": "draft",
+      "owner": "maccoss",
+      "authors": [
+        "maccoss"
+      ],
+      "tags": [
+        "Mag-Net",
+        "extracellular vesicles",
+        "SAX",
+        "KingFisher",
+        "plasma"
+      ],
+      "applies_to": {
+        "sample_types": [
+          "plasma"
+        ],
+        "instruments": [
+          "KingFisher Flex",
+          "KingFisher Apex",
+          "Orbitrap Eclipse"
+        ]
+      },
+      "replaced_by": null,
+      "versions": [],
+      "latest_version": null,
+      "latest_date": null,
+      "draft_changes": true,
+      "figures": [],
+      "sources": [
+        "KFKF_ParticleCapture_Digestion.docx"
+      ],
+      "issues": []
+    },
+    {
+      "id": "yeast-tap-purification",
+      "folder": "protocols/yeast-tap-purification",
+      "title": "Tandem affinity purification (TAP) of protein complexes from yeast",
+      "short_title": "Yeast TAP",
+      "category": "sample-preparation",
+      "category_label": "Sample preparation",
+      "status": "draft",
+      "owner": "maccoss",
+      "authors": [
+        "maccoss"
+      ],
+      "tags": [
+        "TAP",
+        "affinity purification",
+        "yeast",
+        "IgG",
+        "TEV",
+        "calmodulin",
+        "TCA precipitation"
+      ],
+      "applies_to": {
+        "sample_types": [
+          "yeast culture"
+        ],
+        "instruments": []
+      },
+      "replaced_by": null,
+      "versions": [],
+      "latest_version": null,
+      "latest_date": null,
+      "draft_changes": true,
+      "figures": [],
+      "sources": [
+        "YRC-Tap-Enrich.pdf"
+      ],
+      "issues": []
+    }
+  ],
+  "categories": [
+    {
+      "id": "sample-preparation",
+      "label": "Sample preparation"
+    },
+    {
+      "id": "lc-ms",
+      "label": "LC-MS"
+    },
+    {
+      "id": "data-analysis",
+      "label": "Data analysis"
+    },
+    {
+      "id": "quality-control",
+      "label": "Quality control"
+    },
+    {
+      "id": "instrument-maintenance",
+      "label": "Instrument maintenance"
+    },
+    {
+      "id": "safety",
+      "label": "Safety"
+    },
+    {
+      "id": "other",
+      "label": "Other"
+    }
+  ],
+  "people": [
+    {
+      "login": "maccoss",
+      "name": "Michael MacCoss",
+      "role": "PI"
+    }
+  ],
+  "problems": []
+}

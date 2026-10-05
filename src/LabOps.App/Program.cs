@@ -10,6 +10,7 @@ using LabOps.Core.Infrastructure;
 using LabOps.Core.Processes;
 using LabOps.Core.Panorama;
 using LabOps.Core.Projects;
+using LabOps.Core.Protocols;
 using LabOps.Core.Quotes;
 using LabOps.Core.Repositories;
 using LabOps.Core.Setup;
@@ -160,6 +161,7 @@ public static class Program
         services.AddSingleton<IProcessRunner>(provider => provider.GetRequiredService<ProcessRunner>());
         services.AddSingleton<QuoteEngine>();
         services.AddSingleton<ProjectEngine>();
+        services.AddSingleton<ProtocolEngine>();
         services.AddSingleton<ICredentialStore, WindowsCredentialStore>();
         // LABOPS_PANORAMA points Panorama browsing at another server, for testing.
         services.AddSingleton(provider => new PanoramaSignIn(provider.GetRequiredService<ICredentialStore>(),
@@ -182,6 +184,7 @@ public static class Program
         services.AddSingleton<WorkTracker>();
         services.AddSingleton<ChatViewModel>();
         services.AddSingleton<ProjectsViewModel>();
+        services.AddSingleton<ProtocolsViewModel>();
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<MainWindow>();
 

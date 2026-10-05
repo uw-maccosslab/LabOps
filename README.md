@@ -4,9 +4,12 @@ A Windows app for the MacCoss Lab. Its **Projects** area tracks the lab's work i
 [LabOps-Projects](https://github.com/uw-maccosslab/LabOps-Projects): labs, their projects (one set of
 samples each) and the projects' experiments, from samples received to results returned, with
 sample metadata, Octopus plate layouts, and links to the data and notebooks on Panorama. Its
+**Protocols** area holds the lab's protocols in
+[LabOps-Protocols](https://github.com/uw-maccosslab/LabOps-Protocols), each in one format with
+every version ever published, and a project's steps record the version they followed. Its
 **Quotes** area, for the people who prepare them, works on the Proteomics Services quotes in
 [LabOps-Quotes](https://github.com/uw-maccosslab/LabOps-Quotes). Claude Code does the
-paperwork in both, and everything stays in sync with GitHub.
+paperwork in all three, and everything stays in sync with GitHub.
 
 [How LabOps fits together](docs/architecture.md) explains, with figures, how the app works
 with the repositories, their engines, Claude Code, GitHub and Panorama.
@@ -20,8 +23,8 @@ administrator rights are needed. The first time it starts, Setup walks through:
 1. Installing Git (with Windows' own installer, winget).
 2. Signing in to GitHub in your browser, with your lab account.
 3. Installing Claude Code and signing in with your lab Claude account.
-4. Downloading the lab projects to a folder you choose, or using a copy you already have, and
-   the quotes too if your account has access to them.
+4. Downloading the lab projects to a folder you choose, or using a copy you already have, then
+   the lab protocols, and the quotes too if your account has access to them.
 5. Preparing the engines (downloads Python once; nothing to install yourself).
 
 The app updates itself: when a new version is ready it shows "Update ready: restart to install".
@@ -42,6 +45,7 @@ What each person needs before Setup, and who gives it:
 | A GitHub account in the [uw-maccosslab](https://github.com/uw-maccosslab) organization | Everyone | An organization owner invites them under the organization's People. Setup signs in to GitHub in the browser. |
 | [LabOps](https://github.com/uw-maccosslab/LabOps): read | Everyone | Nothing to do: the repository is internal, so every organization member can read it. The app downloads its updates from there. |
 | [LabOps-Projects](https://github.com/uw-maccosslab/LabOps-Projects): **write** | Everyone who records progress | The repository is internal, so every member can read it, but saving anything (a step, a link, a wiki page's text, Claude's work) pushes to it, which needs Write. An owner gives it on the repository's Settings > Collaborators and teams, best through a team (for example "lab", with Write). With Read only, LabOps shows the projects and refuses to save. |
+| [LabOps-Protocols](https://github.com/uw-maccosslab/LabOps-Protocols): **write** | Everyone who writes, changes or publishes protocols | The repository is internal, so every member can read every protocol and version. Writing, publishing and retiring push to it, which needs Write, given the same way as for the projects (a "lab" team with Write). |
 | [LabOps-Quotes](https://github.com/uw-maccosslab/LabOps-Quotes): **write** | Only the people who prepare quotes | The repository is private. An owner gives each of them Write on its Settings > Collaborators and teams. Its `config/app.yaml` lists who sees the Send button. |
 | A Claude account in the lab's Claude organization | Everyone who uses Claude in the app | An admin of the lab's Claude organization adds them. Setup installs Claude Code and signs in. Tracking steps, links, View samples and the wiki page work without it; Claude's buttons do not. |
 | A [Panorama](https://panoramaweb.org) account | Everyone who browses Panorama from the app or publishes a wiki page | A panoramaweb.org account with access to the lab's folders in the MacCoss project. Browsing needs Reader in those folders; publishing a project's wiki page needs Editor (or higher) in the project's folder. A Panorama admin of the MacCoss project grants these. |
@@ -50,8 +54,9 @@ The organization's base permission is **Read** today, which gives every member r
 every repository, including the private LabOps-Quotes (prices included). To keep the quotes to
 the people who prepare them, an owner sets the base permission to **No permission** (Organization
 settings > Member privileges) and gives those people Write on LabOps-Quotes; LabOps and
-LabOps-Projects stay readable to every member because they are internal. The same owner then gives
-LabOps-Projects Write to everyone who records progress.
+LabOps-Projects and LabOps-Protocols stay readable to every member because they are internal. The
+same owner then gives LabOps-Projects and LabOps-Protocols Write to everyone who records progress or
+writes protocols.
 
 ### Panorama sign-in
 
@@ -99,7 +104,9 @@ Projects:
   - **Plate layout:** **Open in Octopus** and **Import layout**, to lay the samples out on plates
     and keep the layout.
   - **Sample prep** (or an experiment's assay development or data acquisition): **Add notebook**,
-    the ELN notebook on Panorama.
+    the ELN notebook on Panorama, and **Add protocol**, the protocol the work followed at the
+    published version used. The protocol then shows on the step; clicking it opens that version
+    in the Protocols area, and the project's wiki page lists it.
   - **Data deposited to Panorama:** **Add raw data folder**, where PanoramaBridge uploads.
   - **Signal processing:** **Add results folder**, with the Skyline documents.
   - **Browse...** finds folders and notebooks on Panorama, signed in the way PanoramaBridge is. A
@@ -109,6 +116,22 @@ Projects:
   have Claude write its summary, plan and description of the samples, and publish it; after that
   the app republishes it after every change. The collaborators who can open the folder read it.
 - The list shows active and on-hold projects; **Show closed** adds the closed ones.
+
+Protocols:
+
+- The list shows every protocol by category, with its current version and when it was published;
+  **Show retired** adds the retired ones. **Showing** picks any version ever published, or the
+  draft, and shows it as the printable page; **Print** opens it in the browser to print or save
+  as a PDF.
+- **New protocol:** give a title and a category, and choose the original if there is one (Word,
+  PDF, LaTeX, Markdown or text). Claude writes it in the lab's format, lists every correction and
+  question for you to check, and it stays a draft.
+- **Ask Claude to change it** and **Update from a file** (a newer original) change the draft; the
+  published versions stay as they are. **Show changes** shows what the draft changes since the
+  current version.
+- **Publish version N** makes the draft the next version, the one to use at the bench, with what
+  it changes. A published version never changes. **Retire** marks a protocol as no longer used,
+  naming the one that replaces it.
 
 Quotes:
 

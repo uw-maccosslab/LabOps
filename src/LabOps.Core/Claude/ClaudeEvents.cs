@@ -57,8 +57,8 @@ public static class ToolDescriptions
             "Read" => $"Reading {File(Field("file_path"))}",
             "Edit" or "MultiEdit" => $"Editing {File(Field("file_path"))}",
             "Write" => $"Writing {File(Field("file_path"))}",
-            "Glob" or "Grep" => "Searching the quotes",
-            "Skill" => $"Following the {Field("skill") ?? "quote"} procedure",
+            "Glob" or "Grep" => "Searching the files",
+            "Skill" => Field("skill") is { } skill ? $"Following the {skill} procedure" : "Following a procedure",
             "TodoWrite" => "Planning the steps",
             _ when name.StartsWith("mcp__quotes-app__", StringComparison.Ordinal) => "",
             _ when name.Contains("gmail", StringComparison.OrdinalIgnoreCase) => "Reading the email in Gmail",
@@ -86,6 +86,23 @@ public static class ToolDescriptions
                 "new" => "Creating the quote folder",
                 "revise" => "Making a revision",
                 _ => $"Running quote.py {rest}",
+            };
+        }
+
+        var protocol = command.IndexOf("scripts/protocol.py", StringComparison.Ordinal);
+        if (protocol >= 0)
+        {
+            var rest = command[(protocol + "scripts/protocol.py".Length)..].Replace("--json", "", StringComparison.Ordinal).Trim();
+            return rest.Split(' ', 2)[0] switch
+            {
+                "list" => "Looking through the protocols",
+                "import" => "Reading the uploaded file",
+                "new" => "Creating the protocol",
+                "show" or "diff" => "Reading the protocol",
+                "check" => "Checking the protocol",
+                "publish" => "Publishing a version",
+                "render" => "Making the printable page",
+                _ => $"Running protocol.py {rest}",
             };
         }
 

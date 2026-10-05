@@ -1,0 +1,13 @@
+{
+  "ok": false,
+  "problems": [
+    {
+      "level": "ERROR",
+      "message": "protocols/s-trap-micro-digestion/versions/v1.md: version 1 of s-trap-micro-digestion was published and never changes; put the change in protocol.md and publish a new version"
+    },
+    {
+      "level": "ERROR",
+      "message": "s-trap-micro-digestion: version 1: protocols/s-trap-micro-digestion/versions/v1.md is not the text that was published (its fingerprint differs); published versions never change, so put the change in protocol.md and publish a new version"
+    }
+  ]
+}

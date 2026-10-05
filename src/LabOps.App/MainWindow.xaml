@@ -23,17 +23,23 @@
                     <TextBlock Text="LabOps" Foreground="White" FontSize="17" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,18,6" />
                     <Button Content="Projects" Command="{Binding ShowProjectsCommand}" Tag="{Binding IsProjectsArea}" Style="{StaticResource AreaTab}"
                             VerticalAlignment="Center" Margin="0,0,4,6" />
+                    <Button Content="Protocols" Command="{Binding ShowProtocolsCommand}" Tag="{Binding IsProtocolsArea}" Style="{StaticResource AreaTab}"
+                            VerticalAlignment="Center" Margin="0,0,4,6" />
                     <Button Content="Quotes" Command="{Binding ShowQuotesCommand}" Tag="{Binding IsQuotesArea}" Style="{StaticResource AreaTab}"
-                            VerticalAlignment="Center" Margin="0,0,18,6"
+                            VerticalAlignment="Center" Margin="0,0,4,6"
                             Visibility="{Binding HasQuotes, Converter={StaticResource BoolToVisibility}}" />
+                    <Border Width="14" />
                     <Button Content="New project" Command="{Binding Projects.NewProjectCommand}" FontWeight="SemiBold"
                             Visibility="{Binding IsProjectsArea, Converter={StaticResource BoolToVisibility}}" />
+                    <Button Content="New protocol" Command="{Binding Protocols.NewProtocolCommand}" FontWeight="SemiBold"
+                            ToolTip="Write a protocol with Claude, from a Word document, PDF, LaTeX, Markdown or text file, or from scratch."
+                            Visibility="{Binding IsProtocolsArea, Converter={StaticResource BoolToVisibility}}" />
                     <Button Content="New quote" Command="{Binding NewQuoteCommand}" FontWeight="SemiBold"
                             Visibility="{Binding IsQuotesArea, Converter={StaticResource BoolToVisibility}}" />
                     <Button Content="Sync now" Command="{Binding SyncNowCommand}"
                             ToolTip="Get other people's changes from GitHub and share yours. This also happens on its own every few minutes and after every action." />
                     <Button Content="Reload" Command="{Binding RefreshCommand}"
-                            ToolTip="Re-read the projects and quotes on this computer without contacting GitHub, for example after editing a file outside the app." />
+                            ToolTip="Re-read the projects, protocols and quotes on this computer without contacting GitHub, for example after editing a file outside the app." />
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -77,6 +83,10 @@
             <!-- Projects -->
             <views:ProjectsView x:Name="ProjectsArea" Grid.Column="0" DataContext="{Binding Projects}"
                                 Visibility="{Binding DataContext.IsProjectsArea, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVisibility}}" />
+
+            <!-- Protocols -->
+            <views:ProtocolsView x:Name="ProtocolsArea" Grid.Column="0" DataContext="{Binding Protocols}"
+                                 Visibility="{Binding DataContext.IsProtocolsArea, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVisibility}}" />
 
             <!-- Quotes -->
             <Grid Grid.Column="0" Visibility="{Binding IsQuotesArea, Converter={StaticResource BoolToVisibility}}">

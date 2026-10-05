@@ -1,10 +1,14 @@
 # LabOps app: guide for AI-assisted development
 
-A Windows desktop app (.NET 10, WPF) for the MacCoss Lab, with two areas over two repositories:
+A Windows desktop app (.NET 10, WPF) for the MacCoss Lab, with three areas over three repositories:
 
 - **Projects** over [LabOps-Projects](https://github.com/uw-maccosslab/LabOps-Projects) (open to the whole
   lab): labs, projects and experiments, step timelines with assignees, sample metadata, Octopus
   plate layouts, and Panorama folders and ELN notebooks chosen by browsing Panorama (read-only).
+- **Protocols** over [LabOps-Protocols](https://github.com/uw-maccosslab/LabOps-Protocols) (open to the
+  whole lab): the lab's protocols in one format with every version ever published, any version shown
+  as the printable page, written and revised with Claude (from an uploaded file or from scratch),
+  published as frozen versions, and recorded at their version on a project's steps.
 - **Quotes** over [LabOps-Quotes](https://github.com/uw-maccosslab/LabOps-Quotes) (private, for
   the people who prepare quotes): lists and searches quotes, runs the quote engine as buttons.
 
@@ -20,20 +24,25 @@ text alike.
 
 - **Each repository owns its logic.** Quotes: `scripts/quote.py`, its `CLAUDE.md`, and the skills
   `new-quote` and `revise-quote`. Projects: `scripts/project.py`, its `CLAUDE.md`, and the skills
-  `new-experiment`, `organize-metadata` and `update-experiment`. Each has `config/app.yaml`
+  `new-experiment`, `organize-metadata` and `update-experiment`. Protocols: `scripts/protocol.py`,
+  its `CLAUDE.md`, and the skills `format-protocol` and `revise-protocol`. Each has `config/app.yaml`
   (`min_app_version`; the quotes also `approvers`). A change there reaches every user with a sync,
   no app release.
 - **The app never computes a price or judges an identifier.** It runs
-  `uv run --frozen python scripts/<engine>.py --json ...` (`QuoteEngine`, `ProjectEngine`) and
-  shows what comes back.
+  `uv run --frozen python scripts/<engine>.py --json ...` (`QuoteEngine`, `ProjectEngine`,
+  `ProtocolEngine`) and shows what comes back.
 - **One `Repository` per clone.** `RepositoryProfile` holds what differs (GitHub name, engine,
   root folder and item depth, generated files, whether commits are checked);
   `RepositoryFactory` gives each open clone its own `GitClient` and `SyncService`. Never share a
-  git client between repositories. `Workspace` holds the open ones; either may be missing.
+  git client between repositories. `Workspace` holds the open ones; any may be missing.
 - **Nothing identifying reaches LabOps-Projects' history.** Its `SyncService` runs the
   `IPreCommitCheck` (`project.py check --staged`) before every commit and refuses on an error;
   clones also get `core.hooksPath=.githooks`. Originals stay in its git-ignored `inbox/`, and the
   app scans a collaborator's file before Claude may read it.
+- **A published protocol version never changes.** LabOps-Protocols' `SyncService` runs
+  `protocol.py check --staged` before every commit, which refuses a change to a published
+  version's text, its record or a figure it shows; `protocol.py publish` is the only way a version
+  is made. A project records a protocol at its version (`project.py link <item> protocol`).
 - **Claude edits files; the app alone commits and pushes.** Claude is denied every git command
   that changes history (`ClaudeLauncher.DisallowedTools`). A conversation belongs to one repository
   (`ChatTurnResult.Repository`), and its turn's changes are saved there.
@@ -52,6 +61,7 @@ src/LabOps.Core/     all logic, no UI types                     net10.0
   Claude/                    stream-json session, parser, in-app MCP server (AppTools), PermissionMemory
   Engines/                   what both engines share: uv run, JSON answers, EngineException
   Projects/                  ProjectEngine (project.py), lab, project and experiment models
+  Protocols/                 ProtocolEngine (protocol.py), protocol models
   Panorama/                  read-only Panorama client, sign-in (PanoramaBridge's, then ours)
   Quotes/                    QuoteEngine (quote.py), RepoConfig, QuoteSearch
   Repositories/              RepositoryProfile, Repository, RepositoryFactory
@@ -70,10 +80,12 @@ dotnet test --project src/LabOps.Tests/LabOps.Tests.csproj
 ```
 
 - `SERVICES_QUOTES_REPO=<clone of LabOps-Quotes>` also runs the real quote engine in a test,
-  and `LAB_PROJECTS_REPO=<clone of LabOps-Projects>` the real project engine.
+  `LAB_PROJECTS_REPO=<clone of LabOps-Projects>` the real project engine, and
+  `LAB_PROTOCOLS_REPO=<clone of LabOps-Protocols>` the real protocol engine.
 - `Fixtures/project-*.json` were recorded from the real `project.py`; re-record them when its JSON
   changes (LabOps-Projects' `tests/test_commands.py::test_list_returns_what_the_app_reads` guards
-  that side).
+  that side). `Fixtures/protocol-*.json` were recorded from the real `protocol.py` (its
+  `tests/test_contract.py` guards that side).
 - The sync tests run real git against a temporary bare repository.
 - CI (`ci.yml`) builds and runs every test on Windows for each push; `release.yml` runs them again
   before packaging, so a failing test stops a release. The real-engine test runs in CI only when a
@@ -120,7 +132,11 @@ update changes the stream format.
 - **Disposal.** `Program.Main` disposes the container with a plain `using`, so every singleton
   must implement `IDisposable` if it implements `IAsyncDisposable`.
 - **WebView2 in a hidden area.** The quote preview lives in the Quotes area, which is collapsed
-  when the Projects area opens first; startup does not wait for the preview to initialize.
+  when the Projects area opens first; startup does not wait for the preview to initialize. The
+  Protocols area's page view starts the same way, on its own.
+- **A protocol's page is a file.** `NavigateToString` is limited to 2 MB, and a protocol's figures
+  are inside its page, so the engine renders each version to a file under the app's data folder
+  (`protocols/`) and the view navigates to it.
 - **Engine changes made in a quote conversation.** The app saves the item's folder; files outside
   it are shared only when an approver says so. A quote built with an engine change that stays
   local fails the quotes repository's `verify` on GitHub.

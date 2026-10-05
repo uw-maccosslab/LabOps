@@ -13,6 +13,7 @@ using LabOps.Core.Infrastructure;
 using LabOps.Core.Panorama;
 using LabOps.Core.Processes;
 using LabOps.Core.Projects;
+using LabOps.Core.Protocols;
 using LabOps.Core.Repositories;
 using LabOps.Core.Sync;
 
@@ -38,6 +39,7 @@ public sealed partial class ProjectsViewModel : ObservableObject
     private readonly ILogger<ProjectsViewModel> _log;
     private readonly PanoramaPicker _panorama;
     private readonly WikiPublisher _wiki;
+    private readonly ProtocolEngine _protocols;
     // The project whose change was just saved: its wiki page is updated once the list has it.
     private string? _wikiAfterReload;
     private List<ProjectRow> _all = [];
@@ -46,10 +48,11 @@ public sealed partial class ProjectsViewModel : ObservableObject
 
     public ProjectsViewModel(
         Workspace workspace, ProjectEngine engine, WorkTracker work, ChatViewModel chat, PanoramaPicker panorama, WikiPublisher wiki,
-        ILogger<ProjectsViewModel> log)
+        ProtocolEngine protocols, ILogger<ProjectsViewModel> log)
     {
         _panorama = panorama;
         _wiki = wiki;
+        _protocols = protocols;
         _workspace = workspace;
         _engine = engine;
         _work = work;
@@ -58,6 +61,9 @@ public sealed partial class ProjectsViewModel : ObservableObject
         Query = "";
         _work.PropertyChanged += OnWorkChanged;
     }
+
+    /// <summary>Someone opened a protocol a step followed: show it, at that version, in the Protocols area.</summary>
+    public event Action<string, int?>? ProtocolRequested;
 
     public ChatViewModel Chat { get; }
 
@@ -275,6 +281,7 @@ public sealed partial class ProjectsViewModel : ObservableObject
             samples.Place(link, StepHomes.Notebook);
         }
 
+        AddProtocols(samples, p.Protocols, p.Folder);
         AddMetadataTools(samples, orSection: true);
         samples.Place(new StepTool("Open in Octopus",
             "Write the sample table for Octopus and open Octopus, to lay the samples out on plates. Needs the organized sample table.",
@@ -323,6 +330,7 @@ public sealed partial class ProjectsViewModel : ObservableObject
                 section.Place(analysisLink, StepHomes.Analysis);
             }
 
+            AddProtocols(section, e.Protocols, p.Folder);
             AddMetadataTools(section, orSection: false);
             section.Place(NotebookTool(section), StepHomes.Notebook);
             section.Place(new StepTool("Add raw data folder",
@@ -362,6 +370,24 @@ public sealed partial class ProjectsViewModel : ObservableObject
 
     private StepTool NotebookTool(TimelineSection section) => new("Add notebook",
         "Record the ELN notebook on Panorama where this work is written up.", AddLinkCommand, new LinkRequest(section, "notebook"));
+
+    /// <summary>
+    /// The protocols a timeline's steps followed, each on its step and opening that version in the
+    /// Protocols area, and Add protocol on the bench step (sample prep first).
+    /// </summary>
+    private void AddProtocols(TimelineSection section, IEnumerable<ProtocolLink> protocols, string folder)
+    {
+        foreach (var link in protocols.Where(l => !string.IsNullOrWhiteSpace(l.Id)))
+        {
+            section.PlaceOnStep(new LinkItem($"Protocol: {link.Text}", LinkItem.ProtocolUrl(link.Id!, link.Version),
+                section.Item, "protocol", link.Id, folder, link.Step), link.Step);
+        }
+
+        var home = section.Home(StepHomes.Protocol);
+        section.Place(new StepTool("Add protocol",
+            "Record the protocol from the lab protocols that this step followed, at the version used.",
+            AddProtocolCommand, new ProtocolRequest(section, home?.Stage)), StepHomes.Protocol);
+    }
 
     /// <summary>A person's name from config/people.yaml, or the login when they are not listed.</summary>
     private string NameOf(string login) =>
@@ -562,12 +588,64 @@ public sealed partial class ProjectsViewModel : ObservableObject
         await ReloadAsync(project).ConfigureAwait(true);
     }
 
-    /// <summary>Removes a Panorama folder or a notebook recorded by mistake or moved.</summary>
+    /// <summary>
+    /// Records the protocol a step followed, at the published version used, chosen from the lab
+    /// protocols. Linking it again for the same step records a newer version.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanAddProtocol))]
+    private async Task AddProtocolAsync(ProtocolRequest request)
+    {
+        var project = Selected!.Name;
+        var (item, folder) = (request.Section.Item, request.Section.Folder);
+        if (_workspace.Protocols is null)
+        {
+            MessageBox.Show("The lab protocols are not on this computer yet. Open Setup and choose Download the protocols, then try again.",
+                AppInfo.ProductName, MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        IReadOnlyList<ProtocolSummary> protocols;
+        try
+        {
+            protocols = (await _protocols.ListAsync().ConfigureAwait(true)).Protocols;
+        }
+        catch (Exception ex) when (ex is EngineException or ToolMissingException)
+        {
+            MessageBox.Show($"The lab protocols could not be read: {ex.Message}", AppInfo.ProductName);
+            return;
+        }
+
+        // Start from what the step records now, so recording a newer version is one click.
+        var step = request.Section.Stages.FirstOrDefault(s => s.Stage == request.Step);
+        var current = LinkItem.ParseProtocolUrl((step?.Links ?? request.Section.Links).FirstOrDefault(l => l.What == "protocol")?.Url);
+        var answer = ChooseProtocolWindow.Ask(Application.Current.MainWindow,
+            $"Protocol for {(step is null ? Where(request.Section) : $"{step.Label}: {Where(request.Section)}")}", protocols,
+            current?.Id, current?.Version);
+        if (answer is null)
+        {
+            return;
+        }
+
+        var p = answer.Protocol;
+        await _work.RunAsync("Recording the protocol...", async () =>
+        {
+            await PullFirstAsync().ConfigureAwait(true);
+            await _engine.LinkProtocolAsync(item, p.Id, answer.Version, request.Step, p.Title).ConfigureAwait(true);
+            await SaveAsync([folder], $"{item}: protocol {p.Id} version {answer.Version}"
+                + (step is null ? "" : $" for {step.Label.ToLowerInvariant()}")).ConfigureAwait(true);
+        }).ConfigureAwait(true);
+        await ReloadAsync(project).ConfigureAwait(true);
+    }
+
+    private bool CanAddProtocol(ProtocolRequest? request) => CanEditSelected() && request is not null;
+
+    /// <summary>Removes a Panorama folder, a notebook or a protocol recorded by mistake or moved.</summary>
     [RelayCommand(CanExecute = nameof(CanRemoveLink))]
     private async Task RemoveLinkAsync(LinkItem link)
     {
         var project = Selected!.Name;
-        if (MessageBox.Show($"Remove {link.Label} from {link.Item}? Nothing changes on Panorama.", AppInfo.ProductName,
+        var elsewhere = link.What == "protocol" ? "The protocol itself does not change." : "Nothing changes on Panorama.";
+        if (MessageBox.Show($"Remove {link.Label} from {link.Item}? {elsewhere}", AppInfo.ProductName,
                 MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK)
         {
             return;
@@ -582,7 +660,7 @@ public sealed partial class ProjectsViewModel : ObservableObject
             }
             else
             {
-                await _engine.UnlinkAsync(link.Item!, link.What!, link.Value!).ConfigureAwait(true);
+                await _engine.UnlinkAsync(link.Item!, link.What!, link.Value!, link.What == "protocol" ? link.Step : null).ConfigureAwait(true);
             }
             await SaveAsync([link.Folder!], $"{link.Item}: removed {link.Value}").ConfigureAwait(true);
         }).ConfigureAwait(true);
@@ -840,7 +918,11 @@ public sealed partial class ProjectsViewModel : ObservableObject
     [RelayCommand]
     private void OpenLink(LinkItem link)
     {
-        if (link.Url is not null)
+        if (LinkItem.ParseProtocolUrl(link.Url) is var (id, version))
+        {
+            ProtocolRequested?.Invoke(id, version);
+        }
+        else if (link.Url is not null)
         {
             Shell.Open(link.Url);
         }
@@ -853,7 +935,7 @@ public sealed partial class ProjectsViewModel : ObservableObject
                  {
                      NewProjectCommand, NewExperimentCommand, AskClaudeCommand, StartStageCommand, FinishStageCommand,
                      SkipStageCommand, ReopenStageCommand, AssignCommand, AddStepCommand, RemoveStepCommand,
-                     AddLinkCommand, RemoveLinkCommand, OrganizeMetadataCommand,
+                     AddLinkCommand, RemoveLinkCommand, AddProtocolCommand, OrganizeMetadataCommand,
                      OpenInOctopusCommand, ImportLayoutCommand, OpenFolderCommand, OpenOnGitHubCommand, ViewSamplesCommand, ViewWikiCommand,
                  })
         {

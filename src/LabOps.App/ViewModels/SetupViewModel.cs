@@ -6,6 +6,7 @@ using LabOps.App.Services;
 using LabOps.Core.Engines;
 using LabOps.Core.Infrastructure;
 using LabOps.Core.Projects;
+using LabOps.Core.Protocols;
 using LabOps.Core.Quotes;
 using LabOps.Core.Repositories;
 using LabOps.Core.Setup;
@@ -39,13 +40,16 @@ public sealed partial class SetupViewModel : ObservableObject
     private readonly Workspace _workspace;
     private readonly QuoteEngine _quoteEngine;
     private readonly ProjectEngine _projectEngine;
+    private readonly ProtocolEngine _protocolEngine;
 
-    public SetupViewModel(SetupService setup, Workspace workspace, QuoteEngine quoteEngine, ProjectEngine projectEngine)
+    public SetupViewModel(
+        SetupService setup, Workspace workspace, QuoteEngine quoteEngine, ProjectEngine projectEngine, ProtocolEngine protocolEngine)
     {
         _setup = setup;
         _workspace = workspace;
         _quoteEngine = quoteEngine;
         _projectEngine = projectEngine;
+        _protocolEngine = protocolEngine;
         Status = "Checking...";
     }
 
@@ -76,7 +80,8 @@ public sealed partial class SetupViewModel : ObservableObject
                 }
             }
 
-            var items = await _setup.CheckAsync(_workspace.Projects?.Path, _workspace.Quotes?.Path).ConfigureAwait(true);
+            var items = await _setup.CheckAsync(_workspace.Projects?.Path, _workspace.Quotes?.Path, _workspace.Protocols?.Path)
+                .ConfigureAwait(true);
             Rows.Clear();
             foreach (var item in items)
             {
@@ -100,12 +105,12 @@ public sealed partial class SetupViewModel : ObservableObject
         {
             switch (row.Item.Step)
             {
-                case SetupStep.ProjectsRepository or SetupStep.QuotesRepository:
+                case SetupStep.ProjectsRepository or SetupStep.ProtocolsRepository or SetupStep.QuotesRepository:
                     await CloneAsync(row.Item.Profile!).ConfigureAwait(true);
                     break;
                 case SetupStep.GitIdentity:
                     Status = "Setting your name on saved changes...";
-                    foreach (var repository in new[] { _workspace.Projects, _workspace.Quotes }.OfType<Repository>())
+                    foreach (var repository in _workspace.OpenRepositories())
                     {
                         await _setup.SetIdentityFromGitHubAsync(repository.Path).ConfigureAwait(true);
                     }
@@ -114,6 +119,10 @@ public sealed partial class SetupViewModel : ObservableObject
                 case SetupStep.ProjectsEngine:
                     Status = "Preparing the project engine. The first time downloads Python, which takes a minute or two...";
                     await _projectEngine.EnsureEnvironmentAsync().ConfigureAwait(true);
+                    break;
+                case SetupStep.ProtocolsEngine:
+                    Status = "Preparing the protocol engine. The first time downloads its packages, which takes a minute...";
+                    await _protocolEngine.EnsureEnvironmentAsync().ConfigureAwait(true);
                     break;
                 case SetupStep.QuotesEngine:
                     Status = "Preparing the quote engine. The first time downloads Python, which takes a minute or two...";

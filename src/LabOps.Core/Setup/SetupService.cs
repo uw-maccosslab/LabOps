@@ -15,6 +15,8 @@ public enum SetupStep
     ClaudeSignIn,
     ProjectsRepository,
     ProjectsEngine,
+    ProtocolsRepository,
+    ProtocolsEngine,
     QuotesRepository,
     QuotesEngine,
     GitIdentity,
@@ -43,6 +45,7 @@ public sealed record SetupItem(
     public RepositoryProfile? Profile => Step switch
     {
         SetupStep.ProjectsRepository or SetupStep.ProjectsEngine => RepositoryProfile.Projects,
+        SetupStep.ProtocolsRepository or SetupStep.ProtocolsEngine => RepositoryProfile.Protocols,
         SetupStep.QuotesRepository or SetupStep.QuotesEngine => RepositoryProfile.Quotes,
         _ => null,
     };
@@ -75,8 +78,10 @@ public sealed class SetupService
 
     /// <param name="projectsPath">The projects clone, if there is one.</param>
     /// <param name="quotesPath">The quotes clone, if there is one.</param>
+    /// <param name="protocolsPath">The protocols clone, if there is one.</param>
     /// <param name="cancellationToken">Cancels the checks.</param>
-    public async Task<IReadOnlyList<SetupItem>> CheckAsync(string? projectsPath, string? quotesPath, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<SetupItem>> CheckAsync(
+        string? projectsPath, string? quotesPath, string? protocolsPath = null, CancellationToken cancellationToken = default)
     {
         var items = new List<SetupItem>();
         var git = _tools.Find(Tool.Git);
@@ -111,6 +116,24 @@ public sealed class SetupService
             git is null ? null : projects ? "Use a different copy" : "Use a copy I already have"));
         items.Add(EngineItem(SetupStep.ProjectsEngine, "Project engine", "project.py", projects ? projectsPath : null));
 
+        // The protocols are for the whole lab, but optional, so an app updated before anyone
+        // downloads them still opens; the Protocols area offers the download.
+        var protocols = RepositoryProfile.Protocols.LooksLikeClone(protocolsPath);
+        var protocolAccess = protocols || !signedIn
+            ? (bool?)protocols
+            : await _gh.CanAccessRepositoryAsync(RepositoryProfile.Protocols.GitHubName, cancellationToken).ConfigureAwait(false);
+        items.Add(new(SetupStep.ProtocolsRepository, "Lab protocols", protocols || protocolAccess == false,
+            protocols ? protocolsPath!
+                : protocolAccess == false ? "Your GitHub account cannot see the lab's protocols. Ask Mike to add you to the uw-maccosslab organization."
+                : "The lab's protocols, to read, to write with Claude, and to link to a project's steps.",
+            signedIn && protocolAccess != false ? "Download the protocols" : null,
+            git is null || protocolAccess == false ? null : protocols ? "Use a different copy" : "Use a copy I already have",
+            Optional: true));
+        if (protocols)
+        {
+            items.Add(EngineItem(SetupStep.ProtocolsEngine, "Protocol engine", "protocol.py", protocolsPath) with { Optional = true });
+        }
+
         // The quotes are for the people who prepare them. Ask GitHub before offering a download
         // that would fail, and leave the step out of "all done" either way.
         var quotes = RepositoryProfile.Quotes.LooksLikeClone(quotesPath);
@@ -129,7 +152,8 @@ public sealed class SetupService
             items.Add(EngineItem(SetupStep.QuotesEngine, "Quote engine", "quote.py", quotesPath) with { Optional = true });
         }
 
-        var clones = new[] { projects ? projectsPath : null, quotes ? quotesPath : null }.OfType<string>().ToList();
+        var clones = new[] { projects ? projectsPath : null, protocols ? protocolsPath : null, quotes ? quotesPath : null }
+            .OfType<string>().ToList();
         var identities = new List<string>();
         if (git is not null)
         {
