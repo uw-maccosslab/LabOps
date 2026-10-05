@@ -80,7 +80,8 @@
                     </ItemsControl>
                     <DockPanel Visibility="{Binding IsAnswered, Converter={StaticResource InverseBoolToVisibility}}">
                         <Button x:Name="AnswerButton" DockPanel.Dock="Right" Content="Answer" Command="{Binding AnswerCommand}" CommandParameter="" Margin="6,0,0,0" />
-                        <TextBox x:Name="QuestionBox" Text="{Binding Typed, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBox x:Name="QuestionBox" Text="{Binding Typed, UpdateSourceTrigger=PropertyChanged}" PreviewKeyDown="OnAnswerKeyDown"
+                                 ToolTip="Type an answer; Enter answers." />
                     </DockPanel>
                     <TextBlock Text="{Binding Given, StringFormat=You answered: {0}}" Foreground="{StaticResource MutedBrush}"
                                Visibility="{Binding IsAnswered, Converter={StaticResource BoolToVisibility}}" />
@@ -127,7 +128,8 @@
                     <Button Content="Stop" Command="{Binding StopCommand}" Margin="0" />
                 </StackPanel>
                 <TextBox x:Name="ChatInput" Text="{Binding Input, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="52" MaxHeight="160"
-                         VerticalScrollBarVisibility="Auto" ToolTip="Ask Claude for a change, or answer its question" />
+                         VerticalScrollBarVisibility="Auto" PreviewKeyDown="OnInputKeyDown"
+                         ToolTip="Ask Claude for a change, or answer its question. Enter sends; Shift+Enter starts a new line." />
             </DockPanel>
         </Border>
 

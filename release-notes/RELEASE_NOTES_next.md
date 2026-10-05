@@ -22,6 +22,8 @@ the GitHub Release description and fails if it is missing.
   (including the README index GitHub commits after each save) emptied and refilled the protocol
   list, so the page went blank and came back. The list is now updated in place, keeping the
   protocol and version selected, and the page is redrawn only when it changed.
+- **Enter sends a message to Claude.** In the chat, Enter now sends (Shift+Enter starts a new
+  line), and Enter in the box under one of Claude's questions answers it.
 
 ## Performance
 
