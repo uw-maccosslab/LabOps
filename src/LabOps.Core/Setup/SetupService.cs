@@ -60,8 +60,10 @@ public sealed record SetupItem(
 /// </summary>
 /// <remarks>
 /// Installs use the official sources only: winget for Git and the GitHub CLI, and Anthropic's
-/// installer for Claude Code. Sign-ins open each tool's own browser flow in a console window,
-/// because they show a one-time code the user has to see; the app never handles a password.
+/// installer for Claude Code. GitHub's sign-in opens its browser flow in a console window, because
+/// it shows a one-time code the user has to see. Claude's runs with no window
+/// (<see cref="Claude.ClaudeLogin"/>), since its page sends the answer back by itself; the console
+/// (<see cref="ConsoleFix"/>) is the fallback. The app never handles a password.
 /// </remarks>
 public sealed class SetupService
 {

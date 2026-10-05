@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
 using LabOps.App.Services;
+using LabOps.Core.Claude;
 using LabOps.Core.Engines;
 using LabOps.Core.Infrastructure;
 using LabOps.Core.Projects;
@@ -41,15 +42,19 @@ public sealed partial class SetupViewModel : ObservableObject
     private readonly QuoteEngine _quoteEngine;
     private readonly ProjectEngine _projectEngine;
     private readonly ProtocolEngine _protocolEngine;
+    private readonly ClaudeLogin _login;
+    private CancellationTokenSource? _waiting;
 
     public SetupViewModel(
-        SetupService setup, Workspace workspace, QuoteEngine quoteEngine, ProjectEngine projectEngine, ProtocolEngine protocolEngine)
+        SetupService setup, Workspace workspace, QuoteEngine quoteEngine, ProjectEngine projectEngine, ProtocolEngine protocolEngine,
+        ClaudeLogin login)
     {
         _setup = setup;
         _workspace = workspace;
         _quoteEngine = quoteEngine;
         _projectEngine = projectEngine;
         _protocolEngine = protocolEngine;
+        _login = login;
         Status = "Checking...";
     }
 
@@ -59,6 +64,49 @@ public sealed partial class SetupViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(FixCommand))]
     [NotifyCanExecuteChangedFor(nameof(AlternateCommand))]
     public partial bool IsWorking { get; set; }
+
+    /// <summary>Waiting for the person to finish signing in to Claude in the browser.</summary>
+    [ObservableProperty]
+    public partial bool IsWaiting { get; set; }
+
+    [RelayCommand]
+    private void StopWaiting() => _waiting?.Cancel();
+
+    /// <summary>
+    /// Signs in to Claude in the browser, with no console window; if that does not finish, offers
+    /// the console window, where Claude Code can ask for a code to paste.
+    /// </summary>
+    private async Task SignInToClaudeAsync()
+    {
+        Status = "Finish in your browser: sign in with your lab Claude account and choose Authorize. If the page says the "
+            + "window is too small, make it larger.";
+        using var waiting = new CancellationTokenSource();
+        _waiting = waiting;
+        IsWaiting = true;
+        ClaudeLoginResult result;
+        try
+        {
+            result = await _login.SignInAsync(null, waiting.Token).ConfigureAwait(true);
+        }
+        finally
+        {
+            IsWaiting = false;
+            _waiting = null;
+        }
+
+        if (result.Succeeded || result.Cancelled)
+        {
+            return;
+        }
+
+        if (System.Windows.MessageBox.Show("The sign-in did not finish. Sign in with a console window instead?",
+                AppInfo.ProductName, System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question)
+            == System.Windows.MessageBoxResult.Yes && _setup.ConsoleFix(SetupStep.ClaudeSignIn) is { } command)
+        {
+            Status = command.Explanation;
+            await Shell.RunInConsoleAsync(command).ConfigureAwait(true);
+        }
+    }
 
     [ObservableProperty]
     public partial string Status { get; set; }
@@ -124,6 +172,9 @@ public sealed partial class SetupViewModel : ObservableObject
                     Status = "Preparing the protocol engine. The first time downloads its packages, which takes a minute...";
                     await _protocolEngine.EnsureEnvironmentAsync().ConfigureAwait(true);
                     break;
+                case SetupStep.ClaudeSignIn:
+                    await SignInToClaudeAsync().ConfigureAwait(true);
+                    break;
                 case SetupStep.QuotesEngine:
                     Status = "Preparing the quote engine. The first time downloads Python, which takes a minute or two...";
                     await _quoteEngine.EnsureEnvironmentAsync().ConfigureAwait(true);
@@ -163,18 +214,20 @@ public sealed partial class SetupViewModel : ObservableObject
     {
         if (row.Item.Step == SetupStep.ClaudeSignIn)
         {
-            if (_setup.ConsoleFix(SetupStep.ClaudeSignIn) is { } command)
+            IsWorking = true;
+            try
             {
-                IsWorking = true;
-                try
-                {
-                    Status = command.Explanation;
-                    await Shell.RunInConsoleAsync(command).ConfigureAwait(true);
-                }
-                finally
-                {
-                    IsWorking = false;
-                }
+                await SignInToClaudeAsync().ConfigureAwait(true);
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception
+                or Core.Processes.ToolMissingException)
+            {
+                System.Windows.MessageBox.Show(ex.Message, AppInfo.ProductName, System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Warning);
+            }
+            finally
+            {
+                IsWorking = false;
             }
 
             await RefreshAsync().ConfigureAwait(true);

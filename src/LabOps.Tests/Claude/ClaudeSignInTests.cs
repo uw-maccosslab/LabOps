@@ -23,20 +23,41 @@ public sealed class ClaudeSignInTests
     public void Other_messages_are_not(string? text) => ClaudeSignIn.IsProblem(text).ShouldBeFalse();
 
     [Fact]
-    public async Task Try_again_is_offered_once_the_sign_in_window_has_closed()
+    public async Task Try_again_is_offered_once_signed_in()
     {
-        var signedIn = 0;
+        var attempts = 0;
         var retried = 0;
-        var item = new SignInItem(() => { signedIn++; return Task.CompletedTask; }, () => { retried++; return Task.CompletedTask; });
+        var works = false;
+        var item = new SignInItem((i, _) =>
+        {
+            attempts++;
+            i.Link = "https://claude.ai/oauth/authorize?code=true";
+            i.HasLink.ShouldBeTrue();  // shown while waiting, in case the browser did not open
+            return Task.FromResult(works);
+        }, () => { retried++; return Task.CompletedTask; });
 
         item.TryAgainCommand.CanExecute(null).ShouldBeFalse();
         await item.SignInCommand.ExecuteAsync(null);
-        signedIn.ShouldBe(1);
-        item.SignedIn.ShouldBeTrue();
-        item.Text.ShouldContain("Try again");
+        item.SignedIn.ShouldBeFalse();
+        item.Text.ShouldContain("did not finish");
+        item.TryAgainCommand.CanExecute(null).ShouldBeFalse();
+        item.HasLink.ShouldBeFalse();
 
+        works = true;
+        await item.SignInCommand.ExecuteAsync(null);
+        attempts.ShouldBe(2);
+        item.SignedIn.ShouldBeTrue();
+        item.Text.ShouldBe("Signed in. Choose Try again.");
         item.TryAgainCommand.CanExecute(null).ShouldBeTrue();
         await item.TryAgainCommand.ExecuteAsync(null);
         retried.ShouldBe(1);
     }
+
+    [Theory]
+    [InlineData("Opening browser to sign in...", null)]
+    [InlineData("If the browser didn't open, visit: https://claude.ai/oauth/authorize?code=true&client_id=abc.",
+        "https://claude.ai/oauth/authorize?code=true&client_id=abc")]
+    [InlineData("Visit https://example.org/phish to continue", null)]
+    public void The_sign_in_page_is_found_in_what_claude_prints(string line, string? link) =>
+        ClaudeLogin.LinkIn(line).ShouldBe(link);
 }

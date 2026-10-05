@@ -177,6 +177,7 @@ public static class Program
         services.AddSingleton<AppTools>();
         services.AddSingleton<PermissionMemory>();
         services.AddSingleton<ClaudeLauncher>();
+        services.AddSingleton<ClaudeLogin>();
         services.AddSingleton<QuoteSearch>();
 
         services.AddSingleton<UpdateService>();

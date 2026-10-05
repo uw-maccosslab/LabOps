@@ -11,7 +11,10 @@
         </StackPanel>
         <DockPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
             <Button DockPanel.Dock="Right" Content="Done" IsDefault="True" Click="OnDone" Style="{StaticResource PrimaryButton}" Margin="0" />
-            <TextBlock Text="{Binding Status}" Style="{StaticResource Muted}" VerticalAlignment="Center" />
+            <Button DockPanel.Dock="Right" Content="Stop waiting" Command="{Binding StopWaitingCommand}" Margin="0,0,8,0"
+                    ToolTip="Stop waiting for the sign-in in the browser."
+                    Visibility="{Binding IsWaiting, Converter={StaticResource BoolToVisibility}}" />
+            <TextBlock Text="{Binding Status}" Style="{StaticResource Muted}" VerticalAlignment="Center" TextWrapping="Wrap" />
         </DockPanel>
         <ScrollViewer VerticalScrollBarVisibility="Auto">
             <ItemsControl ItemsSource="{Binding Rows}">

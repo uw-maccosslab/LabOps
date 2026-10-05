@@ -46,11 +46,15 @@
         <DataTemplate DataType="{x:Type vm:SignInItem}">
             <Border Background="{StaticResource WarnLightBrush}" BorderBrush="#F79009" BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,6">
                 <StackPanel>
-                    <TextBlock Text="{Binding Text}" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,0,0,4" />
-                    <TextBlock TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,6"
-                               Text="A console window opens and your browser opens Claude. If the page says the window is too small, make it larger, then choose Authorize and close the console window." />
+                    <TextBlock Text="{Binding Text}" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,0,0,6" />
+                    <Button Style="{StaticResource LinkButton}" Content="Open the sign-in page" Command="{Binding OpenLinkCommand}"
+                            HorizontalAlignment="Left" Margin="0,0,0,6" ToolTip="If your browser did not open Claude's sign-in on its own."
+                            Visibility="{Binding HasLink, Converter={StaticResource BoolToVisibility}}" />
                     <WrapPanel>
-                        <Button Content="Sign in to Claude" Command="{Binding SignInCommand}" Style="{StaticResource PrimaryButton}" />
+                        <Button Content="Sign in to Claude" Command="{Binding SignInCommand}" Style="{StaticResource PrimaryButton}"
+                                ToolTip="Opens Claude's sign-in in your browser." />
+                        <Button Content="Stop waiting" Command="{Binding SignInCancelCommand}"
+                                Visibility="{Binding IsWorking, Converter={StaticResource BoolToVisibility}}" />
                         <Button Content="Try again" Command="{Binding TryAgainCommand}"
                                 ToolTip="Start this conversation again with the new sign-in." ToolTipService.ShowOnDisabled="True" />
                     </WrapPanel>

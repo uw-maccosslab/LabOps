@@ -34,6 +34,7 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
     private readonly AppTools _tools;
     private readonly PermissionMemory _permissions;
     private readonly SetupService _setup;
+    private readonly ClaudeLogin _login;
     private readonly ILogger<ChatViewModel> _log;
     private readonly Dispatcher _dispatcher;
 
@@ -50,13 +51,14 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
 
     public ChatViewModel(
         Workspace workspace, ClaudeLauncher launcher, AppTools tools, PermissionMemory permissions, SetupService setup,
-        ILogger<ChatViewModel> log)
+        ClaudeLogin login, ILogger<ChatViewModel> log)
     {
         _workspace = workspace;
         _launcher = launcher;
         _tools = tools;
         _permissions = permissions;
         _setup = setup;
+        _login = login;
         _log = log;
         _dispatcher = Dispatcher.CurrentDispatcher;
         Title = "Claude";
@@ -351,19 +353,40 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
         Items.Add(new SignInItem(SignInToClaudeAsync, TryAgainAsync));
     }
 
-    /// <summary>Runs <c>claude auth login</c> in a console window, as Setup does, and waits for it to close.</summary>
-    private async Task SignInToClaudeAsync()
+    /// <summary>
+    /// Signs in to Claude in the browser, with no console window (<see cref="ClaudeLogin"/>). If that
+    /// does not finish, offers the console window Setup used to open, where Claude Code can ask for
+    /// a code to paste.
+    /// </summary>
+    private async Task<bool> SignInToClaudeAsync(SignInItem item, CancellationToken cancellationToken)
     {
         try
         {
-            if (_setup.ConsoleFix(SetupStep.ClaudeSignIn) is { } command)
+            var result = await _login.SignInAsync(link => _dispatcher.InvokeAsync(() => item.Link = link), cancellationToken)
+                .ConfigureAwait(true);
+            if (result.Succeeded || result.Cancelled)
             {
-                await Shell.RunInConsoleAsync(command).ConfigureAwait(true);
+                return result.Succeeded;
             }
+
+            _log.LogWarning("claude auth login did not finish: {Output}", result.Output);
+            if (System.Windows.MessageBox.Show(
+                    "The sign-in did not finish. Sign in with a console window instead? It shows what Claude asks for, and you "
+                    + "close it when it says you are signed in.",
+                    Core.Infrastructure.AppInfo.ProductName, System.Windows.MessageBoxButton.YesNo,
+                    System.Windows.MessageBoxImage.Question) != System.Windows.MessageBoxResult.Yes
+                || _setup.ConsoleFix(SetupStep.ClaudeSignIn) is not { } command)
+            {
+                return false;
+            }
+
+            await Shell.RunInConsoleAsync(command).ConfigureAwait(true);
+            return true;
         }
-        catch (Exception ex) when (ex is ToolMissingException or System.ComponentModel.Win32Exception)
+        catch (Exception ex) when (ex is ToolMissingException or System.ComponentModel.Win32Exception or InvalidOperationException)
         {
             Items.Add(new NoticeItem($"The sign-in could not start: {ex.Message}", isError: true));
+            return false;
         }
     }
 

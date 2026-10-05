@@ -40,7 +40,9 @@ public sealed class NoticeItem(string text, bool isError) : ChatItem
 /// Claude Code's sign-in on this computer stopped working: sign in again, then try again. Shown in
 /// place of a bare "Failed to authenticate", which says what went wrong but not what to do.
 /// </summary>
-public sealed partial class SignInItem(Func<Task> signIn, Func<Task> tryAgain) : ChatItem
+/// <param name="signIn">Signs in (in the browser, with no console window); true when it worked.</param>
+/// <param name="tryAgain">Starts the conversation again.</param>
+public sealed partial class SignInItem(Func<SignInItem, CancellationToken, Task<bool>> signIn, Func<Task> tryAgain) : ChatItem
 {
     [ObservableProperty]
     public partial string Text { get; set; } =
@@ -50,20 +52,33 @@ public sealed partial class SignInItem(Func<Task> signIn, Func<Task> tryAgain) :
     [NotifyCanExecuteChangedFor(nameof(SignInCommand), nameof(TryAgainCommand))]
     public partial bool IsWorking { get; set; }
 
-    /// <summary>Signed in again (the console window closed), so trying again can work.</summary>
+    /// <summary>Signed in again, so trying again can work.</summary>
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(TryAgainCommand))]
     public partial bool SignedIn { get; set; }
 
-    [RelayCommand(CanExecute = nameof(CanSignIn))]
-    private async Task SignInAsync()
+    /// <summary>The sign-in page, in case the browser did not open on its own.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasLink))]
+    public partial string? Link { get; set; }
+
+    public bool HasLink => Link is not null && IsWorking;
+
+    partial void OnIsWorkingChanged(bool value) => OnPropertyChanged(nameof(HasLink));
+
+    [RelayCommand(CanExecute = nameof(CanSignIn), IncludeCancelCommand = true)]
+    private async Task SignInAsync(CancellationToken cancellationToken)
     {
         IsWorking = true;
+        Link = null;
+        Text = "Finish in your browser: sign in with your lab Claude account and choose Authorize. If the page says the "
+            + "window is too small, make it larger.";
         try
         {
-            await signIn().ConfigureAwait(true);
-            SignedIn = true;
-            Text = "If you signed in, choose Try again. If the window closed without signing in, choose Sign in to Claude again.";
+            SignedIn = await signIn(this, cancellationToken).ConfigureAwait(true);
+            Text = SignedIn ? "Signed in. Choose Try again."
+                : cancellationToken.IsCancellationRequested ? "Stopped waiting. Choose Sign in to Claude to start again."
+                : "The sign-in did not finish. Choose Sign in to Claude to try again.";
         }
         finally
         {
@@ -72,6 +87,15 @@ public sealed partial class SignInItem(Func<Task> signIn, Func<Task> tryAgain) :
     }
 
     private bool CanSignIn() => !IsWorking;
+
+    [RelayCommand]
+    private void OpenLink()
+    {
+        if (Link is not null)
+        {
+            Services.Shell.Open(Link);
+        }
+    }
 
     [RelayCommand(CanExecute = nameof(CanTryAgain))]
     private async Task TryAgainAsync()

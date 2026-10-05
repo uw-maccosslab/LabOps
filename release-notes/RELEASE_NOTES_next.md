@@ -14,6 +14,10 @@ the GitHub Release description and fails if it is missing.
   again**, which starts the conversation again. Setup's Claude sign-in also offers **Sign in again**
   when it shows as signed in, because a session that can no longer be refreshed still reports as
   signed in. Both say what to do when the sign-in page says the window is too small.
+- **Signing in to Claude no longer opens a console window.** The sign-in runs in the background
+  and the browser does the rest; the chat shows a link to the sign-in page in case the browser
+  does not open, and **Stop waiting** ends it. Only if it does not finish does LabOps offer the
+  console window it used before.
 
 ## Performance
 
