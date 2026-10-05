@@ -19,6 +19,9 @@ public sealed record ClaudeSessionOptions
     /// <summary>A model alias such as "opus"; null uses the user's own default.</summary>
     public string? Model { get; init; }
 
+    /// <summary>An effort level such as "high"; null uses the user's own default.</summary>
+    public string? Effort { get; init; }
+
     public string? McpConfigPath { get; init; }
 
     /// <summary>Full MCP tool name that answers permission prompts, e.g. mcp__quotes-app__approve.</summary>
@@ -54,6 +57,11 @@ public sealed record ClaudeSessionOptions
         if (Model is not null)
         {
             args.AddRange(["--model", Model]);
+        }
+
+        if (Effort is not null)
+        {
+            args.AddRange(["--effort", Effort]);
         }
 
         if (McpConfigPath is not null)

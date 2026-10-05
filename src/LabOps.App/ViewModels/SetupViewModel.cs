@@ -42,23 +42,27 @@ public sealed partial class SetupViewModel : ObservableObject
     private readonly QuoteEngine _quoteEngine;
     private readonly ProjectEngine _projectEngine;
     private readonly ProtocolEngine _protocolEngine;
-    private readonly ClaudeLogin _login;
+    private readonly ClaudeSignInFlow _signIn;
     private CancellationTokenSource? _waiting;
 
     public SetupViewModel(
         SetupService setup, Workspace workspace, QuoteEngine quoteEngine, ProjectEngine projectEngine, ProtocolEngine protocolEngine,
-        ClaudeLogin login)
+        ClaudeSignInFlow signIn)
     {
         _setup = setup;
         _workspace = workspace;
         _quoteEngine = quoteEngine;
         _projectEngine = projectEngine;
         _protocolEngine = protocolEngine;
-        _login = login;
+        _signIn = signIn;
+        Claude = new ClaudeSettingsViewModel(workspace.Settings, workspace.SaveSettings, ClaudeChoices.ReadClaudeDefaults());
         Status = "Checking...";
     }
 
     public ObservableCollection<SetupRowViewModel> Rows { get; } = [];
+
+    /// <summary>The model and effort Claude uses in LabOps, which this person chooses for themselves.</summary>
+    public ClaudeSettingsViewModel Claude { get; }
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(FixCommand))]
@@ -83,28 +87,18 @@ public sealed partial class SetupViewModel : ObservableObject
         using var waiting = new CancellationTokenSource();
         _waiting = waiting;
         IsWaiting = true;
-        ClaudeLoginResult result;
         try
         {
-            result = await _login.SignInAsync(null, waiting.Token).ConfigureAwait(true);
+            await _signIn.SignInAsync(null, explanation =>
+            {
+                IsWaiting = false;
+                Status = explanation;
+            }, waiting.Token).ConfigureAwait(true);
         }
         finally
         {
             IsWaiting = false;
             _waiting = null;
-        }
-
-        if (result.Succeeded || result.Cancelled)
-        {
-            return;
-        }
-
-        if (System.Windows.MessageBox.Show("The sign-in did not finish. Sign in with a console window instead?",
-                AppInfo.ProductName, System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question)
-            == System.Windows.MessageBoxResult.Yes && _setup.ConsoleFix(SetupStep.ClaudeSignIn) is { } command)
-        {
-            Status = command.Explanation;
-            await Shell.RunInConsoleAsync(command).ConfigureAwait(true);
         }
     }
 

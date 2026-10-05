@@ -17,42 +17,69 @@
             <TextBlock Text="{Binding Status}" Style="{StaticResource Muted}" VerticalAlignment="Center" TextWrapping="Wrap" />
         </DockPanel>
         <ScrollViewer VerticalScrollBarVisibility="Auto">
-            <ItemsControl ItemsSource="{Binding Rows}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,10">
-                            <DockPanel>
-                                <TextBlock DockPanel.Dock="Left" Width="28" FontSize="16" VerticalAlignment="Top">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="Text" Value="o" />
-                                            <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding Done}" Value="True">
-                                                    <Setter Property="Text" Value="&#x2713;" />
-                                                    <Setter Property="Foreground" Value="{StaticResource OkBrush}" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                                    <Button Content="{Binding AlternateLabel}" CommandParameter="{Binding}"
-                                            Command="{Binding DataContext.AlternateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                            Visibility="{Binding HasAlternate, Converter={StaticResource BoolToVisibility}}" />
-                                    <Button Content="{Binding FixLabel}" CommandParameter="{Binding}" Style="{StaticResource PrimaryButton}"
-                                            Command="{Binding DataContext.FixCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                            Visibility="{Binding CanFix, Converter={StaticResource BoolToVisibility}}" />
-                                </StackPanel>
-                                <StackPanel>
-                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
-                                    <TextBlock Text="{Binding Detail}" Style="{StaticResource Muted}" />
-                                </StackPanel>
-                            </DockPanel>
-                        </Border>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+            <StackPanel>
+                <ItemsControl ItemsSource="{Binding Rows}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,10">
+                                <DockPanel>
+                                    <TextBlock DockPanel.Dock="Left" Width="28" FontSize="16" VerticalAlignment="Top">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Text" Value="o" />
+                                                <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Done}" Value="True">
+                                                        <Setter Property="Text" Value="&#x2713;" />
+                                                        <Setter Property="Foreground" Value="{StaticResource OkBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Button Content="{Binding AlternateLabel}" CommandParameter="{Binding}"
+                                                Command="{Binding DataContext.AlternateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                Visibility="{Binding HasAlternate, Converter={StaticResource BoolToVisibility}}" />
+                                        <Button Content="{Binding FixLabel}" CommandParameter="{Binding}" Style="{StaticResource PrimaryButton}"
+                                                Command="{Binding DataContext.FixCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                Visibility="{Binding CanFix, Converter={StaticResource BoolToVisibility}}" />
+                                    </StackPanel>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                                        <TextBlock Text="{Binding Detail}" Style="{StaticResource Muted}" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- How Claude runs in LabOps: each person's choice, since it uses their own Claude plan -->
+                <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="28,12,0,12" DataContext="{Binding Claude}">
+                    <StackPanel>
+                        <TextBlock Text="Claude in LabOps" FontWeight="SemiBold" />
+                        <TextBlock Style="{StaticResource Muted}" Margin="0,0,0,8"
+                                   Text="The model and effort Claude uses in LabOps's conversations. A more capable model, or more effort, takes more care but uses more of your Claude plan. Your Claude Code default is what Claude uses in a terminal. A change applies to the next conversation you start." />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" MaxWidth="420" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Text="Model" VerticalAlignment="Center" Margin="0,0,12,0" />
+                            <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding Models}" SelectedItem="{Binding Model}"
+                                      DisplayMemberPath="Label" Margin="0,2,0,6" AutomationProperties.Name="Claude model" />
+                            <TextBlock Grid.Row="1" Text="Effort" VerticalAlignment="Center" Margin="0,0,12,0" />
+                            <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding Efforts}" SelectedItem="{Binding Effort}"
+                                      DisplayMemberPath="Label" Margin="0,2,0,6" AutomationProperties.Name="Claude effort" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
         </ScrollViewer>
     </DockPanel>
 </Window>

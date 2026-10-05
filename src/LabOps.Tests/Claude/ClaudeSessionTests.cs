@@ -85,6 +85,17 @@ public sealed class ClaudeSessionTests
         Following(args, "--disallowedTools").ShouldBe("Bash(git push:*)");
         Following(args, "--append-system-prompt").ShouldBe("be brief");
         args.ShouldNotContain("--model");
+        args.ShouldNotContain("--effort");
+    }
+
+    [Fact]
+    public void The_model_and_effort_chosen_in_setup_go_on_the_command_line()
+    {
+        var args = new ClaudeSessionOptions { ClaudePath = "claude.exe", WorkingDirectory = "C:\\Quotes", Model = "sonnet", Effort = "high" }
+            .BuildArguments();
+
+        Following(args, "--model").ShouldBe("sonnet");
+        Following(args, "--effort").ShouldBe("high");
     }
 
     [Fact]

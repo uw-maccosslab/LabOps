@@ -913,7 +913,7 @@ public sealed partial class MainViewModel : ObservableObject
         }
 
         var about = repository.Profile.Kind == RepositoryKind.Protocols
-            && Protocols.AllProtocols.FirstOrDefault(p => p.Id == item) is { } protocol ? ShortName(protocol) : item;
+            && Protocols.Find(item) is { } protocol ? ShortName(protocol) : item;
         return new ConversationMismatch(about, v.Label, v.Talk);
     }
 

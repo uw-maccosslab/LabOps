@@ -8,7 +8,6 @@ using LabOps.App.Views;
 using LabOps.Core.Claude;
 using LabOps.Core.Processes;
 using LabOps.Core.Repositories;
-using LabOps.Core.Setup;
 
 namespace LabOps.App.ViewModels;
 
@@ -33,8 +32,7 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
     private readonly ClaudeLauncher _launcher;
     private readonly AppTools _tools;
     private readonly PermissionMemory _permissions;
-    private readonly SetupService _setup;
-    private readonly ClaudeLogin _login;
+    private readonly ClaudeSignInFlow _signIn;
     private readonly ILogger<ChatViewModel> _log;
     private readonly Dispatcher _dispatcher;
 
@@ -46,19 +44,20 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
     // Claude again) can start it again.
     private StartRequest? _started;
     private string? _lastSent;
+    // This conversation's Claude Code session, known even before the item it is about.
+    private string? _sessionId;
     private bool _answered;
     private bool _signInOffered;
 
     public ChatViewModel(
-        Workspace workspace, ClaudeLauncher launcher, AppTools tools, PermissionMemory permissions, SetupService setup,
-        ClaudeLogin login, ILogger<ChatViewModel> log)
+        Workspace workspace, ClaudeLauncher launcher, AppTools tools, PermissionMemory permissions, ClaudeSignInFlow signIn,
+        ILogger<ChatViewModel> log)
     {
         _workspace = workspace;
         _launcher = launcher;
         _tools = tools;
         _permissions = permissions;
-        _setup = setup;
-        _login = login;
+        _signIn = signIn;
         _log = log;
         _dispatcher = Dispatcher.CurrentDispatcher;
         Title = "Claude";
@@ -134,34 +133,43 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
     /// <param name="prompt">The first message, not shown in the pane.</param>
     /// <param name="isNew">True when the conversation creates a new quote or project.</param>
     /// <param name="resume">Continue the last conversation about the item.</param>
-    public async Task StartAsync(Repository repository, string title, string? item, string prompt, bool isNew, bool resume = false)
+    public Task StartAsync(Repository repository, string title, string? item, string prompt, bool isNew, bool resume = false)
     {
-        await EndSessionAsync().ConfigureAwait(true);
-
-        Items.Clear();
-        Title = title;
-        _repository = repository;
-        OnPropertyChanged(nameof(Repository));
-        Item = item;
-        _isNew = isNew;
-        _started = new StartRequest(repository, title, item, prompt, isNew, resume);
-        IsWaitingForAnswer = false;
-        _answered = false;
-        _signInOffered = false;
-        IsOpen = true;
-
-        var server = await _workspace.ToolServerAsync().ConfigureAwait(true);
         string? resumeId = null;
         if (resume && item is not null)
         {
             _workspace.Settings.ClaudeSessions.TryGetValue(Workspace.SessionKey(repository.Profile, item), out resumeId);
         }
 
+        return StartWithAsync(new StartRequest(repository, title, item, prompt, isNew, resumeId));
+    }
+
+    private async Task StartWithAsync(StartRequest request)
+    {
+        await EndSessionAsync().ConfigureAwait(true);
+
+        var (repository, title, item, prompt, isNew, resumeId) = request;
+        Items.Clear();
+        Title = title;
+        _repository = repository;
+        OnPropertyChanged(nameof(Repository));
+        Item = item;
+        _isNew = isNew;
+        _started = request;
+        _sessionId = null;
+        IsWaitingForAnswer = false;
+        _answered = false;
+        _signInOffered = false;
+        IsOpen = true;
+
+        var server = await _workspace.ToolServerAsync().ConfigureAwait(true);
         ClaudeSession session;
         try
         {
+            // The model and effort are each person's choice in Setup, since they use that person's Claude plan.
             var options = _launcher.CreateOptions(repository.Profile, repository.Path, server,
-                _workspace.User?.Name ?? _workspace.User?.Login, resumeId, _workspace.Settings.ClaudeModel);
+                _workspace.User?.Name ?? _workspace.User?.Login, resumeId, _workspace.Settings.ClaudeModel,
+                _workspace.Settings.ClaudeEffort);
             session = _launcher.Start(options);
         }
         catch (Exception ex) when (ex is ToolMissingException or System.ComponentModel.Win32Exception)
@@ -176,7 +184,7 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
 
         if (resumeId is not null)
         {
-            Items.Add(new NoticeItem($"Continuing your earlier conversation about {item}.", isError: false));
+            Items.Add(new NoticeItem($"Continuing your earlier conversation about {item ?? title}.", isError: false));
         }
 
         // Shown before sending: Claude's first events can arrive while the send is awaited.
@@ -187,20 +195,22 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
     [RelayCommand(CanExecute = nameof(CanSend))]
     private async Task SendAsync()
     {
+        var text = Input.Trim();
+        // While Claude waits on a question, what is typed here is the answer. It is about this
+        // conversation whatever is on screen, so it needs no confirmation.
+        if (PendingQuestion is { } question)
+        {
+            Input = "";
+            question.AnswerWith(text);
+            return;
+        }
+
         if (!ConfirmedDespiteMismatch())
         {
             return;
         }
 
-        var text = Input.Trim();
         Input = "";
-        // While Claude waits on a question, what is typed here is the answer.
-        if (PendingQuestion is { } question)
-        {
-            question.AnswerWith(text);
-            return;
-        }
-
         if (_session is null || _session.HasEnded)
         {
             Items.Add(new NoticeItem("This conversation has ended. Start a new one from the quote or project.", isError: true));
@@ -285,11 +295,7 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
 
     public async Task EndSessionAsync()
     {
-        foreach (var question in Items.OfType<QuestionItem>())
-        {
-            question.Abandon();
-        }
-
+        AbandonQuestions();
         if (_session is not null)
         {
             var session = _session;
@@ -303,6 +309,20 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
         }
 
         IsBusy = false;
+    }
+
+    /// <summary>
+    /// Ends every question still waiting: once the turn or the conversation is over, nothing will
+    /// take the answer, so what is typed next is a message (or meets "This conversation has ended").
+    /// </summary>
+    private void AbandonQuestions()
+    {
+        foreach (var question in Items.OfType<QuestionItem>())
+        {
+            question.Abandon();
+        }
+
+        IsWaitingForAnswer = false;
     }
 
     private async Task SendCoreAsync(string text, bool show)
@@ -355,7 +375,7 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
             case AssistantText text:
                 Items.Add(new AssistantMessageItem(text.Text.Trim()));
                 // Claude Code reports a failed request as a message of its own ("API Error: 401 ...").
-                if (ClaudeSignIn.IsProblem(text.Text))
+                if (ClaudeSignIn.IsProblemReply(text.Text))
                 {
                     OfferSignIn();
                 }
@@ -376,6 +396,7 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
 
             case TurnFinished finished:
                 IsBusy = false;
+                AbandonQuestions();
                 RememberSession(finished.SessionId);
                 if (finished.IsError)
                 {
@@ -399,6 +420,7 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
 
             case SessionEnded ended:
                 IsBusy = false;
+                AbandonQuestions();
                 if (ended.ExitCode != 0)
                 {
                     var detail = string.IsNullOrWhiteSpace(ended.ErrorOutput) ? "" : $"\n\n{ended.ErrorOutput}";
@@ -429,35 +451,13 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
         Items.Add(new SignInItem(SignInToClaudeAsync, TryAgainAsync));
     }
 
-    /// <summary>
-    /// Signs in to Claude in the browser, with no console window (<see cref="ClaudeLogin"/>). If that
-    /// does not finish, offers the console window Setup used to open, where Claude Code can ask for
-    /// a code to paste.
-    /// </summary>
+    /// <summary>Signs in to Claude in the browser, or in a console window if that does not finish (<see cref="ClaudeSignInFlow"/>).</summary>
     private async Task<bool> SignInToClaudeAsync(SignInItem item, CancellationToken cancellationToken)
     {
         try
         {
-            var result = await _login.SignInAsync(link => _dispatcher.InvokeAsync(() => item.Link = link), cancellationToken)
+            return await _signIn.SignInAsync(link => _dispatcher.InvokeAsync(() => item.Link = link), null, cancellationToken)
                 .ConfigureAwait(true);
-            if (result.Succeeded || result.Cancelled)
-            {
-                return result.Succeeded;
-            }
-
-            _log.LogWarning("claude auth login did not finish: {Output}", result.Output);
-            if (System.Windows.MessageBox.Show(
-                    "The sign-in did not finish. Sign in with a console window instead? It shows what Claude asks for, and you "
-                    + "close it when it says you are signed in.",
-                    Core.Infrastructure.AppInfo.ProductName, System.Windows.MessageBoxButton.YesNo,
-                    System.Windows.MessageBoxImage.Question) != System.Windows.MessageBoxResult.Yes
-                || _setup.ConsoleFix(SetupStep.ClaudeSignIn) is not { } command)
-            {
-                return false;
-            }
-
-            await Shell.RunInConsoleAsync(command).ConfigureAwait(true);
-            return true;
         }
         catch (Exception ex) when (ex is ToolMissingException or System.ComponentModel.Win32Exception or InvalidOperationException)
         {
@@ -468,7 +468,8 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
 
     /// <summary>
     /// Starts the conversation again with the new sign-in: from its first request when Claude never
-    /// answered, otherwise continuing it with the last message sent.
+    /// answered, otherwise continuing the same conversation with the last message sent, so what
+    /// Claude already did (creating a new quote or protocol, say) is not done again.
     /// </summary>
     private Task TryAgainAsync()
     {
@@ -477,16 +478,21 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
             return Task.CompletedTask;
         }
 
-        return _answered && Item is not null
-            ? StartAsync(s.Repository, Title, Item, _lastSent ?? s.Prompt, isNew: false, resume: true)
-            : StartAsync(s.Repository, s.Title, s.Item, s.Prompt, s.IsNew, s.Resume);
+        return _answered && _sessionId is { } sessionId
+            ? StartWithAsync(new StartRequest(s.Repository, Title, Item, _lastSent ?? s.Prompt, _isNew && Item is null, sessionId))
+            : StartWithAsync(s);
     }
 
-    /// <summary>What a conversation was started with.</summary>
-    private sealed record StartRequest(Repository Repository, string Title, string? Item, string Prompt, bool IsNew, bool Resume);
+    /// <summary>What a conversation was started with: <see cref="ResumeId"/> is the Claude Code session it continues.</summary>
+    private sealed record StartRequest(Repository Repository, string Title, string? Item, string Prompt, bool IsNew, string? ResumeId);
 
     private void RememberSession(string? sessionId)
     {
+        if (!string.IsNullOrWhiteSpace(sessionId))
+        {
+            _sessionId = sessionId;
+        }
+
         if (!string.IsNullOrWhiteSpace(sessionId) && Item is not null && _repository is not null)
         {
             _workspace.Settings.ClaudeSessions[Workspace.SessionKey(_repository.Profile, Item)] = sessionId;

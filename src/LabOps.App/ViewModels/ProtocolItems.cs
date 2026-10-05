@@ -18,7 +18,11 @@ public sealed class ProtocolRow : ObservableObject
         Protocol = protocol;
         OwnerName = ownerName;
         CategoryOrder = categoryOrder;
+        _fingerprint = Fingerprint(protocol);
     }
+
+    // The listing the row shows, to tell whether a newer one differs.
+    private string _fingerprint;
 
     public ProtocolSummary Protocol { get; private set; }
 
@@ -31,7 +35,9 @@ public sealed class ProtocolRow : ObservableObject
     /// <summary>Takes a newer listing of the same protocol; true when anything about it changed.</summary>
     public bool Update(ProtocolSummary protocol, string ownerName, int categoryOrder)
     {
-        var changed = Fingerprint(protocol) != Fingerprint(Protocol) || ownerName != OwnerName || categoryOrder != CategoryOrder;
+        var fingerprint = Fingerprint(protocol);
+        var changed = fingerprint != _fingerprint || ownerName != OwnerName || categoryOrder != CategoryOrder;
+        _fingerprint = fingerprint;
         Protocol = protocol;
         OwnerName = ownerName;
         CategoryOrder = categoryOrder;

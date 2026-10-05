@@ -53,6 +53,10 @@ public sealed class ProtocolsAreaTests
         row.Update(Strap(1, draftChanges: false, "active"), "Michael MacCoss", 0).ShouldBeTrue();
         raised.ShouldBe([""]);
         row.Version.ShouldBe("v1");
+
+        // The same listing again is no change: the row compares with the listing it now shows.
+        row.Update(Strap(1, draftChanges: false, "active"), "Michael MacCoss", 0).ShouldBeFalse();
+        raised.ShouldBe([""]);
     }
 
     [Fact]

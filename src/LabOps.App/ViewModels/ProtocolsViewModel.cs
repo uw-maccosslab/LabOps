@@ -36,6 +36,7 @@ public sealed partial class ProtocolsViewModel : ObservableObject
     private readonly AppPaths _paths;
     private readonly ILogger<ProtocolsViewModel> _log;
     private List<ProtocolRow> _all = [];
+    private Dictionary<string, ProtocolRow> _byId = new(StringComparer.Ordinal);
     private IReadOnlyList<Person> _people = [];
     private IReadOnlyList<ProtocolCategory> _categories = [];
     private int _previewGeneration;
@@ -166,13 +167,12 @@ public sealed partial class ProtocolsViewModel : ObservableObject
         _people = list.People;
         _categories = list.Categories;
         var order = list.Categories.Select((c, i) => (c.Id, i)).ToDictionary(x => x.Id, x => x.i, StringComparer.Ordinal);
-        var rows = _all.ToDictionary(r => r.Id, StringComparer.Ordinal);
         var selectedChanged = false;
         _all = [.. list.Protocols.Select(p =>
         {
             var owner = p.Owner is { } o ? NameOf(o) : "";
             var rank = p.Category is { } c && order.TryGetValue(c, out var i) ? i : order.Count;
-            if (!rows.TryGetValue(p.Id, out var row))
+            if (!_byId.TryGetValue(p.Id, out var row))
             {
                 return new ProtocolRow(p, owner, rank);
             }
@@ -180,6 +180,7 @@ public sealed partial class ProtocolsViewModel : ObservableObject
             selectedChanged |= row.Update(p, owner, rank) && row == Selected;
             return row;
         })];
+        _byId = _all.ToDictionary(r => r.Id, StringComparer.Ordinal);
 
         var errors = list.Problems.Where(p => p.IsError).ToList();
         Banner = errors.Count == 0 ? null : "Problems in the lab protocols: " + string.Join("; ", errors.Select(e => e.Message));
@@ -216,10 +217,11 @@ public sealed partial class ProtocolsViewModel : ObservableObject
                 SetVersions(target.Protocol, keepVersion);
                 _ = RenderPreviewAsync();
             }
-            else
+            else if (SelectedVersion is { Version: null })
             {
-                // The listing did not change, but the text may have (a draft edited elsewhere):
-                // the page is rendered again and shown only if it differs.
+                // The listing did not change, but the draft's text may have (edited elsewhere): the
+                // page is rendered again and shown only if it differs. A published version never
+                // changes, so its page is left as it is.
                 _ = RenderPreviewAsync();
             }
         }
@@ -252,6 +254,9 @@ public sealed partial class ProtocolsViewModel : ObservableObject
 
     /// <summary>Every protocol, for the Add protocol tool on a project's steps.</summary>
     public IReadOnlyList<ProtocolSummary> AllProtocols => [.. _all.Select(r => r.Protocol)];
+
+    /// <summary>The protocol with this ID, or null.</summary>
+    public ProtocolSummary? Find(string id) => _byId.TryGetValue(id, out var row) ? row.Protocol : null;
 
     partial void OnQueryChanged(string value) => ApplyFilter();
 

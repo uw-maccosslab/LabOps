@@ -27,7 +27,7 @@ public partial class SetupWindow : Window
             services.GetRequiredService<QuoteEngine>(),
             services.GetRequiredService<ProjectEngine>(),
             services.GetRequiredService<ProtocolEngine>(),
-            services.GetRequiredService<LabOps.Core.Claude.ClaudeLogin>());
+            services.GetRequiredService<ClaudeSignInFlow>());
 
         var window = new SetupWindow(vm);
         if (owner is { IsVisible: true })

@@ -6,6 +6,12 @@ the GitHub Release description and fails if it is missing.
 
 ## New Features
 
+- **Choose the model and effort Claude uses in LabOps.** Setup has a new **Claude in LabOps**
+  section with **Model** (Opus, Sonnet or Haiku) and **Effort** (low to max). Both change how much
+  of your own Claude plan a conversation uses, so each person chooses for themselves. Until you
+  choose, LabOps uses your Claude Code default, the same as in a terminal, and Setup names it
+  when your Claude Code settings set one. A change applies to the next conversation you start.
+
 ## Bug Fixes
 
 - **An expired Claude sign-in can be fixed from the chat.** When Claude Code could not sign in
@@ -25,8 +31,8 @@ the GitHub Release description and fails if it is missing.
 - **Enter sends a message to Claude, and Claude's questions are answered in the same box.** In the
   chat, Enter now sends (Shift+Enter starts a new line). When Claude asks a question, its card keeps
   the answer buttons, and a typed answer goes in the chat's own box at the bottom, which stays open
-  while Claude waits (it was greyed out, and each question had a box of its own); the cursor moves
-  there when the question arrives.
+  while Claude waits (it was grayed out, and each question had a box of its own); the cursor moves
+  there when the question arrives, unless you are typing somewhere else.
 - **The chat says when you are looking at something else.** A conversation stays about the quote,
   project or protocol it started with, so a message typed while looking at another one went to the
   wrong conversation. When what is on screen differs, the chat now says so at the top ("This

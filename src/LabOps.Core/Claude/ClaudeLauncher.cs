@@ -53,13 +53,15 @@ public sealed class ClaudeLauncher
     ];
 
     public ClaudeSessionOptions CreateOptions(
-        RepositoryProfile profile, string repositoryPath, AppToolServer server, string? userName, string? resumeSessionId, string? model) =>
+        RepositoryProfile profile, string repositoryPath, AppToolServer server, string? userName, string? resumeSessionId, string? model,
+        string? effort) =>
         new()
         {
             ClaudePath = _tools.Require(Tool.Claude),
             WorkingDirectory = repositoryPath,
             ResumeSessionId = resumeSessionId,
-            Model = string.IsNullOrWhiteSpace(model) ? null : model,
+            Model = string.IsNullOrWhiteSpace(model) ? null : model.Trim(),
+            Effort = string.IsNullOrWhiteSpace(effort) ? null : effort.Trim(),
             McpConfigPath = server.WriteMcpConfig(_paths.SessionDirectory),
             PermissionPromptTool = AppTools.PermissionToolName,
             AllowedTools = AllowedTools(profile),
