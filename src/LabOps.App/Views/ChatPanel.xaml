@@ -118,6 +118,16 @@
             </DockPanel>
         </Border>
 
+        <!-- The person is looking at something other than what this conversation is about -->
+        <Border DockPanel.Dock="Top" Background="{StaticResource WarnLightBrush}" BorderBrush="#F79009" BorderThickness="0,0,0,1" Padding="10,8"
+                Visibility="{Binding HasMismatch, Converter={StaticResource BoolToVisibility}}">
+            <StackPanel>
+                <TextBlock Text="{Binding MismatchText}" TextWrapping="Wrap" />
+                <Button Content="{Binding TalkText}" Command="{Binding TalkAboutViewedCommand}" HorizontalAlignment="Left" Margin="0,6,0,0"
+                        ToolTip="Start, or continue, a conversation about what you are looking at. This one stays as it is." />
+            </StackPanel>
+        </Border>
+
         <Border DockPanel.Dock="Bottom" Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="10,8">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Margin="6,0,0,0">

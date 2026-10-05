@@ -8,6 +8,12 @@ namespace LabOps.App.ViewModels;
 /// <summary>One entry in the chat pane.</summary>
 public abstract class ChatItem : ObservableObject;
 
+/// <summary>The conversation is about one thing and the person is looking at another.</summary>
+/// <param name="About">What the conversation is about, as the person knows it.</param>
+/// <param name="Viewing">What the person is looking at now.</param>
+/// <param name="Talk">Starts (or offers to continue) a conversation about what they are looking at.</param>
+public sealed record ConversationMismatch(string About, string Viewing, IRelayCommand Talk);
+
 public sealed class UserMessageItem(string text) : ChatItem
 {
     public string Text { get; } = text;

@@ -85,8 +85,38 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
     [ObservableProperty]
     public partial bool IsOpen { get; set; }
 
-    /// <summary>The quote or project this conversation is about; a report names a new quote.</summary>
-    public string? Item { get; private set; }
+    /// <summary>The quote, project or protocol this conversation is about; a report names a new quote.</summary>
+    public string? Item
+    {
+        get => _item;
+        private set => SetProperty(ref _item, value);
+    }
+
+    private string? _item;
+
+    /// <summary>
+    /// Set when the person is looking at a different quote, project or protocol from the one this
+    /// conversation is about, so a message meant for that one does not go to this one.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasMismatch), nameof(MismatchText), nameof(TalkText))]
+    public partial ConversationMismatch? Mismatch { get; set; }
+
+    public bool HasMismatch => Mismatch is not null;
+
+    public string MismatchText => Mismatch is { } m ? $"This conversation is about {m.About}. You are looking at {m.Viewing}." : "";
+
+    public string TalkText => Mismatch is { } m ? $"Talk about {m.Viewing}" : "";
+
+    /// <summary>Starts (or continues) a conversation about what the person is looking at.</summary>
+    [RelayCommand]
+    private void TalkAboutViewed()
+    {
+        if (Mismatch?.Talk is { } talk && talk.CanExecute(null))
+        {
+            talk.Execute(null);
+        }
+    }
 
     /// <summary>The repository this conversation works in.</summary>
     public Repository? Repository => _repository;
@@ -110,8 +140,9 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
 
         Items.Clear();
         Title = title;
-        Item = item;
         _repository = repository;
+        OnPropertyChanged(nameof(Repository));
+        Item = item;
         _isNew = isNew;
         _started = new StartRequest(repository, title, item, prompt, isNew, resume);
         IsWaitingForAnswer = false;
@@ -156,6 +187,11 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
     [RelayCommand(CanExecute = nameof(CanSend))]
     private async Task SendAsync()
     {
+        if (!ConfirmedDespiteMismatch())
+        {
+            return;
+        }
+
         var text = Input.Trim();
         Input = "";
         // While Claude waits on a question, what is typed here is the answer.
@@ -172,6 +208,23 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
         }
 
         await SendCoreAsync(text, show: true).ConfigureAwait(true);
+    }
+
+    /// <summary>
+    /// Before a message goes to a conversation about something other than what the person is
+    /// looking at, they confirm it; otherwise the text stays in the box.
+    /// </summary>
+    private bool ConfirmedDespiteMismatch()
+    {
+        if (Mismatch is not { } m)
+        {
+            return true;
+        }
+
+        return ConfirmWindow.Ask(System.Windows.Application.Current.MainWindow, $"Send this about {m.About}?",
+            $"This conversation is about {m.About}, but you are looking at {m.Viewing}. Claude will take your message to be "
+            + $"about {m.About}. To talk about {m.Viewing} instead, choose Cancel, then {TalkText} at the top of the conversation.",
+            $"Send about {m.About}");
     }
 
     /// <summary>Claude is working on a turn, unless it is waiting for an answer, which is typed below.</summary>

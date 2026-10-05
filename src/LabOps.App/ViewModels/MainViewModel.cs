@@ -78,6 +78,36 @@ public sealed partial class MainViewModel : ObservableObject
             await Protocols.ShowAsync(id, version).ConfigureAwait(true);
         });
 
+        // The chat says so when the person looks at something other than what it is about.
+        PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is nameof(Area) or nameof(Selected))
+            {
+                CheckConversation();
+            }
+        };
+        Projects.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(ProjectsViewModel.Selected))
+            {
+                CheckConversation();
+            }
+        };
+        Protocols.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(ProtocolsViewModel.Selected))
+            {
+                CheckConversation();
+            }
+        };
+        Chat.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is nameof(ChatViewModel.IsOpen) or nameof(ChatViewModel.Item) or nameof(ChatViewModel.Repository))
+            {
+                CheckConversation();
+            }
+        };
+
         Query = "";
         Filter = QuoteFilter.Current;
         Area = AppArea.Projects;
@@ -856,6 +886,40 @@ public sealed partial class MainViewModel : ObservableObject
 
         await ReloadQuotesAsync(number).ConfigureAwait(true);
     }
+
+    /// <summary>
+    /// Tells the chat when the quote, project or protocol on screen is not the one its conversation
+    /// is about, so a message about one does not go to the conversation about the other.
+    /// </summary>
+    private void CheckConversation() => Chat.Mismatch = FindMismatch();
+
+    private ConversationMismatch? FindMismatch()
+    {
+        if (!Chat.IsOpen || Chat.Repository is not { } repository || Chat.Item is not { } item)
+        {
+            return null;
+        }
+
+        (RepositoryKind Kind, string Item, string Label, IRelayCommand Talk)? viewed = Area switch
+        {
+            AppArea.Protocols when Protocols.Selected is { } p => (RepositoryKind.Protocols, p.Id, ShortName(p.Protocol), Protocols.AskClaudeCommand),
+            AppArea.Projects when Projects.Selected is { } r => (RepositoryKind.Projects, r.Name, r.Name, Projects.AskClaudeCommand),
+            AppArea.Quotes when Selected is { } q => (RepositoryKind.Quotes, q.QuoteNumber, q.QuoteNumber, AskClaudeCommand),
+            _ => null,
+        };
+        if (viewed is not { } v || (v.Kind == repository.Profile.Kind && string.Equals(v.Item, item, StringComparison.OrdinalIgnoreCase)))
+        {
+            return null;
+        }
+
+        var about = repository.Profile.Kind == RepositoryKind.Protocols
+            && Protocols.AllProtocols.FirstOrDefault(p => p.Id == item) is { } protocol ? ShortName(protocol) : item;
+        return new ConversationMismatch(about, v.Label, v.Talk);
+    }
+
+    /// <summary>What people call a protocol at the bench (SAX KFKF), or its title.</summary>
+    private static string ShortName(Core.Protocols.ProtocolSummary p) =>
+        string.IsNullOrWhiteSpace(p.ShortTitle) ? p.DisplayTitle : p.ShortTitle!;
 
     // -- helpers -----------------------------------------------------------------------------
 

@@ -27,6 +27,11 @@ the GitHub Release description and fails if it is missing.
   the answer buttons, and a typed answer goes in the chat's own box at the bottom, which stays open
   while Claude waits (it was greyed out, and each question had a box of its own); the cursor moves
   there when the question arrives.
+- **The chat says when you are looking at something else.** A conversation stays about the quote,
+  project or protocol it started with, so a message typed while looking at another one went to the
+  wrong conversation. When what is on screen differs, the chat now says so at the top ("This
+  conversation is about QC aliquots. You are looking at SAX KFKF.") with **Talk about SAX KFKF**,
+  and Send asks before the message goes to the conversation about the other one.
 
 ## Performance
 
