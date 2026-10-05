@@ -76,6 +76,16 @@ public sealed class ProtocolEngineTests
             .Message.ShouldContain("did not list any protocols");
     }
 
+    [Fact]
+    public void A_listing_the_app_cannot_read_is_the_engine_s_error_not_a_crash()
+    {
+        // A version written as 1.0 in a protocol.yaml, as protocol engine 26.1.0 listed it.
+        using var doc = System.Text.Json.JsonDocument.Parse(
+            """{"ok": true, "protocols": [{"id": "s-trap", "versions": [{"version": 1.0}], "latest_version": 1.0}]}""");
+        Should.Throw<LabOps.Core.Engines.EngineException>(() => ProtocolEngine.ReadList(doc.RootElement))
+            .Message.ShouldStartWith("LabOps could not read what the protocol engine answered");
+    }
+
     /// <summary>
     /// Runs the real protocol.py through uv against a clone of LabOps-Protocols. Opt-in: set
     /// LAB_PROTOCOLS_REPO to the clone's path.

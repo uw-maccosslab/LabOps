@@ -90,7 +90,7 @@ public sealed class ProtocolEngine : IPreCommitCheck
         }
 
         using var doc = await RunAsync(args, cancellationToken).ConfigureAwait(false);
-        return doc.RootElement.Deserialize<ProtocolImport>(EngineJson.Options)
+        return EngineJson.Read(Name, m => new EngineException(m), () => doc.RootElement.Deserialize<ProtocolImport>(EngineJson.Options))
             ?? throw new EngineException("The protocol engine returned an empty import.");
     }
 
@@ -137,8 +137,9 @@ public sealed class ProtocolEngine : IPreCommitCheck
         List<T> Read<T>(string key) =>
             root.TryGetProperty(key, out var list) ? list.Deserialize<List<T>>(EngineJson.Options) ?? [] : [];
 
-        return new(protocols.Deserialize<List<ProtocolSummary>>(EngineJson.Options) ?? [], Read<ProtocolCategory>("categories"),
-            Read<Person>("people"), ReadProblems(root));
+        return EngineJson.Read(Name, m => new EngineException(m), () => new ProtocolList(
+            protocols.Deserialize<List<ProtocolSummary>>(EngineJson.Options) ?? [], Read<ProtocolCategory>("categories"),
+            Read<Person>("people"), ReadProblems(root)));
     }
 
     private static List<ProjectIssue> ReadProblems(JsonElement root) =>

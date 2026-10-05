@@ -42,9 +42,11 @@ the GitHub Release description and fails if it is missing.
   written into its text, so a draft pushed by anyone could run code in LabOps and send out what
   it could read. Both previews now run no scripts, and the protocol page loads nothing from the
   web or from other files on the computer (its figures are part of the page).
-- **A protocol LabOps cannot read no longer breaks the Protocols area.** A version written as
-  `1.0` in a protocol.yaml stopped the list from loading with an unexplained failure; the area now
-  says the protocols could not be loaded, and why.
+- **An engine answer LabOps cannot read no longer fails without a word.** A version written as
+  `1.0` in a protocol.yaml stopped the Protocols list from loading with an unexplained failure.
+  Now, in the Quotes, Projects and Protocols areas alike, an answer LabOps cannot read is reported
+  as that engine's problem ("LabOps could not read what the protocol engine answered..."), the same
+  way as any other.
 
 ## Performance
 

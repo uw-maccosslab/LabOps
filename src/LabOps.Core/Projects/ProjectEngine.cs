@@ -248,7 +248,7 @@ public sealed class ProjectEngine : IPreCommitCheck
     public async Task<ScanResult> ScanAsync(string file, CancellationToken cancellationToken = default)
     {
         using var doc = await RunAsync(["scan", file], cancellationToken).ConfigureAwait(false);
-        return doc.RootElement.Deserialize<ScanResult>(EngineJson.Options)
+        return EngineJson.Read(Name, m => new EngineException(m), () => doc.RootElement.Deserialize<ScanResult>(EngineJson.Options))
             ?? throw new EngineException("The project engine returned an empty scan.");
     }
 
@@ -296,9 +296,12 @@ public sealed class ProjectEngine : IPreCommitCheck
             throw new EngineException("This copy of the lab projects is older than this app. Sync it, or ask Mike to update the repository.");
         }
 
-        var people = root.TryGetProperty("people", out var list) ? list.Deserialize<List<Person>>(EngineJson.Options) ?? [] : [];
-        var hidden = root.TryGetProperty("closed_hidden", out var h) && h.TryGetInt32(out var n) ? n : 0;
-        return new(labs.Deserialize<List<LabSummary>>(EngineJson.Options) ?? [], people, ReadProblems(root), hidden);
+        return EngineJson.Read(Name, m => new EngineException(m), () =>
+        {
+            var people = root.TryGetProperty("people", out var list) ? list.Deserialize<List<Person>>(EngineJson.Options) ?? [] : [];
+            var hidden = root.TryGetProperty("closed_hidden", out var h) && h.TryGetInt32(out var n) ? n : 0;
+            return new ProjectList(labs.Deserialize<List<LabSummary>>(EngineJson.Options) ?? [], people, ReadProblems(root), hidden);
+        });
     }
 
     private static List<ProjectIssue> ReadProblems(JsonElement root) =>

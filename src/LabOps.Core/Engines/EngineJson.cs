@@ -71,6 +71,25 @@ public static class EngineJson
         throw error(message ?? $"The {engineName} reported a problem.");
     }
 
+    /// <summary>
+    /// Reads an engine's answer with <paramref name="read"/>. An answer in a shape LabOps cannot
+    /// read (a protocol version written as 1.0, a missing field) becomes the engine's own kind of
+    /// error, with a message for the user, which every area already shows, rather than an exception
+    /// the app does not expect.
+    /// </summary>
+    public static T Read<T>(string engineName, Func<string, Exception> error, Func<T> read)
+    {
+        try
+        {
+            return read();
+        }
+        catch (Exception ex) when (ex is JsonException or KeyNotFoundException or InvalidOperationException or FormatException)
+        {
+            throw error($"LabOps could not read what the {engineName} answered ({ex.Message}). Sync, and if it "
+                + "happens again, update LabOps.");
+        }
+    }
+
     /// <summary>Prepares the Python environment (the first run downloads it). Safe to repeat.</summary>
     public static async Task EnsureEnvironmentAsync(
         IProcessRunner runner, ToolLocator tools, string repository, Func<string, Exception> error, CancellationToken cancellationToken)

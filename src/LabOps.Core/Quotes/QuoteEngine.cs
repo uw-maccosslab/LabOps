@@ -116,10 +116,11 @@ public sealed class QuoteEngine
         EngineJson.EnsureEnvironmentAsync(_runner, _tools, RequireRepository(), m => new QuoteEngineException(m), cancellationToken);
 
     internal static IReadOnlyList<QuoteSummary> ReadQuotes(JsonElement root) =>
-        root.GetProperty("quotes").EnumerateArray().Select(ReadQuote).ToList();
+        EngineJson.Read<IReadOnlyList<QuoteSummary>>("quote engine", m => new QuoteEngineException(m),
+            () => root.GetProperty("quotes").EnumerateArray().Select(ReadQuote).ToList());
 
     internal static QuoteSummary ReadQuote(JsonElement element) =>
-        element.Deserialize<QuoteSummary>(JsonOptions)
+        EngineJson.Read("quote engine", m => new QuoteEngineException(m), () => element.Deserialize<QuoteSummary>(JsonOptions))
         ?? throw new QuoteEngineException("quote.py returned an empty quote.");
 
     private async Task<JsonDocument> RunAsync(

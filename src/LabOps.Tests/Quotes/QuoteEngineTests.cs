@@ -5,6 +5,16 @@ namespace LabOps.Tests.Quotes;
 
 public sealed class QuoteEngineTests
 {
+    [Theory]
+    [InlineData("""{"ok": true}""")]
+    [InlineData("""{"ok": true, "quotes": [{"number": "MacCoss-2026-X", "total": "a lot"}]}""")]
+    public void An_answer_the_app_cannot_read_is_the_engine_s_error_not_a_crash(string json)
+    {
+        using var doc = System.Text.Json.JsonDocument.Parse(json);
+        Should.Throw<QuoteEngineException>(() => QuoteEngine.ReadQuotes(doc.RootElement))
+            .Message.ShouldStartWith("LabOps could not read what the quote engine answered");
+    }
+
     [Fact]
     public void Real_list_output_is_read_into_summaries()
     {
