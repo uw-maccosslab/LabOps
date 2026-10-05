@@ -103,11 +103,14 @@ public sealed class SetupService
             claude is not null ? "Installed." : "Claude organizes sample metadata, updates projects and experiments, and drafts quotes.", "Install Claude Code"));
 
         var claudeAuth = claude is not null ? await ClaudeStatusAsync(claude, cancellationToken).ConfigureAwait(false) : null;
+        // A sign-in whose session expired still reports as signed in, so Sign in again stays on
+        // offer: it is how to fix "Failed to authenticate" from here.
         items.Add(new(SetupStep.ClaudeSignIn, "Claude sign-in", claudeAuth?.LoggedIn == true,
             claudeAuth?.LoggedIn == true
                 ? $"Signed in{(claudeAuth.Email is null ? "" : $" as {claudeAuth.Email}")}{(claudeAuth.OrgName is null ? "" : $" ({claudeAuth.OrgName})")}."
                 : "Sign in with your lab Claude account.",
-            claude is null ? null : "Sign in"));
+            claude is null ? null : "Sign in",
+            claude is not null && claudeAuth?.LoggedIn == true ? "Sign in again" : null));
 
         var projects = RepositoryProfile.Projects.LooksLikeClone(projectsPath);
         items.Add(new(SetupStep.ProjectsRepository, "Lab projects", projects,
@@ -208,7 +211,8 @@ public sealed class SetupService
             "A console window runs Anthropic's official Claude Code installer. Close it when it says the install finished."),
         SetupStep.ClaudeSignIn => PowerShell(
             $"& {Quote(_tools.Require(Tool.Claude))} auth login",
-            "A console window opens and your browser opens Claude. Sign in with your lab account, then close the console window."),
+            "A console window opens and your browser opens Claude. Sign in with your lab account (if the page says the window is "
+            + "too small, make it larger), choose Authorize, then close the console window."),
         _ => null,
     };
 

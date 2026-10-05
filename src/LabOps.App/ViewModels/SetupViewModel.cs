@@ -154,10 +154,33 @@ public sealed partial class SetupViewModel : ObservableObject
 
     private bool CanFix(SetupRowViewModel? row) => !IsWorking && row is { CanFix: true };
 
-    /// <summary>The second button on a repository row: use a copy the user already has.</summary>
+    /// <summary>
+    /// The second button on a row: on a repository, use a copy the user already has; on the Claude
+    /// sign-in, sign in again (an expired session still reports as signed in).
+    /// </summary>
     [RelayCommand(CanExecute = nameof(CanAlternate))]
     private async Task AlternateAsync(SetupRowViewModel row)
     {
+        if (row.Item.Step == SetupStep.ClaudeSignIn)
+        {
+            if (_setup.ConsoleFix(SetupStep.ClaudeSignIn) is { } command)
+            {
+                IsWorking = true;
+                try
+                {
+                    Status = command.Explanation;
+                    await Shell.RunInConsoleAsync(command).ConfigureAwait(true);
+                }
+                finally
+                {
+                    IsWorking = false;
+                }
+            }
+
+            await RefreshAsync().ConfigureAwait(true);
+            return;
+        }
+
         if (row.Item.Profile is not { } profile)
         {
             return;

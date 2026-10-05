@@ -36,6 +36,60 @@ public sealed class NoticeItem(string text, bool isError) : ChatItem
     public bool IsError { get; } = isError;
 }
 
+/// <summary>
+/// Claude Code's sign-in on this computer stopped working: sign in again, then try again. Shown in
+/// place of a bare "Failed to authenticate", which says what went wrong but not what to do.
+/// </summary>
+public sealed partial class SignInItem(Func<Task> signIn, Func<Task> tryAgain) : ChatItem
+{
+    [ObservableProperty]
+    public partial string Text { get; set; } =
+        "Claude's sign-in on this computer has expired. Sign in again with your lab Claude account, then try again.";
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(SignInCommand), nameof(TryAgainCommand))]
+    public partial bool IsWorking { get; set; }
+
+    /// <summary>Signed in again (the console window closed), so trying again can work.</summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(TryAgainCommand))]
+    public partial bool SignedIn { get; set; }
+
+    [RelayCommand(CanExecute = nameof(CanSignIn))]
+    private async Task SignInAsync()
+    {
+        IsWorking = true;
+        try
+        {
+            await signIn().ConfigureAwait(true);
+            SignedIn = true;
+            Text = "If you signed in, choose Try again. If the window closed without signing in, choose Sign in to Claude again.";
+        }
+        finally
+        {
+            IsWorking = false;
+        }
+    }
+
+    private bool CanSignIn() => !IsWorking;
+
+    [RelayCommand(CanExecute = nameof(CanTryAgain))]
+    private async Task TryAgainAsync()
+    {
+        IsWorking = true;
+        try
+        {
+            await tryAgain().ConfigureAwait(true);
+        }
+        finally
+        {
+            IsWorking = false;
+        }
+    }
+
+    private bool CanTryAgain() => SignedIn && !IsWorking;
+}
+
 /// <summary>A question from Claude, answered with a button or by typing.</summary>
 public sealed partial class QuestionItem : ChatItem
 {

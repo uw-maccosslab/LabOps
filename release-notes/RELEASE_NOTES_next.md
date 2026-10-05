@@ -8,6 +8,13 @@ the GitHub Release description and fails if it is missing.
 
 ## Bug Fixes
 
+- **An expired Claude sign-in can be fixed from the chat.** When Claude Code could not sign in
+  ("Failed to authenticate: OAuth session expired and could not be refreshed"), the chat showed only
+  the error. It now offers **Sign in to Claude**, which opens Claude's sign-in, and then **Try
+  again**, which starts the conversation again. Setup's Claude sign-in also offers **Sign in again**
+  when it shows as signed in, because a session that can no longer be refreshed still reports as
+  signed in. Both say what to do when the sign-in page says the window is too small.
+
 ## Performance
 
 ## Breaking Changes

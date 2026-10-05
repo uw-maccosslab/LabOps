@@ -8,6 +8,7 @@ using LabOps.App.Views;
 using LabOps.Core.Claude;
 using LabOps.Core.Processes;
 using LabOps.Core.Repositories;
+using LabOps.Core.Setup;
 
 namespace LabOps.App.ViewModels;
 
@@ -32,6 +33,7 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
     private readonly ClaudeLauncher _launcher;
     private readonly AppTools _tools;
     private readonly PermissionMemory _permissions;
+    private readonly SetupService _setup;
     private readonly ILogger<ChatViewModel> _log;
     private readonly Dispatcher _dispatcher;
 
@@ -39,13 +41,22 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
     private Repository? _repository;
     private QuoteReport? _turnReport;
     private bool _isNew;
+    // How the conversation started and what was last sent, so Try again (after signing in to
+    // Claude again) can start it again.
+    private StartRequest? _started;
+    private string? _lastSent;
+    private bool _answered;
+    private bool _signInOffered;
 
-    public ChatViewModel(Workspace workspace, ClaudeLauncher launcher, AppTools tools, PermissionMemory permissions, ILogger<ChatViewModel> log)
+    public ChatViewModel(
+        Workspace workspace, ClaudeLauncher launcher, AppTools tools, PermissionMemory permissions, SetupService setup,
+        ILogger<ChatViewModel> log)
     {
         _workspace = workspace;
         _launcher = launcher;
         _tools = tools;
         _permissions = permissions;
+        _setup = setup;
         _log = log;
         _dispatcher = Dispatcher.CurrentDispatcher;
         Title = "Claude";
@@ -100,6 +111,9 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
         Item = item;
         _repository = repository;
         _isNew = isNew;
+        _started = new StartRequest(repository, title, item, prompt, isNew, resume);
+        _answered = false;
+        _signInOffered = false;
         IsOpen = true;
 
         var server = await _workspace.ToolServerAsync().ConfigureAwait(true);
@@ -220,6 +234,7 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
             Items.Add(new UserMessageItem(text));
         }
 
+        _lastSent = text;
         _turnReport = null;
         IsBusy = true;
         try
@@ -261,6 +276,12 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
 
             case AssistantText text:
                 Items.Add(new AssistantMessageItem(text.Text.Trim()));
+                // Claude Code reports a failed request as a message of its own ("API Error: 401 ...").
+                if (ClaudeSignIn.IsProblem(text.Text))
+                {
+                    OfferSignIn();
+                }
+
                 break;
 
             case ToolStarted tool when tool.Describe() is { Length: > 0 } description:
@@ -281,6 +302,14 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
                 if (finished.IsError)
                 {
                     Items.Add(new NoticeItem(finished.Result ?? "Claude stopped with an error.", isError: true));
+                    if (ClaudeSignIn.IsProblem(finished.Result))
+                    {
+                        OfferSignIn();
+                    }
+                }
+                else
+                {
+                    _answered = true;
                 }
 
                 if (TurnCompleted is { } handler && _repository is not null)
@@ -298,9 +327,64 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
                     Items.Add(new NoticeItem($"Claude stopped unexpectedly (exit code {ended.ExitCode}).{detail}", isError: true));
                 }
 
+                if (ClaudeSignIn.IsProblem(ended.ErrorOutput))
+                {
+                    OfferSignIn();
+                }
+
                 break;
         }
     }
+
+    /// <summary>
+    /// Offers Sign in to Claude, once per conversation. Setup cannot see this problem, because
+    /// <c>claude auth status</c> still reports a session that can no longer be refreshed as signed in.
+    /// </summary>
+    private void OfferSignIn()
+    {
+        if (_signInOffered)
+        {
+            return;
+        }
+
+        _signInOffered = true;
+        Items.Add(new SignInItem(SignInToClaudeAsync, TryAgainAsync));
+    }
+
+    /// <summary>Runs <c>claude auth login</c> in a console window, as Setup does, and waits for it to close.</summary>
+    private async Task SignInToClaudeAsync()
+    {
+        try
+        {
+            if (_setup.ConsoleFix(SetupStep.ClaudeSignIn) is { } command)
+            {
+                await Shell.RunInConsoleAsync(command).ConfigureAwait(true);
+            }
+        }
+        catch (Exception ex) when (ex is ToolMissingException or System.ComponentModel.Win32Exception)
+        {
+            Items.Add(new NoticeItem($"The sign-in could not start: {ex.Message}", isError: true));
+        }
+    }
+
+    /// <summary>
+    /// Starts the conversation again with the new sign-in: from its first request when Claude never
+    /// answered, otherwise continuing it with the last message sent.
+    /// </summary>
+    private Task TryAgainAsync()
+    {
+        if (_started is not { } s)
+        {
+            return Task.CompletedTask;
+        }
+
+        return _answered && Item is not null
+            ? StartAsync(s.Repository, Title, Item, _lastSent ?? s.Prompt, isNew: false, resume: true)
+            : StartAsync(s.Repository, s.Title, s.Item, s.Prompt, s.IsNew, s.Resume);
+    }
+
+    /// <summary>What a conversation was started with.</summary>
+    private sealed record StartRequest(Repository Repository, string Title, string? Item, string Prompt, bool IsNew, bool Resume);
 
     private void RememberSession(string? sessionId)
     {
