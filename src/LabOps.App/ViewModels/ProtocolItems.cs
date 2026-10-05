@@ -1,12 +1,50 @@
+using System.Text.Json;
+using CommunityToolkit.Mvvm.ComponentModel;
 using LabOps.Core.Protocols;
 
 namespace LabOps.App.ViewModels;
 
-/// <summary>One row of the protocol list.</summary>
-/// <param name="OwnerName">Who keeps it current, as a name.</param>
-/// <param name="CategoryOrder">Where its category comes in config/categories.yaml, for the list's order.</param>
-public sealed record ProtocolRow(ProtocolSummary Protocol, string OwnerName, int CategoryOrder = 0)
+/// <summary>
+/// One row of the protocol list. A reload updates the row in place (<see cref="Update"/>) rather
+/// than replacing it, so the list keeps its selection and the page shown does not flicker.
+/// </summary>
+public sealed class ProtocolRow : ObservableObject
 {
+    /// <param name="protocol">The protocol as protocol.py lists it.</param>
+    /// <param name="ownerName">Who keeps it current, as a name.</param>
+    /// <param name="categoryOrder">Where its category comes in config/categories.yaml, for the list's order.</param>
+    public ProtocolRow(ProtocolSummary protocol, string ownerName, int categoryOrder = 0)
+    {
+        Protocol = protocol;
+        OwnerName = ownerName;
+        CategoryOrder = categoryOrder;
+    }
+
+    public ProtocolSummary Protocol { get; private set; }
+
+    /// <summary>Who keeps it current, as a name.</summary>
+    public string OwnerName { get; private set; }
+
+    /// <summary>Where its category comes in config/categories.yaml, for the list's order.</summary>
+    public int CategoryOrder { get; private set; }
+
+    /// <summary>Takes a newer listing of the same protocol; true when anything about it changed.</summary>
+    public bool Update(ProtocolSummary protocol, string ownerName, int categoryOrder)
+    {
+        var changed = Fingerprint(protocol) != Fingerprint(Protocol) || ownerName != OwnerName || categoryOrder != CategoryOrder;
+        Protocol = protocol;
+        OwnerName = ownerName;
+        CategoryOrder = categoryOrder;
+        if (changed)
+        {
+            OnPropertyChanged(string.Empty);
+        }
+
+        return changed;
+    }
+
+    private static string Fingerprint(ProtocolSummary p) => JsonSerializer.Serialize(p);
+
     public string Id => Protocol.Id;
 
     // What screen readers and UI Automation read for the row.

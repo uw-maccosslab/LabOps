@@ -18,6 +18,10 @@ the GitHub Release description and fails if it is missing.
   and the browser does the rest; the chat shows a link to the sign-in page in case the browser
   does not open, and **Stop waiting** ends it. Only if it does not finish does LabOps offer the
   console window it used before.
+- **The protocol shown no longer flickers when LabOps syncs.** Every sync that brought in a commit
+  (including the README index GitHub commits after each save) emptied and refilled the protocol
+  list, so the page went blank and came back. The list is now updated in place, keeping the
+  protocol and version selected, and the page is redrawn only when it changed.
 
 ## Performance
 

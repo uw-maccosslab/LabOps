@@ -39,6 +39,12 @@ public sealed partial class ProtocolsViewModel : ObservableObject
     private IReadOnlyList<Person> _people = [];
     private IReadOnlyList<ProtocolCategory> _categories = [];
     private int _previewGeneration;
+    // While a reload updates the list in place, filter changes wait for it to finish.
+    private bool _reloading;
+    // While the versions box is refilled, its changing selection draws nothing.
+    private bool _settingVersions;
+    // The version to show when a reload selects the protocol again.
+    private VersionChoice? _restoreVersion;
 
     public ProtocolsViewModel(
         Workspace workspace, ProtocolEngine engine, WorkTracker work, ChatViewModel chat, AppPaths paths, ILogger<ProtocolsViewModel> log)
@@ -131,7 +137,11 @@ public sealed partial class ProtocolsViewModel : ObservableObject
 
     // -- loading -----------------------------------------------------------------------------
 
-    /// <summary>Re-reads the protocols from this computer, keeping (or moving to) the selection.</summary>
+    /// <summary>
+    /// Re-reads the protocols from this computer, keeping (or moving to) the selection. Rows are
+    /// updated in place and the page is redrawn only when it changed, so a sync that brings in
+    /// someone else's work (or the README index GitHub commits after each push) does not flicker.
+    /// </summary>
     public async Task ReloadAsync(string? select = null, int? version = null)
     {
         IsAvailable = Repository is not null;
@@ -141,27 +151,11 @@ public sealed partial class ProtocolsViewModel : ObservableObject
         }
 
         var keep = select ?? Selected?.Id;
-        var keepVersion = select is null ? SelectedVersion?.Version : version;
+        var keepVersion = select is null ? SelectedVersion : version is { } v ? new VersionChoice(v, "") : null;
+        ProtocolList list;
         try
         {
-            var list = await _engine.ListAsync().ConfigureAwait(true);
-            _people = list.People;
-            _categories = list.Categories;
-            var order = list.Categories.Select((c, i) => (c.Id, i)).ToDictionary(x => x.Id, x => x.i, StringComparer.Ordinal);
-            _all = [.. list.Protocols.Select(p => new ProtocolRow(p, p.Owner is { } o ? NameOf(o) : "",
-                p.Category is { } c && order.TryGetValue(c, out var i) ? i : order.Count))];
-            var chosen = Category?.Id;
-            Categories.Clear();
-            Categories.Add(AllCategories);
-            // The filter offers the categories that have protocols; New protocol offers them all.
-            foreach (var c in list.Categories.Where(c => _all.Any(r => r.Protocol.Category == c.Id)))
-            {
-                Categories.Add(new CategoryChoice(c.Id, c.Label));
-            }
-
-            Category = Categories.FirstOrDefault(c => c.Id == chosen) ?? AllCategories;
-            var errors = list.Problems.Where(p => p.IsError).ToList();
-            Banner = errors.Count == 0 ? null : "Problems in the lab protocols: " + string.Join("; ", errors.Select(e => e.Message));
+            list = await _engine.ListAsync().ConfigureAwait(true);
         }
         catch (Exception ex) when (ex is EngineException or ToolMissingException or GitException)
         {
@@ -169,22 +163,64 @@ public sealed partial class ProtocolsViewModel : ObservableObject
             return;
         }
 
-        repository.ReloadConfig();
-        ApplyFilter();
-        if (keep is not null && _all.FirstOrDefault(r => r.Id == keep) is { } row)
+        _people = list.People;
+        _categories = list.Categories;
+        var order = list.Categories.Select((c, i) => (c.Id, i)).ToDictionary(x => x.Id, x => x.i, StringComparer.Ordinal);
+        var rows = _all.ToDictionary(r => r.Id, StringComparer.Ordinal);
+        var selectedChanged = false;
+        _all = [.. list.Protocols.Select(p =>
         {
-            if (!Protocols.Contains(row))
+            var owner = p.Owner is { } o ? NameOf(o) : "";
+            var rank = p.Category is { } c && order.TryGetValue(c, out var i) ? i : order.Count;
+            if (!rows.TryGetValue(p.Id, out var row))
+            {
+                return new ProtocolRow(p, owner, rank);
+            }
+
+            selectedChanged |= row.Update(p, owner, rank) && row == Selected;
+            return row;
+        })];
+
+        var errors = list.Problems.Where(p => p.IsError).ToList();
+        Banner = errors.Count == 0 ? null : "Problems in the lab protocols: " + string.Join("; ", errors.Select(e => e.Message));
+        repository.ReloadConfig();
+        _reloading = true;
+        try
+        {
+            UpdateCategories();
+            ShowRows();
+        }
+        finally
+        {
+            _reloading = false;
+        }
+
+        if (keep is not null && _all.FirstOrDefault(r => r.Id == keep) is { } target)
+        {
+            if (!Protocols.Contains(target))
             {
                 // Hidden by the search, the category or the retired filter: show everything rather than lose it.
                 Query = "";
                 Category = AllCategories;
-                ShowRetired = ShowRetired || row.IsRetired;
+                ShowRetired = ShowRetired || target.IsRetired;
             }
 
-            Selected = Protocols.FirstOrDefault(r => r.Id == keep);
-            if (Selected is not null && Versions.FirstOrDefault(v => v.Version == keepVersion) is { } v)
+            if (Selected != target)
             {
-                SelectedVersion = v;
+                _restoreVersion = keepVersion;
+                Selected = target;
+            }
+            else if (selectedChanged || (keepVersion is not null && keepVersion.Version != SelectedVersion?.Version))
+            {
+                ShowSelectedDetails();
+                SetVersions(target.Protocol, keepVersion);
+                _ = RenderPreviewAsync();
+            }
+            else
+            {
+                // The listing did not change, but the text may have (a draft edited elsewhere):
+                // the page is rendered again and shown only if it differs.
+                _ = RenderPreviewAsync();
             }
         }
 
@@ -225,75 +261,206 @@ public sealed partial class ProtocolsViewModel : ObservableObject
 
     partial void OnSelectedChanged(ProtocolRow? value)
     {
-        Versions.Clear();
-        if (value is not null)
+        var restore = _restoreVersion;
+        _restoreVersion = null;
+        ShowSelectedDetails();
+        if (value is null)
         {
-            foreach (var choice in VersionChoice.For(value.Protocol))
-            {
-                Versions.Add(choice);
-            }
-
-            SelectedVersion = VersionChoice.Default(Versions, value.Protocol);
+            SetVersions(null, null);
+            PreviewFile = null;
         }
         else
         {
-            SelectedVersion = null;
+            SetVersions(value.Protocol, restore);
+            _ = RenderPreviewAsync();
         }
 
-        _ = RenderPreviewAsync();
         RefreshCommands();
     }
 
-    partial void OnSelectedVersionChanged(VersionChoice? value) => _ = RenderPreviewAsync();
-
-    private void ApplyFilter()
+    partial void OnSelectedVersionChanged(VersionChoice? value)
     {
-        var selected = Selected?.Id;
-        Protocols.Clear();
-        foreach (var row in _all.Where(r => (ShowRetired || !r.IsRetired) && (Category?.Id is null || r.Protocol.Category == Category.Id)
-                         && r.Matches(Query))
-                     .OrderBy(r => r.CategoryOrder)
-                     .ThenBy(r => r.Title, StringComparer.CurrentCultureIgnoreCase))
+        if (!_settingVersions)
         {
-            Protocols.Add(row);
+            _ = RenderPreviewAsync();
         }
+    }
 
-        Selected = Protocols.FirstOrDefault(r => r.Id == selected);
+    /// <summary>The selected protocol's details, after its listing changed.</summary>
+    private void ShowSelectedDetails()
+    {
+        foreach (var name in new[] { nameof(SelectedTitle), nameof(SelectedDetail), nameof(SelectedIssues), nameof(IsRetiredSelected),
+                     nameof(PublishText), nameof(HasSelection) })
+        {
+            OnPropertyChanged(name);
+        }
     }
 
     /// <summary>
-    /// Renders the selected version to a file in the app's data folder, which the view shows. A
-    /// newer request wins, so clicking through the list never shows an older page last.
+    /// The versions to choose from, changed only when they differ, and the one shown: the one asked
+    /// for (by number, or the draft) when it is still there, else the current version.
+    /// </summary>
+    private void SetVersions(ProtocolSummary? protocol, VersionChoice? keep)
+    {
+        _settingVersions = true;
+        try
+        {
+            IReadOnlyList<VersionChoice> choices = protocol is null ? [] : VersionChoice.For(protocol);
+            if (!choices.SequenceEqual(Versions))
+            {
+                Versions.Clear();
+                foreach (var choice in choices)
+                {
+                    Versions.Add(choice);
+                }
+            }
+
+            SelectedVersion = protocol is null ? null
+                : (keep is null ? null : Versions.FirstOrDefault(c => c.Version == keep.Version)) ?? VersionChoice.Default(Versions, protocol);
+        }
+        finally
+        {
+            _settingVersions = false;
+        }
+    }
+
+    private void ApplyFilter()
+    {
+        if (!_reloading)
+        {
+            ShowRows();
+        }
+    }
+
+    /// <summary>The categories that have protocols, changed only when they differ.</summary>
+    private void UpdateCategories()
+    {
+        List<CategoryChoice> wanted = [AllCategories, .. _categories.Where(c => _all.Any(r => r.Protocol.Category == c.Id))
+            .Select(c => new CategoryChoice(c.Id, c.Label))];
+        if (wanted.SequenceEqual(Categories))
+        {
+            return;
+        }
+
+        var chosen = Category?.Id;
+        Categories.Clear();
+        foreach (var c in wanted)
+        {
+            Categories.Add(c);
+        }
+
+        Category = Categories.FirstOrDefault(c => c.Id == chosen) ?? AllCategories;
+    }
+
+    /// <summary>
+    /// Brings the list to the rows the search and filters show, in order, by removing, moving and
+    /// inserting rows rather than clearing it, so the selected row stays selected.
+    /// </summary>
+    private void ShowRows()
+    {
+        var target = _all.Where(r => (ShowRetired || !r.IsRetired) && (Category?.Id is null || r.Protocol.Category == Category.Id)
+                         && r.Matches(Query))
+                     .OrderBy(r => r.CategoryOrder)
+                     .ThenBy(r => r.Title, StringComparer.CurrentCultureIgnoreCase)
+                     .ToList();
+        for (var i = Protocols.Count - 1; i >= 0; i--)
+        {
+            if (!target.Contains(Protocols[i]))
+            {
+                Protocols.RemoveAt(i);
+            }
+        }
+
+        for (var i = 0; i < target.Count; i++)
+        {
+            if (i < Protocols.Count && Protocols[i] == target[i])
+            {
+                continue;
+            }
+
+            var at = Protocols.IndexOf(target[i]);
+            if (at >= 0)
+            {
+                Protocols.Move(at, i);
+            }
+            else
+            {
+                Protocols.Insert(i, target[i]);
+            }
+        }
+
+        if (Selected is not null && !Protocols.Contains(Selected))
+        {
+            Selected = null;
+        }
+    }
+
+    /// <summary>
+    /// Renders the selected version to a scratch file and shows it only when it differs from the
+    /// page already shown, so rendering again after a sync redraws nothing when nothing changed.
+    /// A newer request wins, so clicking through the list never shows an older page last.
     /// </summary>
     private async Task RenderPreviewAsync()
     {
         var generation = ++_previewGeneration;
-        if (Selected is not { } row || Repository is null || (SelectedVersion is null && Versions.Count > 0))
+        if (Selected is not { } row || Repository is null || SelectedVersion is not { } shown)
         {
-            PreviewFile = null;
-            return;
-        }
-
-        var version = SelectedVersion?.Version;
-        var folder = Path.Combine(_paths.Root, "protocols");
-        var file = Path.Combine(folder, $"{row.Id}-{(version is { } v ? $"v{v}" : "draft")}.html");
-        try
-        {
-            Directory.CreateDirectory(folder);
-            await _engine.RenderAsync(row.Id, version, file).ConfigureAwait(true);
-        }
-        catch (Exception ex) when (ex is EngineException or ToolMissingException or IOException)
-        {
-            if (generation == _previewGeneration)
+            if (Selected is null)
             {
-                Banner = $"{row.Id} could not be shown: {ex.Message}";
                 PreviewFile = null;
             }
 
             return;
         }
 
-        if (generation == _previewGeneration)
+        var folder = Path.Combine(_paths.Root, "protocols");
+        var file = Path.Combine(folder, $"{row.Id}-{(shown.Version is { } v ? $"v{v}" : "draft")}.html");
+        var fresh = $"{file}.{generation}.new";
+        try
+        {
+            Directory.CreateDirectory(folder);
+            await _engine.RenderAsync(row.Id, shown.Version, fresh).ConfigureAwait(true);
+            if (generation != _previewGeneration)
+            {
+                return;
+            }
+
+            if (PreviewFile == file && File.Exists(file) && File.ReadAllBytes(file).AsSpan().SequenceEqual(File.ReadAllBytes(fresh)))
+            {
+                _log.LogDebug("The page of {Protocol} is unchanged; not redrawn.", row.Id);
+                return;
+            }
+
+            File.Move(fresh, file, overwrite: true);
+        }
+        catch (Exception ex) when (ex is EngineException or ToolMissingException or IOException or UnauthorizedAccessException)
+        {
+            if (generation == _previewGeneration)
+            {
+                Banner = $"{row.Id} could not be shown: {ex.Message}";
+            }
+
+            return;
+        }
+        finally
+        {
+            try
+            {
+                File.Delete(fresh);
+            }
+            catch (IOException)
+            {
+                // Left for the next render to replace.
+            }
+        }
+
+        _log.LogDebug("Showing the page of {Protocol} ({Version}).", row.Id, shown.Version is { } n ? $"v{n}" : "draft");
+        if (PreviewFile == file)
+        {
+            // The same file with new content: tell the view to load it again.
+            OnPropertyChanged(nameof(PreviewFile));
+        }
+        else
         {
             PreviewFile = file;
         }

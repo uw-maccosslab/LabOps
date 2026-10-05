@@ -41,6 +41,21 @@ public sealed class ProtocolsAreaTests
     }
 
     [Fact]
+    public void A_reload_updates_a_row_in_place_and_says_whether_it_changed()
+    {
+        var row = new ProtocolRow(Strap(), "Michael MacCoss");
+        var raised = new List<string?>();
+        row.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+
+        row.Update(Strap(), "Michael MacCoss", 0).ShouldBeFalse();
+        raised.ShouldBeEmpty();
+
+        row.Update(Strap(1, draftChanges: false, "active"), "Michael MacCoss", 0).ShouldBeTrue();
+        raised.ShouldBe([""]);
+        row.Version.ShouldBe("v1");
+    }
+
+    [Fact]
     public void Screen_readers_read_a_row_and_a_category_by_name()
     {
         new ProtocolRow(Strap(2, draftChanges: true, "active"), "").ToString().ShouldBe("S-Trap micro digestion, v2 + draft");
