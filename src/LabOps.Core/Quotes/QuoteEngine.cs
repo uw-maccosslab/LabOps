@@ -102,12 +102,18 @@ public sealed class QuoteEngine
 
     /// <summary>
     /// Writes the statement of work (Exhibit A) priced at <paramref name="sampleCounts"/>, which
-    /// quote.py also saves in quote.yaml, and returns the document's full path.
+    /// quote.py also saves in quote.yaml, and returns the full path of its PDF. With no counts it
+    /// uses the ones the quote saved (or the defaults), as when remaking it after a conflict.
     /// </summary>
-    public async Task<string> StatementOfWorkAsync(string quote, IEnumerable<int> sampleCounts, CancellationToken cancellationToken = default)
+    public async Task<string> StatementOfWorkAsync(string quote, IEnumerable<int>? sampleCounts, CancellationToken cancellationToken = default)
     {
-        var counts = string.Join(',', sampleCounts.Select(n => n.ToString(System.Globalization.CultureInfo.InvariantCulture)));
-        using var doc = await RunAsync(["sow", quote, "--samples", counts], cancellationToken).ConfigureAwait(false);
+        List<string> args = ["sow", quote];
+        if (sampleCounts is not null)
+        {
+            args.AddRange(["--samples", string.Join(',', sampleCounts.Select(n => n.ToString(System.Globalization.CultureInfo.InvariantCulture)))]);
+        }
+
+        using var doc = await RunAsync(args, cancellationToken).ConfigureAwait(false);
         return ToLocalPath(doc.RootElement.GetProperty("file").GetString()!);
     }
 

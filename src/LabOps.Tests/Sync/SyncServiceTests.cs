@@ -196,8 +196,9 @@ public sealed class SyncServiceTests : IDisposable
     }
 
     /// <summary>
-    /// A rebase that could neither finish nor abort (the file was held open throughout) is put
-    /// back where it started by the next sync, which then shares the commit it was replaying.
+    /// A rebase LabOps started that could neither finish nor abort (the file was held open
+    /// throughout) is put back where it started by the next sync, which then shares the commit it
+    /// was replaying, and the uncommitted change the rebase set aside comes back.
     /// </summary>
     [Fact]
     public async Task A_rebase_left_partway_is_put_back_before_the_next_sync()
@@ -211,10 +212,12 @@ public sealed class SyncServiceTests : IDisposable
         GitFixture.Git(bob, "commit", "-q", "-m", "A: statement of work");
         var started = GitFixture.Git(bob, "rev-parse", "HEAD").Trim();
         GitFixture.Git(bob, "fetch", "-q", "origin");
+        GitFixture.Write(bob, "quotes/G/2026/B/quote.yaml", "quote_number: B\nstatus: draft\nsamples: 77\n");
+        File.WriteAllText(Path.Combine(bob, ".git", "labops-rebase"), started);
         var document = Path.Combine(bob, "quotes", "G", "2026", "A", "A-SOW.md");
         using (new FileStream(document, FileMode.Open, FileAccess.ReadWrite, FileShare.Read))
         {
-            Should.Throw<InvalidOperationException>(() => GitFixture.Git(bob, "rebase", "origin/main"));
+            Should.Throw<InvalidOperationException>(() => GitFixture.Git(bob, "rebase", "--autostash", "origin/main"));
         }
 
         Directory.Exists(Path.Combine(bob, ".git", "rebase-merge")).ShouldBeTrue();
@@ -228,7 +231,63 @@ public sealed class SyncServiceTests : IDisposable
         GitFixture.Git(bob, "log", "--format=%s", "-2").ShouldBe("A: statement of work\nREADME: index\n");
         GitFixture.Read(bob, "quotes/G/2026/A/A-SOW.md").ShouldBe("# Statement of work\n");
         started.ShouldNotBe(GitFixture.Git(bob, "rev-parse", "HEAD").Trim());
+        GitFixture.Read(bob, "quotes/G/2026/B/quote.yaml").ShouldContain("samples: 77");
+        GitFixture.Git(bob, "stash", "list").ShouldBeEmpty();
+        File.Exists(Path.Combine(bob, ".git", "labops-rebase")).ShouldBeFalse();
     }
+
+    /// <summary>
+    /// A rebase someone is doing by hand (in a terminal, or a Claude session there) is theirs:
+    /// LabOps neither aborts it nor touches the files they are resolving.
+    /// </summary>
+    [Fact]
+    public async Task A_rebase_started_by_hand_is_left_alone()
+    {
+        var alice = _git.Clone("Alice");
+        var bob = _git.Clone("Bob");
+        GitFixture.Write(alice, "quotes/G/2026/A/quote.yaml", "quote_number: A\nstatus: draft\nsamples: 40\n");
+        Ok(await _git.SyncFor(alice).SaveAsync(["quotes/G/2026/A"], "A: Alice"));
+        GitFixture.Write(bob, "quotes/G/2026/A/quote.yaml", "quote_number: A\nstatus: draft\nsamples: 50\n");
+        GitFixture.Git(bob, "commit", "-q", "-am", "A: Bob");
+        GitFixture.Git(bob, "fetch", "-q", "origin");
+        Should.Throw<InvalidOperationException>(() => GitFixture.Git(bob, "rebase", "origin/main"));
+        GitFixture.Write(bob, "quotes/G/2026/A/quote.yaml", "quote_number: A\nstatus: draft\nsamples: 45\n");
+
+        var result = await _git.SyncFor(bob).SyncAsync();
+
+        result.Conflict.ShouldBeNull();
+        result.Error.ShouldNotBeNull().ShouldContain("started outside LabOps");
+        Directory.Exists(Path.Combine(bob, ".git", "rebase-merge")).ShouldBeTrue();
+        GitFixture.Read(bob, "quotes/G/2026/A/quote.yaml").ShouldContain("samples: 45");
+    }
+
+    /// <summary>
+    /// Two statements of work for the same quote: the Markdown is made from the quote, so a
+    /// conflict in it is resolved by making it again, never handed to the person as theirs.
+    /// </summary>
+    [Fact]
+    public async Task A_conflict_in_a_statement_of_work_is_resolved_by_making_it_again()
+    {
+        var alice = _git.Clone("Alice");
+        var bob = _git.Clone("Bob");
+        GitFixture.Write(alice, "quotes/G/2026/A/A-SOW.md", "# Statement of work\n20 samples\n");
+        Ok(await _git.SyncFor(alice).SaveAsync(["quotes/G/2026/A"], "A: statement of work"));
+        GitFixture.Write(bob, "quotes/G/2026/A/A-SOW.md", "# Statement of work\n40 samples\n");
+
+        var rebuilder = new RecordingRebuilder(bob);
+        var result = await _git.SyncFor(bob, rebuilder).SaveAsync(["quotes/G/2026/A"], "A: statement of work");
+
+        Ok(result).Pushed.ShouldBeTrue();
+        rebuilder.Folders.ShouldBe(["quotes/G/2026/A"]);
+        GitFixture.Read(bob, "quotes/G/2026/A/A-SOW.md").ShouldStartWith("statement of work rebuilt from:");
+    }
+
+    [Theory]
+    [InlineData("The previous cherry-pick is now empty, possibly due to conflict resolution.", true)]
+    [InlineData("No changes - did you forget to use 'git add'?", true)]
+    [InlineData("error: unable to create file quotes/G/2026/A/a-very-long-name.md: Filename too long", false)]
+    public void Only_a_commit_git_calls_empty_is_skipped(string output, bool empty) =>
+        SyncService.BecameEmpty(output).ShouldBe(empty);
 
     [Theory]
     [InlineData("warning: unable to unlink 'q/SOW.docx': Invalid argument", true)]

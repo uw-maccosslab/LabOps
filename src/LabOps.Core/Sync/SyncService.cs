@@ -421,11 +421,22 @@ public sealed partial class SyncService
     {
         Publish(Status with { State = SyncState.Syncing, Message = "Syncing with GitHub..." });
 
-        // A rebase an earlier sync could not finish or abort: put the copy back as it was first.
         if (_git.RebaseInProgress())
         {
-            _log.LogWarning("A rebase was left partway; restoring the copy to where it started.");
-            await AbortRebaseAsync(ct).ConfigureAwait(false);
+            if (!File.Exists(await RebaseMarkerAsync(ct).ConfigureAwait(false)))
+            {
+                // Someone is rebasing by hand (in a terminal, or a Claude session there): theirs to finish.
+                return Stopped(await ReadStatusAsync(ct).ConfigureAwait(false),
+                    "A rebase started outside LabOps is in progress in this copy. Finish it there (or run git rebase --abort); "
+                    + "LabOps leaves it alone and syncs once it is done.");
+            }
+
+            // One an earlier sync started and could neither finish nor abort: put the copy back first.
+            _log.LogWarning("A rebase LabOps started was left partway; restoring the copy to where it started.");
+            if (await AbortRebaseAsync(ct).ConfigureAwait(false) is { } kept)
+            {
+                return Stopped(await ReadStatusAsync(ct).ConfigureAwait(false), kept);
+            }
         }
 
         for (var attempt = 1; attempt <= MaxPushAttempts; attempt++)
@@ -445,7 +456,22 @@ public sealed partial class SyncService
             }
 
             var before = (await _git.RequireAsync(["rev-parse", "HEAD"], ct).ConfigureAwait(false)).Trim();
-            var (conflict, error) = await RebaseAsync(ct).ConfigureAwait(false);
+            var marker = await RebaseMarkerAsync(ct).ConfigureAwait(false);
+            await File.WriteAllTextAsync(marker, before, ct).ConfigureAwait(false);
+            (SyncConflict? Conflict, string? Error) rebased;
+            try
+            {
+                rebased = await RebaseAsync(ct).ConfigureAwait(false);
+            }
+            finally
+            {
+                if (!_git.RebaseInProgress())
+                {
+                    File.Delete(marker);
+                }
+            }
+
+            var (conflict, error) = rebased;
             if (error is not null)
             {
                 return Stopped(await ReadStatusAsync(ct).ConfigureAwait(false), error);
@@ -525,17 +551,22 @@ public sealed partial class SyncService
                 // A file git had to replace could not be (open in another program, most often):
                 // nothing conflicts, so this is never someone else's change to set aside.
                 _log.LogWarning("Rebase stopped on a file it could not replace: {Error}", result.ErrorText.Trim());
-                await AbortRebaseAsync(ct).ConfigureAwait(false);
+                var kept = await AbortRebaseAsync(ct).ConfigureAwait(false);
                 return (null, "A file LabOps had to update is open in another program (Word, Excel or a PDF viewer, perhaps). "
-                    + "Close it; nothing is lost, and your work is shared at the next sync.");
+                    + "Close it; nothing is lost, and your work is shared at the next sync." + (kept is null ? "" : " " + kept));
             }
 
             var conflicted = Lines(await _git.RequireAsync(["diff", "--name-only", "--diff-filter=U"], ct).ConfigureAwait(false));
             if (conflicted.Count == 0)
             {
-                // Stopped with nothing in conflict and nothing staged: after resolution this
-                // commit's change was already on GitHub, so it has become empty. Skip it.
+                // Stopped with nothing in conflict. Skipped only when git says the commit became
+                // empty (its change was already on GitHub); any other stop would drop the commit.
                 var staged = await _git.RunAsync(["diff", "--cached", "--quiet"], ct).ConfigureAwait(false);
+                if (staged.ExitCode == 0 && !BecameEmpty(result.StandardOutput + "\n" + result.ErrorText))
+                {
+                    break;
+                }
+
                 result = staged.ExitCode == 0
                     ? await _git.RunAsync(["rebase", "--skip"], ct).ConfigureAwait(false)
                     : await _git.RunAsync(["rebase", "--continue"], ct).ConfigureAwait(false);
@@ -574,9 +605,9 @@ public sealed partial class SyncService
         {
             // Stopped with no file in conflict: not someone else's change, so nothing to set aside.
             _log.LogWarning("Rebase stopped with nothing in conflict: {Error}", result.ErrorText.Trim());
-            await AbortRebaseAsync(ct).ConfigureAwait(false);
+            var kept = await AbortRebaseAsync(ct).ConfigureAwait(false);
             return (null, "Bringing in the latest changes stopped partway, so nothing was shared; your work is as it was. "
-                + $"Try Sync again. ({Friendly(result.ErrorText)})");
+                + $"Try Sync again. ({Friendly(result.ErrorText)})" + (kept is null ? "" : " " + kept));
         }
 
         if (!result.Succeeded)
@@ -585,6 +616,22 @@ public sealed partial class SyncService
         }
 
         return (null, null);
+    }
+
+    /// <summary>Git says the commit it stopped on has nothing left to apply.</summary>
+    internal static bool BecameEmpty(string output) =>
+        output.Contains("is now empty", StringComparison.OrdinalIgnoreCase)
+        || output.Contains("nothing to commit", StringComparison.OrdinalIgnoreCase)
+        || output.Contains("No changes - did you forget", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// A file in .git saying the rebase in progress is LabOps's own, so a later sync may undo it
+    /// when it was left partway. A rebase without it was started by someone else and is left alone.
+    /// </summary>
+    private async Task<string> RebaseMarkerAsync(CancellationToken ct)
+    {
+        var path = (await _git.RequireAsync(["rev-parse", "--git-path", "labops-rebase"], ct).ConfigureAwait(false)).Trim();
+        return Path.Combine(_git.RepositoryPath ?? Environment.CurrentDirectory, path);
     }
 
     /// <summary>Git stopped because a file in the working folder was in the way, not because anything conflicts.</summary>
@@ -599,28 +646,58 @@ public sealed partial class SyncService
     /// cannot abort (a file it must put back is in the way, as when Word held a statement of work
     /// open), the rebase is left (<c>--quit</c>, which keeps any autostash in the stash list) and the
     /// branch is reset to that commit, so nothing committed is lost and nothing half-done remains.
+    /// Uncommitted changes the rebase set aside are put back.
     /// </summary>
-    private async Task AbortRebaseAsync(CancellationToken ct)
+    /// <returns>Null, or what to tell the person when their uncommitted changes could not be put back.</returns>
+    private async Task<string?> AbortRebaseAsync(CancellationToken ct)
     {
-        var started = await RebaseStartAsync(ct).ConfigureAwait(false);
-        var aborted = await _git.RunAsync(["rebase", "--abort"], ct).ConfigureAwait(false);
-        if (aborted.Succeeded && !_git.RebaseInProgress())
+        var marker = await RebaseMarkerAsync(ct).ConfigureAwait(false);
+        try
         {
-            return;
+            var started = await RebaseStartAsync(ct).ConfigureAwait(false);
+            var aborted = await _git.RunAsync(["rebase", "--abort"], ct).ConfigureAwait(false);
+            if (aborted.Succeeded && !_git.RebaseInProgress())
+            {
+                return null;
+            }
+
+            _log.LogWarning("git rebase --abort did not finish ({Error}); leaving the rebase and resetting to {Commit}.",
+                aborted.ErrorText.Trim(), started);
+            var stashes = await StashCountAsync(ct).ConfigureAwait(false);
+            await _git.RunAsync(["rebase", "--quit"], ct).ConfigureAwait(false);
+
+            // --quit leaves HEAD detached where the rebase stopped; the branch itself never moved.
+            // --force puts its files back over whatever the stopped rebase left in the way.
+            await _git.RequireAsync(["checkout", "--force", Branch], ct).ConfigureAwait(false);
+            if (started is not null)
+            {
+                await _git.RequireAsync(["reset", "--hard", started], ct).ConfigureAwait(false);
+            }
+
+            // --quit saved the autostash (uncommitted changes) in the stash list: put it back.
+            if (await StashCountAsync(ct).ConfigureAwait(false) <= stashes)
+            {
+                return null;
+            }
+
+            var popped = await _git.RunAsync(["stash", "pop"], ct).ConfigureAwait(false);
+            if (popped.Succeeded)
+            {
+                return null;
+            }
+
+            _log.LogWarning("Could not put back the uncommitted changes: {Error}", popped.ErrorText.Trim());
+            return "Your changes that were not yet saved are kept in git's stash on this computer; ask Claude (or run "
+                + "git stash pop) to put them back.";
         }
-
-        _log.LogWarning("git rebase --abort did not finish ({Error}); leaving the rebase and resetting to {Commit}.",
-            aborted.ErrorText.Trim(), started);
-        await _git.RunAsync(["rebase", "--quit"], ct).ConfigureAwait(false);
-
-        // --quit leaves HEAD detached where the rebase stopped; the branch itself never moved.
-        // --force puts its files back over whatever the stopped rebase left in the way.
-        await _git.RequireAsync(["checkout", "--force", Branch], ct).ConfigureAwait(false);
-        if (started is not null)
+        finally
         {
-            await _git.RequireAsync(["reset", "--hard", started], ct).ConfigureAwait(false);
+            File.Delete(marker);
         }
     }
+
+    private async Task<int> StashCountAsync(CancellationToken ct) =>
+        Lines(await _git.RequireAsync(["stash", "list"], ct).ConfigureAwait(false)).Count;
 
     /// <summary>The commit a rebase in progress started from.</summary>
     private async Task<string?> RebaseStartAsync(CancellationToken ct)
@@ -704,7 +781,10 @@ public sealed partial class SyncService
     private async Task<SyncConflict> AbortWithConflictAsync(IReadOnlyList<string> files, CancellationToken ct)
     {
         var personal = files.Where(f => !IsGenerated(f)).ToList();
-        await AbortRebaseAsync(ct).ConfigureAwait(false);
+        if (await AbortRebaseAsync(ct).ConfigureAwait(false) is { } kept)
+        {
+            _log.LogWarning("{Note}", kept);
+        }
 
         string? author = null;
         if (personal.Count > 0)

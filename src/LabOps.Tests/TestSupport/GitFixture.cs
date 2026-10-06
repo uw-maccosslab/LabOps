@@ -131,6 +131,11 @@ public sealed class RecordingRebuilder(string clone) : IGeneratedFileRebuilder
         var yaml = GitFixture.Read(clone, $"{folder}/quote.yaml");
         GitFixture.Write(clone, $"{folder}/calculation.md", $"rebuilt from:\n{yaml}");
         GitFixture.Write(clone, $"{folder}/quote.md", "rebuilt\n");
+        foreach (var sow in Directory.EnumerateFiles(Path.Combine(clone, folder), "*-SOW.md"))
+        {
+            File.WriteAllText(sow, $"statement of work rebuilt from:\n{yaml}");
+        }
+
         return Task.CompletedTask;
     }
 }

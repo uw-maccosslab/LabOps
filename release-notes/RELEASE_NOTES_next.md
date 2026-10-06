@@ -17,6 +17,11 @@ the GitHub Release description and fails if it is missing.
   open in another program"); nothing is set aside, and the change is shared at the next sync. A
   sync left partway is put back where it started, and a statement of work opens only after it
   is shared.
+- **Syncing is safer when git stops partway.** LabOps leaves alone a rebase someone started by
+  hand (in a terminal), instead of undoing it; it skips a commit only when git says the commit
+  became empty, never for another reason; and when it has to put the copy back, changes not yet
+  saved come back too. A conflict in a statement of work is resolved by making it again from the
+  quote, like the quote's own text, rather than asking you or Claude to redo it.
 
 ## Performance
 

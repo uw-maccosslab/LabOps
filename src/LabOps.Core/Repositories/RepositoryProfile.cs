@@ -47,7 +47,7 @@ public sealed class RepositoryProfile
     /// <summary>uw-maccosslab/LabOps-Quotes: Proteomics Services quotes, for the people who prepare them.</summary>
     public static RepositoryProfile Quotes { get; } = new(
         RepositoryKind.Quotes, "quotes", "uw-maccosslab/LabOps-Quotes", "quotes", "LabOps-Quotes",
-        "scripts/quote.py", "quotes", itemDepth: 4, generatedFileNames: ["calculation.md", "quote.md"], checksCommits: false,
+        "scripts/quote.py", "quotes", itemDepth: 4, generatedFileNames: ["calculation.md", "quote.md", "*-SOW.md"], checksCommits: false,
         formerGitHubNames: ["uw-maccosslab/services-quotes"]);
 
     /// <summary>
@@ -106,11 +106,16 @@ public sealed class RepositoryProfile
     public string DefaultClonePath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), DefaultFolderName);
 
-    /// <summary>Files the app regenerates and therefore never asks a person to merge.</summary>
+    /// <summary>
+    /// Files the app regenerates and therefore never asks a person to merge. A name starting with
+    /// "*" matches the end of a file name (<c>*-SOW.md</c> for <c>&lt;number&gt;-SOW.md</c>).
+    /// </summary>
     public bool IsGenerated(string path) =>
         path == "README.md"
         || (path.StartsWith(RootFolder + "/", StringComparison.Ordinal)
-            && GeneratedFileNames.Any(name => path.EndsWith("/" + name, StringComparison.Ordinal)));
+            && GeneratedFileNames.Any(name => name.StartsWith('*')
+                ? path.EndsWith(name[1..], StringComparison.Ordinal) && !path.EndsWith("/" + name[1..], StringComparison.Ordinal)
+                : path.EndsWith("/" + name, StringComparison.Ordinal)));
 
     /// <summary>The item folder (quotes/Group/year/number, projects/Lab/Project) of any path inside one.</summary>
     public string ItemFolder(string path) => string.Join('/', path.Split('/').Take(ItemDepth));
