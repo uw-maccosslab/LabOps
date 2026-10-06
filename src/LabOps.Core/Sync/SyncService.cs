@@ -421,6 +421,13 @@ public sealed partial class SyncService
     {
         Publish(Status with { State = SyncState.Syncing, Message = "Syncing with GitHub..." });
 
+        // A rebase an earlier sync could not finish or abort: put the copy back as it was first.
+        if (_git.RebaseInProgress())
+        {
+            _log.LogWarning("A rebase was left partway; restoring the copy to where it started.");
+            await AbortRebaseAsync(ct).ConfigureAwait(false);
+        }
+
         for (var attempt = 1; attempt <= MaxPushAttempts; attempt++)
         {
             var fetched = await _git.RunAsync(["fetch", "--quiet", Remote, Branch], ct).ConfigureAwait(false);
@@ -430,8 +437,20 @@ public sealed partial class SyncService
                 return new SaveResult(false, false, Error: Friendly(fetched.ErrorText));
             }
 
+            var inUse = await FilesInUseAsync(ct).ConfigureAwait(false);
+            if (inUse.Count > 0)
+            {
+                _log.LogWarning("Sync waits: {Files} open in another program.", string.Join(", ", inUse));
+                return Stopped(await ReadStatusAsync(ct).ConfigureAwait(false), InUseMessage(inUse));
+            }
+
             var before = (await _git.RequireAsync(["rev-parse", "HEAD"], ct).ConfigureAwait(false)).Trim();
-            var conflict = await RebaseAsync(ct).ConfigureAwait(false);
+            var (conflict, error) = await RebaseAsync(ct).ConfigureAwait(false);
+            if (error is not null)
+            {
+                return Stopped(await ReadStatusAsync(ct).ConfigureAwait(false), error);
+            }
+
             if (conflict is not null)
             {
                 var status = await ReadStatusAsync(ct).ConfigureAwait(false);
@@ -482,15 +501,35 @@ public sealed partial class SyncService
         return new SaveResult(false, false, Error: busy);
     }
 
+    /// <summary>The sync stopped without sharing anything: the copy is as it was, and the reason is shown.</summary>
+    private SaveResult Stopped(SyncStatus status, string message)
+    {
+        Publish(status with { State = SyncState.Error, Message = message });
+        return new SaveResult(false, false, Error: message);
+    }
+
     /// <summary>Rebases local commits onto GitHub's main, resolving generated-file conflicts.</summary>
-    /// <returns>The conflict that stopped it, or null when the rebase finished.</returns>
-    private async Task<SyncConflict?> RebaseAsync(CancellationToken ct)
+    /// <returns>
+    /// The conflict that stopped it (someone else changed the same thing), or an error (it stopped
+    /// for another reason; the copy is back as it was); both null when the rebase finished.
+    /// </returns>
+    private async Task<(SyncConflict? Conflict, string? Error)> RebaseAsync(CancellationToken ct)
     {
         var result = await _git.RunAsync(["rebase", "--autostash", $"{Remote}/{Branch}"], ct).ConfigureAwait(false);
 
         // A rebase of one commit can stop several times, once per conflicting commit.
         for (var round = 0; !result.Succeeded && _git.RebaseInProgress() && round < 50; round++)
         {
+            if (IsBlockedByWorkingTree(result.ErrorText))
+            {
+                // A file git had to replace could not be (open in another program, most often):
+                // nothing conflicts, so this is never someone else's change to set aside.
+                _log.LogWarning("Rebase stopped on a file it could not replace: {Error}", result.ErrorText.Trim());
+                await AbortRebaseAsync(ct).ConfigureAwait(false);
+                return (null, "A file LabOps had to update is open in another program (Word, Excel or a PDF viewer, perhaps). "
+                    + "Close it; nothing is lost, and your work is shared at the next sync.");
+            }
+
             var conflicted = Lines(await _git.RequireAsync(["diff", "--name-only", "--diff-filter=U"], ct).ConfigureAwait(false));
             if (conflicted.Count == 0)
             {
@@ -505,7 +544,7 @@ public sealed partial class SyncService
 
             if (!conflicted.All(IsGenerated))
             {
-                return await AbortWithConflictAsync(conflicted, ct).ConfigureAwait(false);
+                return (await AbortWithConflictAsync(conflicted, ct).ConfigureAwait(false), null);
             }
 
             foreach (var file in conflicted.Where(f => f == "README.md"))
@@ -533,7 +572,11 @@ public sealed partial class SyncService
 
         if (!result.Succeeded && _git.RebaseInProgress())
         {
-            return await AbortWithConflictAsync([], ct).ConfigureAwait(false);
+            // Stopped with no file in conflict: not someone else's change, so nothing to set aside.
+            _log.LogWarning("Rebase stopped with nothing in conflict: {Error}", result.ErrorText.Trim());
+            await AbortRebaseAsync(ct).ConfigureAwait(false);
+            return (null, "Bringing in the latest changes stopped partway, so nothing was shared; your work is as it was. "
+                + $"Try Sync again. ({Friendly(result.ErrorText)})");
         }
 
         if (!result.Succeeded)
@@ -541,13 +584,127 @@ public sealed partial class SyncService
             throw new GitException(result.ErrorText);
         }
 
-        return null;
+        return (null, null);
+    }
+
+    /// <summary>Git stopped because a file in the working folder was in the way, not because anything conflicts.</summary>
+    internal static bool IsBlockedByWorkingTree(string error) =>
+        error.Contains("unable to unlink", StringComparison.OrdinalIgnoreCase)
+        || error.Contains("would be overwritten by", StringComparison.OrdinalIgnoreCase)
+        || error.Contains("Permission denied", StringComparison.OrdinalIgnoreCase)
+        || error.Contains("Deletion of directory", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Ends a rebase that stopped and puts the copy back on the commit it started from. When git
+    /// cannot abort (a file it must put back is in the way, as when Word held a statement of work
+    /// open), the rebase is left (<c>--quit</c>, which keeps any autostash in the stash list) and the
+    /// branch is reset to that commit, so nothing committed is lost and nothing half-done remains.
+    /// </summary>
+    private async Task AbortRebaseAsync(CancellationToken ct)
+    {
+        var started = await RebaseStartAsync(ct).ConfigureAwait(false);
+        var aborted = await _git.RunAsync(["rebase", "--abort"], ct).ConfigureAwait(false);
+        if (aborted.Succeeded && !_git.RebaseInProgress())
+        {
+            return;
+        }
+
+        _log.LogWarning("git rebase --abort did not finish ({Error}); leaving the rebase and resetting to {Commit}.",
+            aborted.ErrorText.Trim(), started);
+        await _git.RunAsync(["rebase", "--quit"], ct).ConfigureAwait(false);
+
+        // --quit leaves HEAD detached where the rebase stopped; the branch itself never moved.
+        // --force puts its files back over whatever the stopped rebase left in the way.
+        await _git.RequireAsync(["checkout", "--force", Branch], ct).ConfigureAwait(false);
+        if (started is not null)
+        {
+            await _git.RequireAsync(["reset", "--hard", started], ct).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>The commit a rebase in progress started from.</summary>
+    private async Task<string?> RebaseStartAsync(CancellationToken ct)
+    {
+        foreach (var folder in new[] { "rebase-merge", "rebase-apply" })
+        {
+            var path = await _git.RunAsync(["rev-parse", "--git-path", $"{folder}/orig-head"], ct).ConfigureAwait(false);
+            var file = path.Succeeded && _git.RepositoryPath is { } root ? Path.Combine(root, path.StandardOutput.Trim()) : null;
+            if (file is not null && File.Exists(file))
+            {
+                return (await File.ReadAllTextAsync(file, ct).ConfigureAwait(false)).Trim();
+            }
+        }
+
+        var orig = await _git.RunAsync(["rev-parse", "--verify", "--quiet", "ORIG_HEAD"], ct).ConfigureAwait(false);
+        return orig.Succeeded ? orig.StandardOutput.Trim() : null;
+    }
+
+    /// <summary>
+    /// The files a rebase onto GitHub's main would have to replace that another program has open:
+    /// a statement of work in Word, a spreadsheet in Excel, a PDF in a viewer. Git cannot replace
+    /// an open file, and stops partway with nothing in conflict, unable even to abort cleanly, so
+    /// the sync does not start one. Nothing to bring in from GitHub means nothing to replace.
+    /// </summary>
+    private async Task<IReadOnlyList<string>> FilesInUseAsync(CancellationToken ct)
+    {
+        if (_git.RepositoryPath is not { } root)
+        {
+            return [];
+        }
+
+        var upstream = $"{Remote}/{Branch}";
+        var mergeBase = await _git.RunAsync(["merge-base", "HEAD", upstream], ct).ConfigureAwait(false);
+        var tip = await _git.RunAsync(["rev-parse", upstream], ct).ConfigureAwait(false);
+        if (!mergeBase.Succeeded || !tip.Succeeded || mergeBase.StandardOutput.Trim() == tip.StandardOutput.Trim())
+        {
+            return [];
+        }
+
+        var start = mergeBase.StandardOutput.Trim();
+        var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        // Both sides' changes are rewritten, and so are uncommitted ones (set aside and put back).
+        string[][] ranges = [[start, "HEAD"], [start, upstream], ["HEAD"]];
+        foreach (var range in ranges)
+        {
+            paths.UnionWith(Lines(await _git.RequireAsync(["-c", "core.quotePath=false", "diff", "--name-only", "--no-renames", .. range], ct)
+                .ConfigureAwait(false)));
+        }
+
+        return [.. paths.Where(p => IsOpenElsewhere(Path.Combine(root, p))).Order(StringComparer.OrdinalIgnoreCase)];
+    }
+
+    /// <summary>True when another program has the file open in a way that stops it being replaced.</summary>
+    internal static bool IsOpenElsewhere(string path)
+    {
+        try
+        {
+            using var _ = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+            return false;
+        }
+        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException or UnauthorizedAccessException)
+        {
+            // Gone, or read-only: nothing holds it open.
+            return false;
+        }
+        catch (IOException)
+        {
+            return true;
+        }
+    }
+
+    /// <summary>What to tell the person when files are open elsewhere.</summary>
+    internal static string InUseMessage(IReadOnlyList<string> files)
+    {
+        var names = string.Join(", ", files.Select(Path.GetFileName));
+        return $"{names} {(files.Count == 1 ? "is" : "are")} open in another program (Word, Excel or a PDF viewer, perhaps), "
+            + $"so LabOps cannot bring in the latest changes yet. Close {(files.Count == 1 ? "it" : "them")}; nothing is lost, "
+            + "and your work is shared at the next sync.";
     }
 
     private async Task<SyncConflict> AbortWithConflictAsync(IReadOnlyList<string> files, CancellationToken ct)
     {
         var personal = files.Where(f => !IsGenerated(f)).ToList();
-        await _git.RunAsync(["rebase", "--abort"], ct).ConfigureAwait(false);
+        await AbortRebaseAsync(ct).ConfigureAwait(false);
 
         string? author = null;
         if (personal.Count > 0)

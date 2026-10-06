@@ -727,7 +727,8 @@ public sealed partial class MainViewModel : ObservableObject
         {
             await PullFirstAsync().ConfigureAwait(true);
             path = await _engine.StatementOfWorkAsync(quote.QuoteNumber, counts).ConfigureAwait(true);
-            await SaveAsync([quote.Folder], $"{quote.QuoteNumber}: statement of work").ConfigureAwait(true);
+            // Shared before it opens: a file open in another program cannot be replaced by a sync.
+            await SaveAsync([quote.Folder], $"{quote.QuoteNumber}: statement of work", waitForGitHub: true).ConfigureAwait(true);
         }).ConfigureAwait(true);
 
         await ReloadQuotesAsync(quote.QuoteNumber).ConfigureAwait(true);

@@ -160,4 +160,80 @@ public sealed class SyncServiceTests : IDisposable
         status.State.ShouldBe(SyncState.Behind);
         status.Behind.ShouldBe(1);
     }
+
+    /// <summary>
+    /// The statement of work case: Bob's new document is open in Word (which lets others read it
+    /// but not replace it) while GitHub has moved on. Git could not replace it mid-rebase, stopped
+    /// with nothing in conflict, and the app took that for someone else's change.
+    /// </summary>
+    [Fact]
+    public async Task A_file_open_in_another_program_waits_and_is_never_called_a_conflict()
+    {
+        var alice = _git.Clone("Alice");
+        var bob = _git.Clone("Bob");
+        GitFixture.Write(alice, "README.md", "index from the workflow\n");
+        Ok(await _git.SyncFor(alice).SaveAsync(["README.md"], "README: index"));
+        var document = Path.Combine(bob, "quotes", "G", "2026", "A", "A-SOW.docx");
+        Directory.CreateDirectory(Path.GetDirectoryName(document)!);
+        File.WriteAllBytes(document, [.. Enumerable.Range(1, 200).Select(i => (byte)i)]);
+        var sync = _git.SyncFor(bob);
+
+        SaveResult result;
+        using (new FileStream(document, FileMode.Open, FileAccess.ReadWrite, FileShare.Read))
+        {
+            result = await sync.SaveAsync(["quotes/G/2026/A"], "A: statement of work");
+        }
+
+        result.Conflict.ShouldBeNull();
+        result.Error.ShouldNotBeNull().ShouldStartWith("A-SOW.docx is open in another program");
+        result.Committed.ShouldBeTrue();
+        GitFixture.Git(bob, "log", "-1", "--format=%s").Trim().ShouldBe("A: statement of work");
+        Directory.Exists(Path.Combine(bob, ".git", "rebase-merge")).ShouldBeFalse();
+
+        // Closed: the next sync shares it.
+        Ok(await sync.SyncAsync()).Pushed.ShouldBeTrue();
+        GitFixture.Git(bob, "log", "--format=%s", "-2").ShouldBe("A: statement of work\nREADME: index\n");
+    }
+
+    /// <summary>
+    /// A rebase that could neither finish nor abort (the file was held open throughout) is put
+    /// back where it started by the next sync, which then shares the commit it was replaying.
+    /// </summary>
+    [Fact]
+    public async Task A_rebase_left_partway_is_put_back_before_the_next_sync()
+    {
+        var alice = _git.Clone("Alice");
+        var bob = _git.Clone("Bob");
+        GitFixture.Write(alice, "README.md", "index from the workflow\n");
+        Ok(await _git.SyncFor(alice).SaveAsync(["README.md"], "README: index"));
+        GitFixture.Write(bob, "quotes/G/2026/A/A-SOW.md", "# Statement of work\n");
+        GitFixture.Git(bob, "add", "-A");
+        GitFixture.Git(bob, "commit", "-q", "-m", "A: statement of work");
+        var started = GitFixture.Git(bob, "rev-parse", "HEAD").Trim();
+        GitFixture.Git(bob, "fetch", "-q", "origin");
+        var document = Path.Combine(bob, "quotes", "G", "2026", "A", "A-SOW.md");
+        using (new FileStream(document, FileMode.Open, FileAccess.ReadWrite, FileShare.Read))
+        {
+            Should.Throw<InvalidOperationException>(() => GitFixture.Git(bob, "rebase", "origin/main"));
+        }
+
+        Directory.Exists(Path.Combine(bob, ".git", "rebase-merge")).ShouldBeTrue();
+        Should.Throw<InvalidOperationException>(() => GitFixture.Git(bob, "rebase", "--abort"));
+
+        var result = await _git.SyncFor(bob).SyncAsync();
+
+        Ok(result).Pushed.ShouldBeTrue();
+        GitFixture.Git(bob, "status", "-sb").ShouldStartWith("## main...origin/main");
+        Directory.Exists(Path.Combine(bob, ".git", "rebase-merge")).ShouldBeFalse();
+        GitFixture.Git(bob, "log", "--format=%s", "-2").ShouldBe("A: statement of work\nREADME: index\n");
+        GitFixture.Read(bob, "quotes/G/2026/A/A-SOW.md").ShouldBe("# Statement of work\n");
+        started.ShouldNotBe(GitFixture.Git(bob, "rev-parse", "HEAD").Trim());
+    }
+
+    [Theory]
+    [InlineData("warning: unable to unlink 'q/SOW.docx': Invalid argument", true)]
+    [InlineData("error: The following untracked working tree files would be overwritten by merge:", true)]
+    [InlineData("CONFLICT (content): Merge conflict in quotes/G/2026/A/quote.yaml", false)]
+    public void Only_a_file_in_the_way_counts_as_blocked(string error, bool blocked) =>
+        SyncService.IsBlockedByWorkingTree(error).ShouldBe(blocked);
 }

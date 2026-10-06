@@ -111,12 +111,13 @@ public sealed record QuoteSummary
         return [.. new[] { 20, 40, 60, 80 }.Append(own).Where(n => n > 0).Distinct().Order().Take(6)];
     }
 
-    /// <summary>The statement of work in the quote folder, or null.</summary>
-    public string? ExistingSow(string repositoryPath)
-    {
-        var path = Path.Combine(FolderPath(repositoryPath), $"{QuoteNumber}-SOW.docx");
-        return File.Exists(path) ? path : null;
-    }
+    /// <summary>
+    /// The statement of work in the quote folder, or null: its Markdown text, or a Word document
+    /// from before quote engine 26.4.0.
+    /// </summary>
+    public string? ExistingSow(string repositoryPath) =>
+        new[] { "SOW.md", "SOW.docx" }.Select(end => Path.Combine(FolderPath(repositoryPath), $"{QuoteNumber}-{end}"))
+            .FirstOrDefault(File.Exists);
 
     public string FolderPath(string repositoryPath) =>
         Path.Combine(repositoryPath, Folder.Replace('/', Path.DirectorySeparatorChar));
