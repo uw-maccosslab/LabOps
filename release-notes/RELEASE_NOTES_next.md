@@ -8,6 +8,10 @@ the GitHub Release description and fails if it is missing.
 
 ## Bug Fixes
 
+- **The status bar lists the repositories in the order of the toolbar.** The sync status at the
+  bottom read Projects, Quotes, Protocols, while the toolbar at the top reads Projects,
+  Protocols, Quotes. It now matches.
+
 ## Performance
 
 ## Breaking Changes

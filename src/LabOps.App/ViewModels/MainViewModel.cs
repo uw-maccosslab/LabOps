@@ -998,15 +998,24 @@ public sealed partial class MainViewModel : ObservableObject
         _syncStatus[kind] = status;
         SyncProblem = _syncStatus.Values.Any(s => s.State is SyncState.Conflict or SyncState.Error or SyncState.Offline);
 
+        SyncText = SyncSummary(_syncStatus);
+    }
+
+    /// <summary>The areas in the order the toolbar shows them, which the status bar follows.</summary>
+    internal static readonly RepositoryKind[] AreaOrder = [RepositoryKind.Projects, RepositoryKind.Protocols, RepositoryKind.Quotes];
+
+    /// <summary>The status bar's sync text: one status as it is, or each repository's, in toolbar order.</summary>
+    internal static string SyncSummary(IReadOnlyDictionary<RepositoryKind, SyncStatus> statuses)
+    {
         static string Describe(SyncStatus s)
         {
             var when = s.State == SyncState.UpToDate && s.LastSynced is { } t ? $" (synced {t:h:mm tt})" : "";
             return $"{s.Message ?? s.State.ToString()}{when}";
         }
 
-        SyncText = _syncStatus.Count == 1
-            ? Describe(_syncStatus.Values.Single())
-            : string.Join("     ", _syncStatus.OrderBy(p => p.Key).Select(p => $"{p.Key}: {Describe(p.Value)}"));
+        return statuses.Count == 1
+            ? Describe(statuses.Values.Single())
+            : string.Join("     ", statuses.OrderBy(p => Array.IndexOf(AreaOrder, p.Key)).Select(p => $"{p.Key}: {Describe(p.Value)}"));
     }
 
     private async Task RefreshChecksAsync()

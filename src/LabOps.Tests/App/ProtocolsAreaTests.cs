@@ -2,6 +2,8 @@ using LabOps.App.ViewModels;
 using LabOps.App.Views;
 using LabOps.Core.Projects;
 using LabOps.Core.Protocols;
+using LabOps.Core.Repositories;
+using LabOps.Core.Sync;
 using Microsoft.Web.WebView2.Core;
 
 namespace LabOps.Tests.App;
@@ -163,6 +165,20 @@ public sealed class ProtocolsAreaTests
         section.Links.Count.ShouldBe(2);
         onStep.CanRemove.ShouldBeTrue();
         section.Home(StepHomes.Protocol)!.Stage.ShouldBe("sample_prep");
+    }
+
+    [Fact]
+    public void The_status_bar_lists_the_repositories_in_the_order_of_the_toolbar()
+    {
+        var statuses = new Dictionary<RepositoryKind, SyncStatus>
+        {
+            [RepositoryKind.Quotes] = new(SyncState.UpToDate, Message: "Up to date"),
+            [RepositoryKind.Protocols] = new(SyncState.UpToDate, Message: "Up to date"),
+            [RepositoryKind.Projects] = new(SyncState.Behind, Message: "1 new change(s) on GitHub"),
+        };
+
+        MainViewModel.SyncSummary(statuses).ShouldBe(
+            "Projects: 1 new change(s) on GitHub     Protocols: Up to date     Quotes: Up to date");
     }
 
     [Theory]
