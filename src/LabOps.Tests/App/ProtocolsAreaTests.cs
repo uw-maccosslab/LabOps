@@ -200,6 +200,7 @@ public sealed class ProtocolsAreaTests
         update.ShouldContain("revise-protocol skill on protocol pnnl-proinsulin");
         update.ShouldContain("IP-ProINS_UB.bdz (not a document");
         update.ShouldContain("a changed program gets a new file name");
+        update.ShouldContain("`protocol.py add pnnl-proinsulin --method`");
     }
 
     [Fact]
