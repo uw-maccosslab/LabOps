@@ -5,6 +5,9 @@ using LabOps.Core.Claude;
 
 namespace LabOps.App.ViewModels;
 
+/// <summary>A file attached to the next message: its copy in the attachments folder, and what the app checked of it.</summary>
+public sealed record ChatAttachment(string Name, string Path, string? Note);
+
 /// <summary>One entry in the chat pane.</summary>
 public abstract class ChatItem : ObservableObject;
 

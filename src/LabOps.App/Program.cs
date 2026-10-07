@@ -32,6 +32,8 @@ public static class Program
         var dataOverride = Environment.GetEnvironmentVariable("LABOPS_DATA");
         var paths = new AppPaths(dataOverride);
         paths.EnsureCreated();
+        // No conversation outlives the app: attachments left by an earlier run go.
+        paths.ClearAttachments();
 
         // The installer starts the app in its program folder, and every program the app opens (a
         // protocol's page in the browser, a quote's PDF or spreadsheet, Claude's sign-in) would

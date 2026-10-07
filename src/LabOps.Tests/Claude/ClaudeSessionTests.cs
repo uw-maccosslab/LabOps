@@ -99,6 +99,17 @@ public sealed class ClaudeSessionTests
     }
 
     [Fact]
+    public void Claude_may_read_the_chat_s_attachments_folder()
+    {
+        var args = new ClaudeSessionOptions
+        {
+            ClaudePath = "claude.exe", WorkingDirectory = "C:\\Quotes", AdditionalDirectories = ["C:\\LabOps\\attachments"],
+        }.BuildArguments();
+
+        Following(args, "--add-dir").ShouldBe("C:\\LabOps\\attachments");
+    }
+
+    [Fact]
     public void Claude_may_not_change_git_history_or_browse_the_web()
     {
         ClaudeLauncher.DisallowedTools.ShouldContain("Bash(git commit:*)");

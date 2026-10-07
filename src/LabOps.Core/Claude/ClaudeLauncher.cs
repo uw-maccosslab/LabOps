@@ -54,7 +54,7 @@ public sealed class ClaudeLauncher
 
     public ClaudeSessionOptions CreateOptions(
         RepositoryProfile profile, string repositoryPath, AppToolServer server, string? userName, string? resumeSessionId, string? model,
-        string? effort) =>
+        string? effort, string? attachmentsFolder = null) =>
         new()
         {
             ClaudePath = _tools.Require(Tool.Claude),
@@ -63,6 +63,8 @@ public sealed class ClaudeLauncher
             Model = string.IsNullOrWhiteSpace(model) ? null : model.Trim(),
             Effort = string.IsNullOrWhiteSpace(effort) ? null : effort.Trim(),
             McpConfigPath = server.WriteMcpConfig(_paths.SessionDirectory),
+            // Only this conversation's attachments, never another's.
+            AdditionalDirectories = attachmentsFolder is null ? [] : [attachmentsFolder],
             PermissionPromptTool = AppTools.PermissionToolName,
             AllowedTools = AllowedTools(profile),
             DisallowedTools = DisallowedTools,

@@ -244,6 +244,10 @@ public sealed class ProjectEngine : IPreCommitCheck
         using var doc = await RunAsync(["remove-step", item, stage], cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>The files <see cref="ScanAsync"/> reads: spreadsheets and CSV.</summary>
+    public static bool CanScan(string path) =>
+        new[] { ".xlsx", ".xlsm", ".csv" }.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase);
+
     /// <summary>Looks for identifiers in a collaborator's file. Reports columns and problems, never values.</summary>
     public async Task<ScanResult> ScanAsync(string file, CancellationToken cancellationToken = default)
     {

@@ -103,7 +103,21 @@ public sealed record ProtocolList(
 /// <param name="Exists">A protocol with this ID exists already, so this is a new version of it.</param>
 public sealed record ProtocolImport(
     string Id, string Folder, string Original, string Text, int Characters, IReadOnlyList<string> Figures, int? Pages,
-    bool Scanned, bool Exists);
+    bool Scanned, bool Exists)
+{
+    /// <summary>Each file uploaded, in order (protocol engine 26.4.0 and later; empty before).</summary>
+    public IReadOnlyList<ImportedFile> Files { get; init; } = [];
+}
+
+/// <summary>One uploaded file: a document whose text was read, or another file kept as it is (a method file, say).</summary>
+/// <param name="Original">Its copy in inbox/&lt;id&gt;, relative to the repository root.</param>
+/// <param name="Kind">"document" or "other".</param>
+/// <param name="Scanned">A PDF whose pages are pictures: Claude reads it itself.</param>
+public sealed record ImportedFile(
+    string Original, string Kind, int? Characters, IReadOnlyList<string>? Figures, int? Pages, bool Scanned)
+{
+    public bool IsDocument => Kind == "document";
+}
 
 /// <summary>What changed between two versions, or between a version and the draft.</summary>
 public sealed record ProtocolDiff(string From, string To, bool Same, string Diff);

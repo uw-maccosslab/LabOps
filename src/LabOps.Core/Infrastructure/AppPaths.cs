@@ -19,6 +19,7 @@ public sealed class AppPaths
         LogDirectory = Path.Combine(Root, "logs");
         SettingsFile = Path.Combine(Root, "settings.json");
         SessionDirectory = Path.Combine(Root, "claude");
+        AttachmentsDirectory = Path.Combine(Root, "attachments");
     }
 
     /// <summary>The application data root.</summary>
@@ -35,6 +36,12 @@ public sealed class AppPaths
 
     /// <summary>Per-session MCP configuration files handed to Claude Code.</summary>
     public string SessionDirectory { get; }
+
+    /// <summary>
+    /// Copies of the files a person attaches in the chat, which Claude may read. Outside every
+    /// repository, so an attachment is never committed or shared.
+    /// </summary>
+    public string AttachmentsDirectory { get; }
 
     /// <summary>Held open while the application runs, so a second copy can tell there is one.</summary>
     public string InstanceLockFile => Path.Combine(Root, "instance.lock");
@@ -79,5 +86,31 @@ public sealed class AppPaths
         Directory.CreateDirectory(Root);
         Directory.CreateDirectory(LogDirectory);
         Directory.CreateDirectory(SessionDirectory);
+        Directory.CreateDirectory(AttachmentsDirectory);
+    }
+
+    /// <summary>
+    /// Deletes the attachments of conversations from an earlier run. Each conversation's folder goes
+    /// when it ends; these are what a closed app or a crash left behind, and no conversation outlives
+    /// the app.
+    /// </summary>
+    public void ClearAttachments()
+    {
+        if (!Directory.Exists(AttachmentsDirectory))
+        {
+            return;
+        }
+
+        foreach (var folder in Directory.EnumerateDirectories(AttachmentsDirectory))
+        {
+            try
+            {
+                Directory.Delete(folder, recursive: true);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Held open by another program: next time.
+            }
+        }
     }
 }

@@ -54,6 +54,25 @@ public partial class ChatPanel : UserControl
         }
     }
 
+    /// <summary>Files dragged over the message box are attached, not pasted as text.</summary>
+    private void OnDragOverInput(object sender, DragEventArgs e)
+    {
+        if (e.Data.GetDataPresent(DataFormats.FileDrop))
+        {
+            e.Effects = DataContext is ChatViewModel chat && chat.AttachCommand.CanExecute(null) ? DragDropEffects.Copy : DragDropEffects.None;
+            e.Handled = true;
+        }
+    }
+
+    private async void OnDropOnInput(object sender, DragEventArgs e)
+    {
+        if (e.Data.GetData(DataFormats.FileDrop) is string[] files && DataContext is ChatViewModel chat)
+        {
+            e.Handled = true;
+            await chat.AddAttachmentsAsync(files);
+        }
+    }
+
     /// <summary>Enter, or Ctrl+Enter, but not Shift+Enter (a new line) and not while an input method is composing.</summary>
     private static bool IsPlainEnter(KeyEventArgs e) =>
         e.Key == Key.Enter && e.ImeProcessedKey == Key.None && (Keyboard.Modifiers & ModifierKeys.Shift) == 0;

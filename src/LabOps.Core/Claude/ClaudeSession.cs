@@ -24,6 +24,9 @@ public sealed record ClaudeSessionOptions
 
     public string? McpConfigPath { get; init; }
 
+    /// <summary>Folders outside the repository Claude may read, such as the chat's attachments.</summary>
+    public IReadOnlyList<string> AdditionalDirectories { get; init; } = [];
+
     /// <summary>Full MCP tool name that answers permission prompts, e.g. mcp__quotes-app__approve.</summary>
     public string? PermissionPromptTool { get; init; }
 
@@ -67,6 +70,11 @@ public sealed record ClaudeSessionOptions
         if (McpConfigPath is not null)
         {
             args.AddRange(["--mcp-config", McpConfigPath]);
+        }
+
+        foreach (var directory in AdditionalDirectories)
+        {
+            args.AddRange(["--add-dir", directory]);
         }
 
         if (PermissionPromptTool is not null)

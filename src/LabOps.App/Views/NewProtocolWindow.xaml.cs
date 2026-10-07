@@ -7,13 +7,14 @@ namespace LabOps.App.Views;
 
 /// <summary>What New protocol starts Claude with.</summary>
 /// <param name="Category">The category's ID.</param>
-/// <param name="File">The original to format, or null to work it out with the person.</param>
-public sealed record NewProtocolAnswer(string Title, string Category, string? File);
+/// <param name="Files">The originals to format (documents, and method files to keep), or none to work it out with the person.</param>
+public sealed record NewProtocolAnswer(string Title, string Category, IReadOnlyList<string> Files);
 
 /// <summary>Asks for a new protocol's title and category, and optionally the file it comes from.</summary>
 public partial class NewProtocolWindow : Window
 {
     private NewProtocolAnswer? _answer;
+    private IReadOnlyList<string> _files = [];
 
     private NewProtocolWindow(Window? owner, IReadOnlyList<ProtocolCategory> categories)
     {
@@ -36,20 +37,27 @@ public partial class NewProtocolWindow : Window
     {
         var dialog = new OpenFileDialog
         {
-            Title = "Choose the protocol to format",
-            Filter = "Protocols (*.docx;*.doc;*.pdf;*.md;*.txt;*.tex)|*.docx;*.doc;*.pdf;*.md;*.txt;*.tex|All files (*.*)|*.*",
+            Title = "Choose the protocol's files: its documents, and any method files the procedure runs",
+            Filter = ProtocolFiles.Filter,
+            Multiselect = true,
         };
         if (dialog.ShowDialog(this) == true)
         {
-            FileBox.Text = dialog.FileName;
+            _files = dialog.FileNames;
+            FileBox.Text = ProtocolFiles.Describe(_files);
             if (string.IsNullOrWhiteSpace(TitleBox.Text))
             {
-                TitleBox.Text = Path.GetFileNameWithoutExtension(dialog.FileName).Replace('_', ' ');
+                var first = _files.FirstOrDefault(ProtocolFiles.IsDocument) ?? _files[0];
+                TitleBox.Text = Path.GetFileNameWithoutExtension(first).Replace('_', ' ');
             }
         }
     }
 
-    private void OnClear(object sender, RoutedEventArgs e) => FileBox.Text = "";
+    private void OnClear(object sender, RoutedEventArgs e)
+    {
+        _files = [];
+        FileBox.Text = "";
+    }
 
     private void OnOk(object sender, RoutedEventArgs e)
     {
@@ -60,8 +68,7 @@ public partial class NewProtocolWindow : Window
             return;
         }
 
-        _answer = new NewProtocolAnswer(TitleBox.Text.Trim(), category.Id,
-            string.IsNullOrWhiteSpace(FileBox.Text) ? null : FileBox.Text);
+        _answer = new NewProtocolAnswer(TitleBox.Text.Trim(), category.Id, _files);
         DialogResult = true;
     }
 }

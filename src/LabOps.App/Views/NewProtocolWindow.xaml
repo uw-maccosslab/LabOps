@@ -16,11 +16,11 @@
             <ComboBox x:Name="CategoryBox" DisplayMemberPath="Label" />
         </DockPanel>
         <DockPanel>
-            <TextBlock Text="From a file" Width="80" VerticalAlignment="Center" />
+            <TextBlock Text="From files" Width="80" VerticalAlignment="Center" />
             <Button DockPanel.Dock="Right" Content="Clear" Click="OnClear" Margin="6,0,0,0" />
             <Button DockPanel.Dock="Right" Content="Choose..." Click="OnChoose" Margin="6,0,0,0" />
             <TextBox x:Name="FileBox" IsReadOnly="True" Background="{StaticResource SurfaceBrush}"
-                     ToolTip="Optional. Without a file, Claude asks you for the protocol's steps." />
+                     ToolTip="Optional. Choose every file at once: the protocol's documents (Word, PDF, LaTeX, Markdown or text) and any method files its steps run (a KingFisher or other robot program, an instrument method). Without files, Claude asks you for the protocol's steps." />
         </DockPanel>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
             <Button Content="Cancel" IsCancel="True" />

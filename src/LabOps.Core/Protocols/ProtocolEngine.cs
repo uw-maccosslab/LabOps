@@ -80,19 +80,39 @@ public sealed class ProtocolEngine : IPreCommitCheck
             root.GetProperty("same").GetBoolean(), root.GetProperty("diff").GetString() ?? "");
     }
 
-    /// <summary>Extracts an uploaded file's text and figures into inbox/&lt;id&gt;/ for Claude to format.</summary>
-    public async Task<ProtocolImport> ImportAsync(string file, string? id = null, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Copies uploaded files into inbox/&lt;id&gt;/ and extracts the documents' text and figures for
+    /// Claude to format; other files (a robot's method, say) are kept as they are.
+    /// </summary>
+    public async Task<ProtocolImport> ImportAsync(IReadOnlyList<string> files, string? id = null, CancellationToken cancellationToken = default)
     {
-        var args = new List<string> { "import", file };
+        var args = new List<string> { "import" };
+        args.AddRange(files);
         if (!string.IsNullOrWhiteSpace(id))
         {
             args.AddRange(["--id", id.Trim()]);
         }
 
-        using var doc = await RunAsync(args, cancellationToken).ConfigureAwait(false);
-        return EngineJson.Read(Name, m => new EngineException(m), () => doc.RootElement.Deserialize<ProtocolImport>(EngineJson.Options))
-            ?? throw new EngineException("The protocol engine returned an empty import.");
+        JsonDocument doc;
+        try
+        {
+            doc = await RunAsync(args, cancellationToken).ConfigureAwait(false);
+        }
+        catch (EngineException ex) when (files.Count > 1 && ex.Message.Contains("unrecognized arguments", StringComparison.Ordinal))
+        {
+            throw new EngineException(OlderEngine);
+        }
+
+        using (doc)
+        {
+            return EngineJson.Read(Name, m => new EngineException(m), () => doc.RootElement.Deserialize<ProtocolImport>(EngineJson.Options))
+                ?? throw new EngineException("The protocol engine returned an empty import.");
+        }
     }
+
+    /// <summary>What to say when this copy's protocol engine predates importing several files at once.</summary>
+    internal const string OlderEngine = "Reading several files at once needs a newer copy of the lab protocols on this computer. "
+        + "Choose Sync, then try again, or choose one file at a time.";
 
     /// <summary>Freezes the working text as the next version and returns its number.</summary>
     /// <param name="summary">What this version changes, in a sentence.</param>

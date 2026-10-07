@@ -752,14 +752,13 @@ public sealed partial class ProjectsViewModel : ObservableObject
             return;
         }
 
-        var sheets = string.Join("; ", scan.Sheets.Select(s => $"{s.Sheet}: {s.Rows} rows, {s.Columns.Count} columns"));
+        var sheets = IdentifierCheck.Sheets(scan);
         if (scan.Errors > 0)
         {
-            var found = string.Join("\n- ", scan.Findings.Where(f => f.IsError).Select(f => f.ToString()));
             if (MessageBox.Show(
-                    $"The check found information in {Path.GetFileName(target)} that could identify people:\n\n- {found}\n\n"
-                    + "Claude will not read the file until this is fixed. Remove those columns, or replace them with a study "
-                    + "code, save, and choose Organize with Claude again. If a finding is wrong, for example a column called "
+                    $"The check found information in {Path.GetFileName(target)} that could identify people:\n\n{IdentifierCheck.Errors(scan)}\n\n"
+                    + $"Claude will not read the file until this is fixed. {IdentifierCheck.Fix}, save, and choose Organize "
+                    + "with Claude again. If a finding is wrong, for example a column called "
                     + "Owner that holds a lab name, rename the column.\n\n"
                     + "Open the copy in the project's inbox folder now? (That folder is never shared.)",
                     AppInfo.ProductName, MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
@@ -770,7 +769,7 @@ public sealed partial class ProjectsViewModel : ObservableObject
             return;
         }
 
-        var warnings = scan.Warnings.Select(w => w.ToString()).ToList();
+        var warnings = IdentifierCheck.Warnings(scan);
         var relative = $"inbox/{p.Project}/{Path.GetFileName(target)}";
         var prompt = OrganizeMetadataPrompt(p, relative, sheets, warnings, section);
 
