@@ -98,7 +98,7 @@ public sealed class ProtocolEngine : IPreCommitCheck
         {
             doc = await RunAsync(args, cancellationToken).ConfigureAwait(false);
         }
-        catch (EngineException ex) when (files.Count > 1 && ex.Message.Contains("unrecognized arguments", StringComparison.Ordinal))
+        catch (EngineException ex) when (IsOlderEngine(ex.Message, files.Count))
         {
             throw new EngineException(OlderEngine);
         }
@@ -109,6 +109,10 @@ public sealed class ProtocolEngine : IPreCommitCheck
                 ?? throw new EngineException("The protocol engine returned an empty import.");
         }
     }
+
+    /// <summary>The engine refused the extra files: it predates importing several at once.</summary>
+    internal static bool IsOlderEngine(string message, int files) =>
+        files > 1 && message.Contains("unrecognized arguments", StringComparison.Ordinal);
 
     /// <summary>What to say when this copy's protocol engine predates importing several files at once.</summary>
     internal const string OlderEngine = "Reading several files at once needs a newer copy of the lab protocols on this computer. "

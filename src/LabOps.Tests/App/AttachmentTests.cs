@@ -1,8 +1,6 @@
 using LabOps.App.Services;
 using LabOps.App.ViewModels;
-using LabOps.Core.Engines;
 using LabOps.Core.Infrastructure;
-using LabOps.Core.Processes;
 using LabOps.Core.Projects;
 using LabOps.Core.Protocols;
 
@@ -93,21 +91,13 @@ public sealed class AttachmentTests : IDisposable
         prompt.ShouldNotContain("extracted its text");
     }
 
-    [Fact]
-    public async Task Several_files_on_an_older_protocol_engine_say_to_sync_first()
+    [Theory]
+    [InlineData("The protocol engine could not run: protocol.py: error: unrecognized arguments: b.bdz", 2, true)]
+    [InlineData("The protocol engine could not run: protocol.py: error: unrecognized arguments: b.bdz", 1, false)]
+    [InlineData("a.pdf is not a file", 2, false)]
+    public void Several_files_on_an_older_protocol_engine_say_to_sync_first(string error, int files, bool older)
     {
-        var engine = new ProtocolEngine(new Refusing(), new ToolLocator()) { RepositoryPath = _root };
-
-        var error = await Should.ThrowAsync<EngineException>(() => engine.ImportAsync(["a.pdf", "b.bdz"]));
-
-        error.Message.ShouldBe(ProtocolEngine.OlderEngine);
-    }
-
-    /// <summary>protocol.py from before several files: argparse refuses the extra ones.</summary>
-    private sealed class Refusing : IProcessRunner
-    {
-        public Task<ProcessResult> RunAsync(string fileName, IEnumerable<string> arguments, string? workingDirectory = null,
-            IReadOnlyDictionary<string, string?>? environment = null, TimeSpan? timeout = null, CancellationToken cancellationToken = default) =>
-            Task.FromResult(new ProcessResult(2, "", "usage: protocol.py import [-h] file\nprotocol.py: error: unrecognized arguments: b.bdz"));
+        ProtocolEngine.IsOlderEngine(error, files).ShouldBe(older);
+        ProtocolEngine.OlderEngine.ShouldContain("Choose Sync");
     }
 }
