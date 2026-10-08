@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/labops-logo.png" alt="LabOps" width="280">
+</p>
+
 # LabOps
 
 A Windows app for the MacCoss Lab. Its **Projects** area tracks the lab's work in
