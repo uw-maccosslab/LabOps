@@ -6,8 +6,6 @@ the GitHub Release description and fails if it is missing.
 
 ## New Features
 
-- The app has a new icon and logo.
-
 ## Bug Fixes
 
 ## Performance
