@@ -311,6 +311,14 @@
                     <Button Content="&#x203A;" Command="{Binding NextMonthCommand}" Padding="8,2" AutomationProperties.Name="Next month" />
                     <Button Content="This month" Command="{Binding ThisMonthCommand}" Margin="6,0,0,0" />
                 </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="12,0,0,0"
+                            Visibility="{Binding DataContext.HasDashboard, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisibility}}">
+                    <Button Content="Publish to Panorama"
+                            Command="{Binding DataContext.PublishDashboardCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            ToolTip="Publish a summary of every lab's open work to the lab-only folder on Panorama that LabOps-Projects names. LabOps keeps it up to date after that." />
+                    <Button Content="Open on Panorama"
+                            Command="{Binding DataContext.OpenDashboardCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                </StackPanel>
             </WrapPanel>
             <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
                 <Grid>

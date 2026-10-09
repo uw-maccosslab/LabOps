@@ -40,6 +40,9 @@ public sealed partial class ProjectsViewModel : ObservableObject
     private readonly PanoramaPicker _panorama;
     private readonly WikiPublisher _wiki;
     private readonly ProtocolEngine _protocols;
+    private readonly DashboardPublisher _dashboard;
+    // The list last loaded, which the dashboard is drawn from.
+    private ProjectList? _list;
     // The project whose change was just saved: its wiki page is updated once the list has it.
     private string? _wikiAfterReload;
     private List<ProjectRow> _all = [];
@@ -48,8 +51,9 @@ public sealed partial class ProjectsViewModel : ObservableObject
 
     public ProjectsViewModel(
         Workspace workspace, ProjectEngine engine, WorkTracker work, ChatViewModel chat, PanoramaPicker panorama, WikiPublisher wiki,
-        ProtocolEngine protocols, ILogger<ProjectsViewModel> log)
+        ProtocolEngine protocols, DashboardPublisher dashboard, ILogger<ProjectsViewModel> log)
     {
+        _dashboard = dashboard;
         _panorama = panorama;
         _wiki = wiki;
         _protocols = protocols;
@@ -184,6 +188,7 @@ public sealed partial class ProjectsViewModel : ObservableObject
 
             var modified = await ItemHistory.LastModifiedAsync(repository).ConfigureAwait(true);
             _people = list.People;
+            _list = list;
             Overview.Update(list, _workspace.User?.Login);
             _all = [.. list.Labs.SelectMany(lab => lab.Projects.Select(p =>
                 new ProjectRow(lab, p, modified.TryGetValue(p.Folder, out var t) ? t : null, p.Assigned is { } a ? NameOf(a) : "")))];
@@ -199,6 +204,9 @@ public sealed partial class ProjectsViewModel : ObservableObject
         }
 
         repository.ReloadConfig();
+        // Only a copy that has just synced has everyone's work; an older one must not overwrite it.
+        _dashboard.UpdateInBackground(_list!, repository.Config.Dashboard, repository.Sync.SyncedWithin(TimeSpan.FromMinutes(10)));
+        OnPropertyChanged(nameof(HasDashboard));
         ApplyFilter();
         if (keep is not null && _all.FirstOrDefault(r => r.Name == keep) is { } row)
         {
@@ -225,6 +233,48 @@ public sealed partial class ProjectsViewModel : ObservableObject
     }
 
     partial void OnQueryChanged(string value) => ApplyFilter();
+
+    /// <summary>LabOps-Projects names a Panorama folder for the lab dashboard (config/app.yaml).</summary>
+    public bool HasDashboard => Repository?.Config.Dashboard is not null;
+
+    /// <summary>
+    /// Publishes the lab dashboard to Panorama, after the person confirms: the first time, and to
+    /// take back a page edited there. Later updates happen on their own.
+    /// </summary>
+    [RelayCommand]
+    private async Task PublishDashboardAsync()
+    {
+        if (Repository?.Config.Dashboard is not { } where || _list is not { } list)
+        {
+            return;
+        }
+
+        var answer = MessageBox.Show(Application.Current.MainWindow,
+            $"Publish the lab dashboard to {where.Folder} on Panorama?\n\n"
+            + "It lists every lab's open projects and experiments, what is late or due, and the instruments' bookings, so the "
+            + "folder must be readable by lab members only. LabOps keeps the page up to date from then on, unless someone "
+            + "edits it on Panorama.",
+            "Publish the lab dashboard", MessageBoxButton.OKCancel, MessageBoxImage.Question);
+        if (answer != MessageBoxResult.OK)
+        {
+            return;
+        }
+
+        await _work.RunAsync("Publishing the lab dashboard...", async () =>
+        {
+            _work.Notice = await _dashboard.PublishAsync(list, where).ConfigureAwait(true);
+        }).ConfigureAwait(true);
+    }
+
+    /// <summary>Opens the lab dashboard on Panorama in the browser.</summary>
+    [RelayCommand]
+    private void OpenDashboard()
+    {
+        if (Repository?.Config.Dashboard is { } where)
+        {
+            Shell.Open(_dashboard.PageUrl(where));
+        }
+    }
 
     /// <summary>
     /// Shows a project, or the project an experiment belongs to, in the list: what a click on the
