@@ -71,6 +71,12 @@
     was labops's, the app could not find its own libraries and did not start (26.10.0, 26.11.0).
   -->
   <Target Name="CopyLabopsTool" AfterTargets="Build" Condition="!Exists('tools\labops.exe')">
+    <!-- Restored on its own first: nothing references the tool, so building only the app or the
+         tests (dotnet test) would not restore it. A fresh session id makes the build that follows
+         read what the restore wrote. -->
+    <MSBuild Projects="..\LabOps.Cli\LabOps.Cli.csproj" Targets="Restore"
+             Properties="Configuration=$(Configuration);MSBuildRestoreSessionId=$([System.Guid]::NewGuid())"
+             RemoveProperties="RuntimeIdentifier;SelfContained;PublishReadyToRun;OutDir;OutputPath" />
     <MSBuild Projects="..\LabOps.Cli\LabOps.Cli.csproj" Targets="Build" Properties="Configuration=$(Configuration)"
              RemoveProperties="RuntimeIdentifier;SelfContained;PublishReadyToRun;OutDir;OutputPath" />
     <ItemGroup>
