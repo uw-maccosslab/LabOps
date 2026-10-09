@@ -291,6 +291,7 @@ public static partial class Validation
         Funding(p["funding"], output, optional: false);
         Links(p, output);
         Protocols(p, output);
+        output.AddRange(Reviews.Rules(p));
         var wiki = p["wiki"];
         if (wiki is not null)
         {
@@ -324,6 +325,7 @@ public static partial class Validation
         Funding(e["funding"], output, optional: true);
         Links(e, output, panorama: true);
         Protocols(e, output);
+        output.AddRange(Reviews.Rules(e));
         if (e["wiki"] is not null)
         {
             output.Add(("WARN", "the wiki page belongs to the project, not the experiment"));

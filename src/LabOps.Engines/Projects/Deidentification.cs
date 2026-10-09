@@ -18,8 +18,11 @@ namespace LabOps.Engines.Projects;
 /// </summary>
 public static partial class Deidentification
 {
-    /// <summary>One finding: where, and what. Count is how many values, for content rules.</summary>
-    public sealed record Finding(string Level, string File, string? Column, string Message, int? Count = null)
+    /// <summary>
+    /// One finding: where, and what. Count is how many values, for content rules; Fingerprint, for a
+    /// free-text column, identifies its text, so a person's review of it can be recorded (Reviews).
+    /// </summary>
+    public sealed record Finding(string Level, string File, string? Column, string Message, int? Count = null, string? Fingerprint = null)
     {
         public JsonObject Json()
         {
@@ -290,7 +293,8 @@ public static partial class Deidentification
             var longText = texts.Count(t => PyText.Split(t).Count >= 5);
             if (words.Overlaps(FreeTextHeaders) || longText >= Math.Max(2, texts.Count / 5))
             {
-                found.Add(new Finding("WARN", source, label, "is free text; check it for names, contact details or other identifiers"));
+                found.Add(new Finding("WARN", source, label, "is free text; check it for names, contact details or other identifiers",
+                    Fingerprint: h.Length > 0 ? Reviews.Fingerprint(texts) : null));
             }
         }
 

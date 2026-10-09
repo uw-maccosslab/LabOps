@@ -234,7 +234,7 @@ public static class FileChecks
                 continue;
             }
 
-            found.AddRange(findings.Select(f => (f.Level, f.Text())));
+            found.AddRange(Reviews.Apply(repo, findings).Select(f => (f.Level, f.Text())));
         }
 
         return found;

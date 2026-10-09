@@ -109,7 +109,7 @@ public sealed partial class ProjectsEngine(ProjectRepository repo)
                 var options = new EnumerationOptions { RecurseSubdirectories = true, AttributesToSkip = 0, IgnoreInaccessible = true };
                 foreach (var path in Directory.EnumerateFiles(Repository.Projects, "*", options).Order(PathOrder.Instance))
                 {
-                    found.AddRange(FileChecks.CheckFile(Repository.Rel(path), File.ReadAllBytes(path), parseErrors: false)
+                    found.AddRange(Reviews.Apply(Repository, FileChecks.CheckFile(Repository.Rel(path), File.ReadAllBytes(path), parseErrors: false))
                         .Select(f => (f.Level, f.Text())));
                 }
             }

@@ -15,7 +15,7 @@ public enum OptionKind
 /// <summary>An option such as --title T, --human or --quote Q (repeatable).</summary>
 public sealed record Option(string Name, OptionKind Kind = OptionKind.Value, bool Required = false, string[]? Choices = null, bool Integer = false, string? Default = null);
 
-/// <summary>A positional argument: one, optional ('?') or one or more ('+').</summary>
+/// <summary>A positional argument: one, optional ('?'), one or more ('+') or any number ('*').</summary>
 public sealed record Positional(string Name, char Count = '1', string[]? Choices = null);
 
 /// <summary>What was given on the command line, by name (options without their dashes).</summary>
@@ -140,6 +140,13 @@ public static class Arguments
                     {
                         Check(p.Name, loose[at], p.Choices, false);
                         parsed.Set(p.Name, loose[at++]);
+                    }
+
+                    break;
+                case '*':
+                    while (available-- > needed)
+                    {
+                        parsed.Add(p.Name, loose[at++]);
                     }
 
                     break;

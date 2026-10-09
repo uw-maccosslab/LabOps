@@ -50,6 +50,8 @@ public static class ProjectsCommandLine
         new("unlink", [new("item"), new("what", Choices: ["panorama", "notebook", "wiki", "protocol"]), new("value", '?')],
             [new("--step"), new("--all", OptionKind.Flag)],
             (e, a) => e.Unlink(a.Get("item")!, a.Get("what")!, a.Get("value"), a.Get("step"), a.Flag("all"))),
+        new("review", [new("item"), new("file"), new("column", '*')], [new("--by", Required: true)],
+            (e, a) => e.Review(a.Get("item")!, a.Get("file")!, a.All("column"), a.Get("by")!)),
         new("wiki", [new("project")], [new("--documents"), new("--out"), new("--date")],
             (e, a) => e.Wiki(a.Get("project")!, a.Get("documents"), a.Get("out"),
                 a.Get("date") is { } d ? ProjectsEngine.ParseDate(d) : null)),

@@ -462,6 +462,57 @@ public sealed partial class ProjectsEngine
         return problem is null ? (kind, folder, path, raw, d) : throw new EngineError($"{Repository.Rel(path)}: {problem}; fix it first (run check)");
     }
 
+    /// <summary>
+    /// review &lt;item&gt; &lt;file&gt; [column...] --by LOGIN: records that a person read the file's free-text
+    /// columns (all of them, or those named) and found nothing identifying, so check stops warning
+    /// about them until their text changes. The file is the project's or experiment's own, given
+    /// from its folder (metadata/samples.csv) or from the repository's root.
+    /// </summary>
+    public CommandResult Review(string item, string file, IReadOnlyList<string> columns, string by)
+    {
+        if (Stripped(by) is not { } who)
+        {
+            throw new EngineError("give --by LOGIN: who read the columns");
+        }
+
+        var (kind, folder, path, raw, record) = LinkTarget(item, "review");
+        var relative = file.Replace('\\', '/').TrimStart('/');
+        var full = Path.GetFullPath(relative.StartsWith("projects/", StringComparison.Ordinal)
+            ? Path.Combine(Repository.Root, relative) : Path.Combine(folder, relative));
+        if (!full.StartsWith(folder + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) || !File.Exists(full)
+            || Reviews.Owner(Repository, Repository.Rel(full)) is not { } owner || !string.Equals(owner, folder, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new EngineError($"{file} is not a file of {Path.GetFileName(folder)} (give it from {Repository.Rel(folder)}/, "
+                                  + "for example metadata/samples.csv)");
+        }
+
+        var name = Repository.Rel(full);
+        var freeText = Deidentification.DataFindings(name, Sheets.DecodeText(File.ReadAllBytes(full), name))
+            .Where(f => f.Fingerprint is not null && f.Column is not null).ToList();
+        var chosen = columns.Count == 0 ? freeText : [.. columns.Select(c => freeText.FirstOrDefault(f => f.Column == c)
+            ?? throw new EngineError($"{name} has no free-text column {PyText.ReprString(c)}; the free-text columns are: "
+                                     + (freeText.Count == 0 ? "none" : string.Join(", ", freeText.Select(f => f.Column)))))];
+        if (chosen.Count == 0)
+        {
+            throw new EngineError($"{name} has no free-text column to review");
+        }
+
+        var key = Path.GetRelativePath(folder, full).Replace('\\', '/');
+        // A date, as the steps' dates are, not text that looks like one (which YAML would quote).
+        var today = Repository.Today();
+        var kept = (record[Reviews.Key] as List<object?> ?? []).OfType<PyDict>()
+            .Where(e => !(Values.Text(e["file"]) == key && chosen.Any(c => c.Column == Values.Text(e["column"]))));
+        var added = chosen.Select(c => new PyDict
+        {
+            ["file"] = key, ["column"] = c.Column, ["values"] = c.Fingerprint, ["by"] = who, ["date"] = today,
+        });
+        var entries = kept.Concat(added).OrderBy(e => Values.Text(e["file"]), StringComparer.Ordinal)
+            .ThenBy(e => Values.Text(e["column"]), StringComparer.Ordinal).ToList();
+        YamlText.WriteText(path, RecordEdits.SetList(raw, Reviews.Key, entries, Reviews.Comment));
+        return Report(kind, folder, path, $"{Path.GetFileName(folder)}: {key} reviewed by {who}: "
+                                          + string.Join(", ", chosen.Select(c => c.Column)));
+    }
+
     private static string? Stripped(string? text) => Py.Strip(text ?? "") is { Length: > 0 } s ? s : null;
 
     /// <summary>link &lt;item&gt; panorama|notebook|wiki|protocol [value] [options].</summary>
