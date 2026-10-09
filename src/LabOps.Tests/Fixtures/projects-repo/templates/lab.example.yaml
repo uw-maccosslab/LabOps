@@ -16,7 +16,7 @@ contacts: []
 #    email: name@example.org
 
 # The collab-* repository where this lab's analyses live, if there is one.
-analysis_repo: null       # for example uw-maccosslab/collab-clearwater-mink
+analysis_repo: null       # for example uw-maccosslab/collab-clearwater-otter
 
 # LabKey ELN notebooks for the collaboration as a whole (projects can list their own).
 notebooks: []

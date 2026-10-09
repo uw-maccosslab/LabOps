@@ -8,7 +8,7 @@ project: Name-Of-Project
 title: Short description of the project
 status: active            # active | on_hold | closed
 lab_contact: maccoss      # GitHub login (config/people.yaml)
-series: null              # optional tag grouping related projects, for example dog-aging
+series: null              # optional tag grouping related projects, for example heron-survey
 
 # How the work is paid for. Quote numbers are recorded as text only; prices stay in the quotes
 # repository, which not everyone can read. An experiment can say otherwise.
