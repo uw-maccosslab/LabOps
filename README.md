@@ -47,7 +47,7 @@ What each person needs before Setup, and who gives it:
 | Account or access | Who needs it | How they get it |
 |---|---|---|
 | A GitHub account in the [uw-maccosslab](https://github.com/uw-maccosslab) organization | Everyone | An organization owner invites them under the organization's People. Setup signs in to GitHub in the browser. |
-| [LabOps](https://github.com/uw-maccosslab/LabOps): read | Everyone | Nothing to do: the repository is internal, so every organization member can read it. The app downloads its updates from there. |
+| [LabOps](https://github.com/uw-maccosslab/LabOps): read | Everyone | Nothing to do: the repository is public. The app downloads its updates from there. |
 | [LabOps-Projects](https://github.com/uw-maccosslab/LabOps-Projects): **write** | Everyone who records progress | The repository is internal, so every member can read it, but saving anything (a step, a link, a wiki page's text, Claude's work) pushes to it, which needs Write. An owner gives it on the repository's Settings > Collaborators and teams, best through a team (for example "lab", with Write). With Read only, LabOps shows the projects and refuses to save. |
 | [LabOps-Protocols](https://github.com/uw-maccosslab/LabOps-Protocols): **write** | Everyone who writes, changes or publishes protocols | The repository is internal, so every member can read every protocol and version. Writing, publishing and retiring push to it, which needs Write, given the same way as for the projects (a "lab" team with Write). |
 | [LabOps-Quotes](https://github.com/uw-maccosslab/LabOps-Quotes): **write** | Only the people who prepare quotes | The repository is private. An owner gives each of them Write on its Settings > Collaborators and teams. Its `config/app.yaml` lists who sees the Send button. |
@@ -57,8 +57,8 @@ What each person needs before Setup, and who gives it:
 The organization's base permission is **Read** today, which gives every member read access to
 every repository, including the private LabOps-Quotes (prices included). To keep the quotes to
 the people who prepare them, an owner sets the base permission to **No permission** (Organization
-settings > Member privileges) and gives those people Write on LabOps-Quotes; LabOps and
-LabOps-Projects and LabOps-Protocols stay readable to every member because they are internal. The
+settings > Member privileges) and gives those people Write on LabOps-Quotes; LabOps is
+public, and LabOps-Projects and LabOps-Protocols stay readable to every member because they are internal. The
 same owner then gives LabOps-Projects and LabOps-Protocols Write to everyone who records progress or
 writes protocols.
 

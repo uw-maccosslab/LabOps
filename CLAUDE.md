@@ -184,8 +184,8 @@ To release: rename the draft to `RELEASE_NOTES_v{version}.md` and **delete its e
 file is published verbatim as the Release description), seed a fresh draft, set `<Version>`, push,
 let CI go green, then push tag `v{version}`. `release.yml` runs the tests, downloads pinned uv and gh
 (checked against their published SHA-256), packs with Velopack, and publishes the Release the app's
-update check reads. The update check authenticates with the user's gh token because this
-repository is not public. Installed copies check at startup and every four hours.
+update check reads. The repository is public, so the update check works signed out; it uses the
+user's gh token when there is one, for GitHub's per-account rate limit. Installed copies check at startup and every four hours.
 
 Engine changes have their own notes and `engine-v{version}` tags in each data repository.
 

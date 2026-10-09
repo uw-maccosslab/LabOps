@@ -105,7 +105,7 @@ flowchart LR
 
 | Piece | What it is | Where it runs | How it changes for everyone |
 |---|---|---|---|
-| LabOps | This app: .NET 10, WPF | Each person's Windows computer | A release (`v26.x.0` tag); installed copies update themselves |
+| LabOps | This app: .NET 10, WPF. Public. | Each person's Windows computer | A release (`v26.x.0` tag); installed copies update themselves |
 | LabOps-Projects | Labs, projects, experiments, deidentified sample tables, plate layouts. Open to the lab. | GitHub, plus a clone on each computer | A push to `main`; others get it on their next sync |
 | LabOps-Protocols | The lab's protocols, every published version, figures and originals. Open to the lab. | GitHub, plus a clone on each computer | A push to `main` |
 | LabOps-Quotes | Quotes, rates, templates. Private to the people who prepare quotes. | GitHub, plus a clone where needed | A push to `main` |

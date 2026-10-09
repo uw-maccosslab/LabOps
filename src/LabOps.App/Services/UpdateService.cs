@@ -26,8 +26,10 @@ public sealed record UpdateStatus(UpdateStage Stage, string? AvailableVersion = 
 /// <remarks>
 /// As in PanoramaBridge, it never restarts the app on its own (the user may be partway through
 /// a quote with Claude) and never throws out of a check: an unreachable GitHub must not stop
-/// anyone working. The app repository is internal, so the feed is read with the user's own
-/// GitHub sign-in, taken from gh at check time and never stored or logged.
+/// anyone working. The app repository is public, so the feed reads without signing in; the user's
+/// own GitHub sign-in is still used when gh has one (taken at check time, never stored or logged),
+/// which counts the checks against that account's rate limit rather than the small one GitHub gives
+/// anonymous requests from a shared network address.
 /// </remarks>
 public sealed class UpdateService
 {
