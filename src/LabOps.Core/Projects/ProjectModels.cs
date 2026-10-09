@@ -46,6 +46,12 @@ public sealed record StageEntry
     /// <summary>GitHub login of who does it.</summary>
     public string? Assigned { get; init; }
 
+    /// <summary>When the step should start, YYYY-MM-DD (labops projects plan).</summary>
+    public string? PlannedStart { get; init; }
+
+    /// <summary>When the step should be finished, YYYY-MM-DD.</summary>
+    public string? PlannedFinish { get; init; }
+
     public string? Started { get; init; }
 
     public string? Finished { get; init; }
@@ -64,6 +70,23 @@ public sealed record StageEntry
     public bool IsDone => Status == "done";
 
     public bool IsSkipped => Status == "skipped";
+
+    public bool HasPlan => PlannedStart is not null || PlannedFinish is not null;
+
+    /// <summary>
+    /// Late on <paramref name="today"/>: not done or skipped and its planned finish has passed, or
+    /// still pending and its planned start has passed. A step with no plan is never late; how long
+    /// it has waited is a different question.
+    /// </summary>
+    public bool IsLate(DateOnly today) =>
+        !(IsDone || IsSkipped) && (Before(PlannedFinish, today) || (IsPending && Before(PlannedStart, today)));
+
+    /// <summary>A YYYY-MM-DD date as a DateOnly, or null when there is none (or it is not one).</summary>
+    public static DateOnly? Date(string? text) =>
+        DateOnly.TryParseExact(text, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.None, out var date) ? date : null;
+
+    private static bool Before(string? date, DateOnly today) => Date(date) is { } d && d < today;
 }
 
 /// <summary>How work is paid for. Quote numbers only; prices stay in the quotes repository.</summary>

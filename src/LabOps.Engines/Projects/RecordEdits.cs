@@ -12,7 +12,7 @@ public static class RecordEdits
 {
     /// <summary>The order a step's keys are written in; any others follow in their own order.</summary>
     public static readonly IReadOnlyList<string> StepOrder =
-        ["id", "kind", "label", "status", "assigned", "started", "finished", "by", "note"];
+        ["id", "kind", "label", "status", "assigned", "planned_start", "planned_finish", "started", "finished", "by", "note"];
 
     /// <summary>_clean_step: the usual keys in the usual order, empty ones and _private ones left out.</summary>
     public static PyDict CleanStep(PyDict step)

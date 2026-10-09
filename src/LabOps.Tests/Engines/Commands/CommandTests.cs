@@ -321,12 +321,12 @@ public sealed class CommandTests
         p["current_stage"]!.GetValue<string>().ShouldBe("metadata_organized");
         ShouldBeJson(p["stages"]![0], """
             {"stage": "samples_received", "kind": "samples_received", "label": "Samples received",
-             "status": "done", "assigned": null, "started": "2026-10-02", "finished": "2026-10-02",
+             "status": "done", "assigned": null, "planned_start": null, "planned_finish": null, "started": "2026-10-02", "finished": "2026-10-02",
              "by": null, "note": null}
             """);
         ShouldBeJson(e["stages"]![1], """
             {"stage": "data_deposited", "kind": "data_deposited", "label": "Data deposited to Panorama",
-             "status": "pending", "assigned": null, "started": null, "finished": null, "by": null,
+             "status": "pending", "assigned": null, "planned_start": null, "planned_finish": null, "started": null, "finished": null, "by": null,
              "note": null}
             """);
         ShouldBeJson(p["files"], """{"samples": false, "layout": false, "wiki": false}""");

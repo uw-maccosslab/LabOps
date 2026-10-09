@@ -113,6 +113,8 @@ public static partial class Steps
         ["label"] = Label(s),
         ["status"] = Status(s),
         ["assigned"] = Values.Json(Values.Text(s["assigned"])),
+        ["planned_start"] = Values.Json(Values.Text(s["planned_start"])),
+        ["planned_finish"] = Values.Json(Values.Text(s["planned_finish"])),
         ["started"] = Values.Json(Values.Text(s["started"])),
         ["finished"] = Values.Json(Values.Text(s["finished"])),
         ["by"] = Values.Json(Values.Text(s["by"])),

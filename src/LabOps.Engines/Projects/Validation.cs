@@ -112,6 +112,23 @@ public static partial class Validation
                 output.Add(("WARN", $"{name} is done but has no finished date"));
             }
 
+            // The plan: when the step should start and finish. Nothing here depends on today, so
+            // a record checks the same on any day; being late is for the views to show.
+            var plannedStart = s["planned_start"];
+            var plannedFinish = s["planned_finish"];
+            foreach (var (label, d) in (ReadOnlySpan<(string, object?)>)[("planned_start", plannedStart), ("planned_finish", plannedFinish)])
+            {
+                if (d is not null && d is not DateOnly)
+                {
+                    output.Add(("ERROR", $"{name}: {label} must be a date (YYYY-MM-DD)"));
+                }
+            }
+
+            if (plannedStart is DateOnly plannedFrom && plannedFinish is DateOnly plannedTo && plannedTo < plannedFrom)
+            {
+                output.Add(("ERROR", $"{name}: planned to finish before it starts"));
+            }
+
             var who = new List<string>();
             foreach (var k in (string[])["assigned", "by"])
             {

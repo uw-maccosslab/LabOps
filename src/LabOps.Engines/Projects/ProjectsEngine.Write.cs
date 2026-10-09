@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using LabOps.Engines.Python;
@@ -325,6 +326,60 @@ public sealed partial class ProjectsEngine
         var names = string.Join(", ", chosen.Select(s => PyText.Str(s["id"])));
         var name = Path.GetFileName(t.Folder);
         return Report(t.Kind, t.Folder, t.Path, !string.IsNullOrEmpty(to) ? $"{name}: {names} assigned to {to}" : $"{name}: {names} unassigned");
+    }
+
+    /// <summary>
+    /// plan &lt;item&gt; &lt;step&gt;... [--start DATE] [--finish DATE] | --clear: when steps should start and
+    /// finish. A date not given keeps the one recorded; --clear removes both.
+    /// </summary>
+    public CommandResult Plan(string item, IReadOnlyList<string> stepIds, string? start, string? finish, bool clear)
+    {
+        if (clear == (start is not null || finish is not null))
+        {
+            throw new EngineError("give --start DATE and/or --finish DATE, or --clear to remove the plan");
+        }
+
+        var from = start is null ? (DateOnly?)null : ParseDate(start, "--start");
+        var to = finish is null ? (DateOnly?)null : ParseDate(finish, "--finish");
+        var t = ReadTimeline(item);
+        var chosen = stepIds.Select(s => Steps.Find(t.Steps, s)).ToList();
+        foreach (var step in chosen)
+        {
+            if (clear)
+            {
+                step.Remove("planned_start");
+                step.Remove("planned_finish");
+                continue;
+            }
+
+            if (from is { } f)
+            {
+                step["planned_start"] = f;
+            }
+
+            if (to is { } u)
+            {
+                step["planned_finish"] = u;
+            }
+
+            if (step["planned_start"] is DateOnly s && step["planned_finish"] is DateOnly e && e < s)
+            {
+                throw new EngineError($"step {PyText.Str(step["id"])} would be planned to finish ({Iso(e)}) before it starts ({Iso(s)})");
+            }
+        }
+
+        YamlText.WriteText(t.Path, RecordEdits.WriteSteps(t.Raw, t.Steps));
+        var names = string.Join(", ", chosen.Select(s => PyText.Str(s["id"])));
+        var what = clear ? "plan cleared"
+            : (from, to) switch
+            {
+                ({ } f, { } u) => $"planned {Iso(f)} to {Iso(u)}",
+                ({ } f, null) => $"planned to start {Iso(f)}",
+                _ => $"planned to finish {Iso(to!.Value)}",
+            };
+        return Report(t.Kind, t.Folder, t.Path, $"{Path.GetFileName(t.Folder)}: {names} {what}");
+
+        static string Iso(DateOnly d) => d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
     }
 
     /// <summary>add-step &lt;item&gt; &lt;kind&gt; [--label L] [--after STEP | --before STEP] [--id ID] [--assigned LOGIN].</summary>

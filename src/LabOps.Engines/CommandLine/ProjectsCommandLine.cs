@@ -37,6 +37,8 @@ public static class ProjectsCommandLine
             (e, a) => e.Stage(a.Get("item")!, a.Get("step")!, a.Get("action")!, a.Get("date"), a.Get("by"), a.Get("note"))),
         new("assign", [new("item"), new("step", '+')], [new("--to"), new("--nobody", OptionKind.Flag)],
             (e, a) => e.Assign(a.Get("item")!, a.All("step"), a.Get("to"), a.Flag("nobody"))),
+        new("plan", [new("item"), new("step", '+')], [new("--start"), new("--finish"), new("--clear", OptionKind.Flag)],
+            (e, a) => e.Plan(a.Get("item")!, a.All("step"), a.Get("start"), a.Get("finish"), a.Flag("clear"))),
         new("add-step", [new("item"), new("kind")], [new("--label"), new("--after"), new("--before"), new("--id"), new("--assigned")],
             (e, a) => e.AddStep(a.Get("item")!, a.Get("kind")!, a.Get("label"), a.Get("after"), a.Get("before"), a.Get("id"), a.Get("assigned"))),
         new("remove-step", [new("item"), new("step")], [], (e, a) => e.RemoveStep(a.Get("item")!, a.Get("step")!)),

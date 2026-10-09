@@ -6,6 +6,13 @@ the GitHub Release description and fails if it is missing.
 
 ## New Features
 
+- **Steps could be planned.** `labops projects plan <item> <step>... --start DATE --finish DATE`
+  recorded when steps should start and finish (a date not given kept the one recorded, and `--clear`
+  removed the plan), written on each step's line as `planned_start` and `planned_finish`. `check`
+  refused a plan that was not dates or that finished before it started; nothing in the check depended
+  on the day it ran. A step counted as late when its planned finish had passed and it was not done or
+  skipped, or when its planned start had passed and it had not started.
+
 ## Bug Fixes
 
 ## Performance
