@@ -1,6 +1,7 @@
 using System.Text.Json;
 using LabOps.Core.GitHub;
 using LabOps.Core.Processes;
+using LabOps.Core.Projects;
 using LabOps.Core.Repositories;
 
 namespace LabOps.Core.Setup;
@@ -119,7 +120,10 @@ public sealed class SetupService
             projects ? projectsPath! : "A copy of the lab's projects on this computer. Download one, or point to a copy you already have.",
             signedIn ? "Download the projects" : null,
             git is null ? null : projects ? "Use a different copy" : "Use a copy I already have"));
-        items.Add(EngineItem(SetupStep.ProjectsEngine, "Project engine", "project.py", projects ? projectsPath : null));
+        // The projects engine is built into LabOps; only the project.py fallback needs Python.
+        items.Add(ProjectEngine.PythonRequested
+            ? EngineItem(SetupStep.ProjectsEngine, "Project engine", "project.py", projects ? projectsPath : null)
+            : new(SetupStep.ProjectsEngine, "Project engine", true, "Built into LabOps.", null));
 
         // The protocols are for the whole lab, but optional, so an app updated before anyone
         // downloads them still opens; the Protocols area offers the download.
@@ -271,7 +275,7 @@ public sealed class SetupService
         if (!profile.LooksLikeClone(path))
         {
             throw new InvalidOperationException(
-                $"{path} is not a copy of the {profile.DisplayName}. Choose the folder that contains {profile.EngineScript.Replace('/', '\\')}.");
+                $"{path} is not a copy of the {profile.DisplayName}. Choose the folder that contains {profile.CloneMarker.Replace('/', '\\')}.");
         }
 
         var remote = await _runner.RunAsync(_tools.Require(Tool.Git), ["remote", "get-url", "origin"], path,

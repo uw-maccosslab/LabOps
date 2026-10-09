@@ -103,16 +103,18 @@ public sealed class ToolOutputParsingTests
     }
 
     [Fact]
-    public void An_existing_clone_is_found_by_its_engine_not_its_name()
+    public void An_existing_clone_is_found_by_its_contents_not_its_name()
     {
+        // The projects engine moved into the app, so a projects clone is known by its template.
         using var temp = new LabOps.Tests.TestSupport.TempDirectory();
         var projects = temp.Combine("anything");
         Directory.CreateDirectory(Path.Combine(projects, ".git"));
-        Directory.CreateDirectory(Path.Combine(projects, "scripts"));
-        File.WriteAllText(Path.Combine(projects, "scripts", "project.py"), "");
+        Directory.CreateDirectory(Path.Combine(projects, "templates"));
+        File.WriteAllText(Path.Combine(projects, "templates", "project.example.yaml"), "");
 
         SetupService.FindExistingClone(RepositoryProfile.Projects, projects).ShouldBe(projects);
         RepositoryProfile.Quotes.LooksLikeClone(projects).ShouldBeFalse();
+        RepositoryProfile.Protocols.LooksLikeClone(projects).ShouldBeFalse();
     }
 
     [Fact]

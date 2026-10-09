@@ -1,0 +1,478 @@
+{
+ "engine_version": "26.4.0",
+ "cases": [
+  {
+   "text": "",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": " ",
+   "error": "Expecting value: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "1",
+   "value": {
+    "t": "int",
+    "v": "1"
+   }
+  },
+  {
+   "text": "-0",
+   "value": {
+    "t": "int",
+    "v": "0"
+   }
+  },
+  {
+   "text": "1.5",
+   "value": {
+    "t": "float",
+    "v": "1.5"
+   }
+  },
+  {
+   "text": "1e5",
+   "value": {
+    "t": "float",
+    "v": "100000.0"
+   }
+  },
+  {
+   "text": "1E+5",
+   "value": {
+    "t": "float",
+    "v": "100000.0"
+   }
+  },
+  {
+   "text": "-1.25e-3",
+   "value": {
+    "t": "float",
+    "v": "-0.00125"
+   }
+  },
+  {
+   "text": "01",
+   "error": "Extra data: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "1.",
+   "error": "Extra data: line 1 column 2 (char 1)"
+  },
+  {
+   "text": ".5",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "-",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "1e",
+   "error": "Extra data: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "1e+",
+   "error": "Extra data: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "123456789012345678901234567890",
+   "value": {
+    "t": "int",
+    "v": "123456789012345678901234567890"
+   }
+  },
+  {
+   "text": "true",
+   "value": {
+    "t": "bool",
+    "v": true
+   }
+  },
+  {
+   "text": "false",
+   "value": {
+    "t": "bool",
+    "v": false
+   }
+  },
+  {
+   "text": "null",
+   "value": {
+    "t": "null"
+   }
+  },
+  {
+   "text": "tru",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "nul",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "NaN",
+   "value": {
+    "t": "float",
+    "v": "nan"
+   }
+  },
+  {
+   "text": "Infinity",
+   "value": {
+    "t": "float",
+    "v": "inf"
+   }
+  },
+  {
+   "text": "-Infinity",
+   "value": {
+    "t": "float",
+    "v": "-inf"
+   }
+  },
+  {
+   "text": "-Inf",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "[NaN, Infinity, -Infinity]",
+   "value": {
+    "t": "list",
+    "v": [
+     {
+      "t": "float",
+      "v": "nan"
+     },
+     {
+      "t": "float",
+      "v": "inf"
+     },
+     {
+      "t": "float",
+      "v": "-inf"
+     }
+    ]
+   }
+  },
+  {
+   "text": "\"a\"",
+   "value": {
+    "t": "str",
+    "v": "a"
+   }
+  },
+  {
+   "text": "\"a",
+   "error": "Unterminated string starting at: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "\"a\\\"b\"",
+   "value": {
+    "t": "str",
+    "v": "a\"b"
+   }
+  },
+  {
+   "text": "\"\\u00e9\\ud83d\\ude00\"",
+   "value": {
+    "t": "str",
+    "v": "\u00e9\ud83d\ude00"
+   }
+  },
+  {
+   "text": "\"\\ud83d\"",
+   "value": {
+    "t": "str",
+    "v": "\ud83d"
+   }
+  },
+  {
+   "text": "\"\\ud83dx\"",
+   "value": {
+    "t": "str",
+    "v": "\ud83dx"
+   }
+  },
+  {
+   "text": "\"\\u12\"",
+   "error": "Invalid \\uXXXX escape: line 1 column 3 (char 2)"
+  },
+  {
+   "text": "\"\\u12",
+   "error": "Invalid \\uXXXX escape: line 1 column 3 (char 2)"
+  },
+  {
+   "text": "\"\\x\"",
+   "error": "Invalid \\escape: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "\"tab\there\"",
+   "error": "Invalid control character at: line 1 column 5 (char 4)"
+  },
+  {
+   "text": "\"\\/\\b\\f\\n\\r\\t\"",
+   "value": {
+    "t": "str",
+    "v": "/\b\f\n\r\t"
+   }
+  },
+  {
+   "text": "[]",
+   "value": {
+    "t": "list",
+    "v": []
+   }
+  },
+  {
+   "text": "[1, 2]",
+   "value": {
+    "t": "list",
+    "v": [
+     {
+      "t": "int",
+      "v": "1"
+     },
+     {
+      "t": "int",
+      "v": "2"
+     }
+    ]
+   }
+  },
+  {
+   "text": "[1, 2,]",
+   "error": "Illegal trailing comma before end of array: line 1 column 6 (char 5)"
+  },
+  {
+   "text": "[1 2]",
+   "error": "Expecting ',' delimiter: line 1 column 4 (char 3)"
+  },
+  {
+   "text": "[",
+   "error": "Expecting value: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "[1,",
+   "error": "Expecting value: line 1 column 4 (char 3)"
+  },
+  {
+   "text": "]",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "{}",
+   "value": {
+    "t": "dict",
+    "v": []
+   }
+  },
+  {
+   "text": "{\"a\": 1}",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "int",
+       "v": "1"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "{\"a\": 1,}",
+   "error": "Illegal trailing comma before end of object: line 1 column 8 (char 7)"
+  },
+  {
+   "text": "{\"a\" 1}",
+   "error": "Expecting ':' delimiter: line 1 column 6 (char 5)"
+  },
+  {
+   "text": "{\"a\": }",
+   "error": "Expecting value: line 1 column 7 (char 6)"
+  },
+  {
+   "text": "{a: 1}",
+   "error": "Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "{",
+   "error": "Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "{\"a\"",
+   "error": "Expecting ':' delimiter: line 1 column 5 (char 4)"
+  },
+  {
+   "text": "{\"a\":",
+   "error": "Expecting value: line 1 column 6 (char 5)"
+  },
+  {
+   "text": "{\"a\": [1, 2}",
+   "error": "Expecting ',' delimiter: line 1 column 12 (char 11)"
+  },
+  {
+   "text": "{\"a\": 1, \"a\": 2, \"b\": 3}",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "int",
+       "v": "2"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "b"
+      },
+      {
+       "t": "int",
+       "v": "3"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "{\"b\": 1, \"a\": {\"c\": [true, null]}}",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "b"
+      },
+      {
+       "t": "int",
+       "v": "1"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "dict",
+       "v": [
+        [
+         {
+          "t": "str",
+          "v": "c"
+         },
+         {
+          "t": "list",
+          "v": [
+           {
+            "t": "bool",
+            "v": true
+           },
+           {
+            "t": "null"
+           }
+          ]
+         }
+        ]
+       ]
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "[1] x",
+   "error": "Extra data: line 1 column 5 (char 4)"
+  },
+  {
+   "text": "[1]  \n  ",
+   "value": {
+    "t": "list",
+    "v": [
+     {
+      "t": "int",
+      "v": "1"
+     }
+    ]
+   }
+  },
+  {
+   "text": "\n\n  [1,\n 2,\n x]",
+   "error": "Expecting value: line 5 column 2 (char 13)"
+  },
+  {
+   "text": "\ufeff[1]",
+   "error": "Unexpected UTF-8 BOM (decode using utf-8-sig): line 1 column 1 (char 0)"
+  },
+  {
+   "text": "[\"\u4e2d\ud83d\ude00\", 1]",
+   "value": {
+    "t": "list",
+    "v": [
+     {
+      "t": "str",
+      "v": "\u4e2d\ud83d\ude00"
+     },
+     {
+      "t": "int",
+      "v": "1"
+     }
+    ]
+   }
+  },
+  {
+   "text": "\ud83d\ude00[",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "text": "  {\"k\": \"v\"}  ",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "v"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "[1, {\"a\": \"b\nc\"}]",
+   "error": "Invalid control character at: line 1 column 13 (char 12)"
+  },
+  {
+   "text": "[-]",
+   "error": "Expecting value: line 1 column 2 (char 1)"
+  },
+  {
+   "text": "[0.e1]",
+   "error": "Expecting ',' delimiter: line 1 column 3 (char 2)"
+  },
+  {
+   "text": "[1e1.5]",
+   "error": "Expecting ',' delimiter: line 1 column 5 (char 4)"
+  },
+  {
+   "text": "[- 1]",
+   "error": "Expecting value: line 1 column 2 (char 1)"
+  }
+ ]
+}

@@ -23,8 +23,9 @@ public sealed class RepositoryProfile
     private RepositoryProfile(
         RepositoryKind kind, string id, string gitHubName, string displayName, string defaultFolderName,
         string engineScript, string rootFolder, int itemDepth, IReadOnlyList<string> generatedFileNames, bool checksCommits,
-        IReadOnlyList<string> formerGitHubNames)
+        IReadOnlyList<string> formerGitHubNames, string? cloneMarker = null)
     {
+        CloneMarker = cloneMarker ?? engineScript;
         Kind = kind;
         Id = id;
         GitHubName = gitHubName;
@@ -42,7 +43,7 @@ public sealed class RepositoryProfile
     public static RepositoryProfile Projects { get; } = new(
         RepositoryKind.Projects, "projects", "uw-maccosslab/LabOps-Projects", "lab projects", "LabOps-Projects",
         "scripts/project.py", "projects", itemDepth: 3, generatedFileNames: [], checksCommits: true,
-        formerGitHubNames: ["uw-maccosslab/lab-projects"]);
+        formerGitHubNames: ["uw-maccosslab/lab-projects"], cloneMarker: "templates/project.example.yaml");
 
     /// <summary>uw-maccosslab/LabOps-Quotes: Proteomics Services quotes, for the people who prepare them.</summary>
     public static RepositoryProfile Quotes { get; } = new(
@@ -81,8 +82,14 @@ public sealed class RepositoryProfile
     /// <summary>Folder name for a new clone.</summary>
     public string DefaultFolderName { get; }
 
-    /// <summary>The engine, relative to the repository root.</summary>
+    /// <summary>The engine, relative to the repository root (the projects engine is now in the app; its script remains for the fallback).</summary>
     public string EngineScript { get; }
+
+    /// <summary>
+    /// A file only a clone of this repository has, relative to its root: the engine script, or for
+    /// the projects, whose engine moved into the app, the project template.
+    /// </summary>
+    public string CloneMarker { get; }
 
     /// <summary>The folder holding every item (quote, project or protocol) and nothing else.</summary>
     public string RootFolder { get; }
@@ -128,7 +135,7 @@ public sealed class RepositoryProfile
     public bool LooksLikeClone(string? path) =>
         path is not null
         && Directory.Exists(Path.Combine(path, ".git"))
-        && File.Exists(Path.Combine(path, EngineScript.Replace('/', Path.DirectorySeparatorChar)));
+        && File.Exists(Path.Combine(path, CloneMarker.Replace('/', Path.DirectorySeparatorChar)));
 
     /// <summary>True for the https and ssh forms of this repository's URL, under its name or a former one.</summary>
     public bool IsRemote(string url) => NameIn(url) is not null;

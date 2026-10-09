@@ -62,6 +62,23 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!--
+      The labops tool, which Claude's skills and the pre-commit hook run, is in tools\ too, so
+      Claude sessions find it first on their PATH. release.yml publishes it compiled ahead of time
+      into tools\; a development build copies the tool's own build there (below). It is built
+      first for that, and nothing of it is referenced.
+    -->
+    <ProjectReference Include="..\LabOps.Cli\LabOps.Cli.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <Target Name="CopyLabopsTool" AfterTargets="Build" Condition="!Exists('tools\labops.exe')">
+    <ItemGroup>
+      <LabopsToolFile Include="..\LabOps.Cli\bin\$(Configuration)\net10.0\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(LabopsToolFile)" DestinationFolder="$(OutDir)tools\%(RecursiveDir)" SkipUnchangedFiles="true" />
+  </Target>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="LabOps.Tests" />
   </ItemGroup>
 

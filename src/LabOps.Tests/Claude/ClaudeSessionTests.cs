@@ -132,8 +132,10 @@ public sealed class ClaudeSessionTests
     {
         var projects = ClaudeLauncher.SystemPrompt(RepositoryProfile.Projects, "Mike");
         projects.ShouldContain("organize-metadata");
-        projects.ShouldContain("project.py scan");
+        projects.ShouldContain("labops projects scan");
         projects.ShouldNotContain("report_quote_summary");
+        ClaudeLauncher.AllowedTools(RepositoryProfile.Projects).ShouldContain("Bash(labops projects:*)");
+        ClaudeLauncher.AllowedTools(RepositoryProfile.Quotes).ShouldNotContain("Bash(labops projects:*)");
         projects.ShouldNotContain("\u2014");
 
         var quotes = ClaudeLauncher.SystemPrompt(RepositoryProfile.Quotes, null);
@@ -145,6 +147,9 @@ public sealed class ClaudeSessionTests
     [Theory]
     [InlineData("Bash", """{"command":"uv run python scripts/quote.py build MacCoss-2026-NWU-SC --json"}""", "Building the quote (MacCoss-2026-NWU-SC)")]
     [InlineData("Bash", """{"command":"uv run python scripts/quote.py list"}""", "Looking through existing quotes")]
+    [InlineData("Bash", """{"command":"labops projects scan inbox/X/sheet.xlsx"}""", "Checking the file for identifying information")]
+    [InlineData("Bash", """{"command":"labops projects --json stage X sample_prep done"}""", "Updating the steps")]
+    [InlineData("Bash", """{"command":"uv run python scripts/project.py link X wiki /MacCoss/X"}""", "Updating the links")]
     [InlineData("Edit", """{"file_path":"D:\\q\\quotes\\UW-Alder\\2026\\MacCoss-2026-UW-ALDER-GCF15\\quote.yaml"}""", "Editing MacCoss-2026-UW-ALDER-GCF15/quote.yaml")]
     [InlineData("mcp__quotes-app__ask_user", "{}", "")]
     [InlineData("mcp__claude_ai_Gmail__search_threads", "{}", "Reading the email in Gmail")]

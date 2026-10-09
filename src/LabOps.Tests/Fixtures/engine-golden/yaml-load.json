@@ -1,0 +1,4276 @@
+{
+ "engine_version": "26.4.0",
+ "cases": [
+  {
+   "text": "k: yes\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "bool",
+       "v": true
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: Yes\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "bool",
+       "v": true
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: YES\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "bool",
+       "v": true
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: yEs\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "yEs"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: no\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "bool",
+       "v": false
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: No\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "bool",
+       "v": false
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: NO\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "bool",
+       "v": false
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: true\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "bool",
+       "v": true
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: True\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "bool",
+       "v": true
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: TRUE\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "bool",
+       "v": true
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: false\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "bool",
+       "v": false
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: False\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "bool",
+       "v": false
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: FALSE\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "bool",
+       "v": false
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: on\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "bool",
+       "v": true
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: On\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "bool",
+       "v": true
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: ON\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "bool",
+       "v": true
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: off\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "bool",
+       "v": false
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: Off\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "bool",
+       "v": false
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: OFF\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "bool",
+       "v": false
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: y\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "y"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: n\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "n"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: Y\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "Y"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: N\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "N"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: ~\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "null"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: null\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "null"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: Null\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "null"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: NULL\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "null"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: nUll\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "nUll"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: \n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "null"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 0\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "int",
+       "v": "0"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 00\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "int",
+       "v": "0"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 012\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "int",
+       "v": "10"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 08\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "08"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 0o17\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "0o17"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 0x1F\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "int",
+       "v": "31"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 0X1F\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "0X1F"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 0b101\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "int",
+       "v": "5"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 1_000\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "int",
+       "v": "1000"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 1:30\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "int",
+       "v": "90"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 1:30:00\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "int",
+       "v": "5400"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: -1:30\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "int",
+       "v": "-90"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 190:20:30\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "int",
+       "v": "685230"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: +1\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "int",
+       "v": "1"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: -1\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "int",
+       "v": "-1"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: -0\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "int",
+       "v": "0"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 123456789012345678901234567890\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "int",
+       "v": "123456789012345678901234567890"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 1.5\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "float",
+       "v": "1.5"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: .5\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "float",
+       "v": "0.5"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 5.\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "float",
+       "v": "5.0"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 1e3\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "1e3"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 1.0e+3\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "float",
+       "v": "1000.0"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 1.0e3\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "1.0e3"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 1.0E+3\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "float",
+       "v": "1000.0"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 1_0.5\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "float",
+       "v": "10.5"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 1:30.5\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "float",
+       "v": "90.5"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: .inf\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "float",
+       "v": "inf"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: -.Inf\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "float",
+       "v": "-inf"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: +.INF\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "float",
+       "v": "inf"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: .NaN\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "float",
+       "v": "nan"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: .nan\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "float",
+       "v": "nan"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: .NAN\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "float",
+       "v": "nan"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 1.4.0\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "1.4.0"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 2026-10-01\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "date",
+       "v": "2026-10-01"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 2026-1-5\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "2026-1-5"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 2026-01-05\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "date",
+       "v": "2026-01-05"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 2026-10-01 09:30:00\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "datetime",
+       "v": "2026-10-01T09:30:00",
+       "offset": null
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 2026-10-01T09:30:00Z\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "datetime",
+       "v": "2026-10-01T09:30:00",
+       "offset": 0
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 2026-10-01t09:30:00z\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "2026-10-01t09:30:00z"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 2026-10-01 09:30:00.123456789 +5\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "datetime",
+       "v": "2026-10-01T09:30:00.123456",
+       "offset": 18000
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 2026-10-01T09:30:00-08:00\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "datetime",
+       "v": "2026-10-01T09:30:00",
+       "offset": -28800
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 2026-10-01 9:30:00\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "datetime",
+       "v": "2026-10-01T09:30:00",
+       "offset": null
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 2026-1-5 9:30:00\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "datetime",
+       "v": "2026-01-05T09:30:00",
+       "offset": null
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 2026-10-01  09:30:00 Z\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "datetime",
+       "v": "2026-10-01T09:30:00",
+       "offset": 0
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 2026-10-01 09:30\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "2026-10-01 09:30"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 2026-10-01T09:30:00.5\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "datetime",
+       "v": "2026-10-01T09:30:00.500000",
+       "offset": null
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 20261001\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "int",
+       "v": "20261001"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: '2026-10-01'\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "2026-10-01"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: \"2026-10-01\"\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "2026-10-01"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 'yes'\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "yes"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: \"12\"\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "12"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 'null'\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "null"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: plain text\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "plain text"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: a: b\n",
+   "problem": "x.yaml is not valid YAML: mapping values are not allowed in this context (line 1)"
+  },
+  {
+   "text": "k: 'a: b'\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "a: b"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: x # comment\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "x"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: x#y\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "x#y"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: it's\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "it's"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 'it''s'\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "it's"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: \"tab\\there\"\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "tab\there"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: \"\\u00e9 \\x41 \\U0001F600\"\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "\u00e9 A \ud83d\ude00"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: \"multi\n  line\"\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "multi line"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: [a, b, 1]\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "list",
+       "v": [
+        {
+         "t": "str",
+         "v": "a"
+        },
+        {
+         "t": "str",
+         "v": "b"
+        },
+        {
+         "t": "int",
+         "v": "1"
+        }
+       ]
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: {a: 1, b: [x, y]}\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "dict",
+       "v": [
+        [
+         {
+          "t": "str",
+          "v": "a"
+         },
+         {
+          "t": "int",
+          "v": "1"
+         }
+        ],
+        [
+         {
+          "t": "str",
+          "v": "b"
+         },
+         {
+          "t": "list",
+          "v": [
+           {
+            "t": "str",
+            "v": "x"
+           },
+           {
+            "t": "str",
+            "v": "y"
+           }
+          ]
+         }
+        ]
+       ]
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: []\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "list",
+       "v": []
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: {}\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "dict",
+       "v": []
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: !!str 123\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "123"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: !!int '12'\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "int",
+       "v": "12"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: !!float 1\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "float",
+       "v": "1.0"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: !!bool yes\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "bool",
+       "v": true
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: !!null ''\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "null"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: !!timestamp 2026-10-01\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "date",
+       "v": "2026-10-01"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: ! 12\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "int",
+       "v": "12"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: !!str\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": ""
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: &a x\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "x"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: UPS <dry ice> & cold\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "UPS <dry ice> & cold"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: \u00b5L\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "\u00b5L"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: \ud83d\ude00\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "\ud83d\ude00"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: -\n",
+   "problem": "x.yaml is not valid YAML: block sequence entries are not allowed in this context (line 1)"
+  },
+  {
+   "text": "k: =\n",
+   "problem": "x.yaml is not valid YAML: could not determine a constructor for the tag 'tag:yaml.org,2002:value' (line 1)"
+  },
+  {
+   "text": "",
+   "value": {
+    "t": "dict",
+    "v": []
+   }
+  },
+  {
+   "text": "\n",
+   "value": {
+    "t": "dict",
+    "v": []
+   }
+  },
+  {
+   "text": "# only a comment\n",
+   "value": {
+    "t": "dict",
+    "v": []
+   }
+  },
+  {
+   "text": "---\n",
+   "value": {
+    "t": "dict",
+    "v": []
+   }
+  },
+  {
+   "text": "--- \n...\n",
+   "value": {
+    "t": "dict",
+    "v": []
+   }
+  },
+  {
+   "text": "k: v",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "v"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: v\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "v"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "\ufeffk: v\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "v"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "- a\n- b\n",
+   "problem": "x.yaml should be a mapping of fields (key: value lines)"
+  },
+  {
+   "text": "just text\n",
+   "problem": "x.yaml should be a mapping of fields (key: value lines)"
+  },
+  {
+   "text": "12\n",
+   "problem": "x.yaml should be a mapping of fields (key: value lines)"
+  },
+  {
+   "text": "k: v\n---\nk: w\n",
+   "problem": "x.yaml is not valid YAML: but found another document (line 2)"
+  },
+  {
+   "text": "k: v\nk: w\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "w"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "a: 1\nb: 2\na: 3\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "int",
+       "v": "3"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "b"
+      },
+      {
+       "t": "int",
+       "v": "2"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "1: a\n1.0: b\ntrue: c\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "int",
+       "v": "1"
+      },
+      {
+       "t": "str",
+       "v": "c"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "yes: x\nno: y\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "bool",
+       "v": true
+      },
+      {
+       "t": "str",
+       "v": "x"
+      }
+     ],
+     [
+      {
+       "t": "bool",
+       "v": false
+      },
+      {
+       "t": "str",
+       "v": "y"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "~: x\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "null"
+      },
+      {
+       "t": "str",
+       "v": "x"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "null: x\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "null"
+      },
+      {
+       "t": "str",
+       "v": "x"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "2026-10-01: x\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "date",
+       "v": "2026-10-01"
+      },
+      {
+       "t": "str",
+       "v": "x"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "[a]: 1\n",
+   "problem": "x.yaml is not valid YAML: found unhashable key (line 1)"
+  },
+  {
+   "text": "{a: 1}: 2\n",
+   "problem": "x.yaml is not valid YAML: found unhashable key (line 1)"
+  },
+  {
+   "text": "? a\n: b\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "str",
+       "v": "b"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "? [a, b]\n: c\n",
+   "problem": "x.yaml is not valid YAML: found unhashable key (line 1)"
+  },
+  {
+   "text": "base: &b {x: 1, y: 2}\nk:\n  <<: *b\n  y: 3\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "base"
+      },
+      {
+       "t": "dict",
+       "v": [
+        [
+         {
+          "t": "str",
+          "v": "x"
+         },
+         {
+          "t": "int",
+          "v": "1"
+         }
+        ],
+        [
+         {
+          "t": "str",
+          "v": "y"
+         },
+         {
+          "t": "int",
+          "v": "2"
+         }
+        ]
+       ]
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "dict",
+       "v": [
+        [
+         {
+          "t": "str",
+          "v": "x"
+         },
+         {
+          "t": "int",
+          "v": "1"
+         }
+        ],
+        [
+         {
+          "t": "str",
+          "v": "y"
+         },
+         {
+          "t": "int",
+          "v": "3"
+         }
+        ]
+       ]
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "a: &a {x: 1}\nb: &b {x: 2, z: 9}\nc:\n  <<: [*a, *b]\n  w: 0\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "dict",
+       "v": [
+        [
+         {
+          "t": "str",
+          "v": "x"
+         },
+         {
+          "t": "int",
+          "v": "1"
+         }
+        ]
+       ]
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "b"
+      },
+      {
+       "t": "dict",
+       "v": [
+        [
+         {
+          "t": "str",
+          "v": "x"
+         },
+         {
+          "t": "int",
+          "v": "2"
+         }
+        ],
+        [
+         {
+          "t": "str",
+          "v": "z"
+         },
+         {
+          "t": "int",
+          "v": "9"
+         }
+        ]
+       ]
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "c"
+      },
+      {
+       "t": "dict",
+       "v": [
+        [
+         {
+          "t": "str",
+          "v": "x"
+         },
+         {
+          "t": "int",
+          "v": "1"
+         }
+        ],
+        [
+         {
+          "t": "str",
+          "v": "z"
+         },
+         {
+          "t": "int",
+          "v": "9"
+         }
+        ],
+        [
+         {
+          "t": "str",
+          "v": "w"
+         },
+         {
+          "t": "int",
+          "v": "0"
+         }
+        ]
+       ]
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "a: &a 1\nc:\n  <<: *a\n",
+   "problem": "x.yaml is not valid YAML: expected a mapping or list of mappings for merging, but found scalar (line 1)"
+  },
+  {
+   "text": "a: &x hello\nb: *x\nc: [*x, *x]\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "a"
+      },
+      {
+       "t": "str",
+       "v": "hello"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "b"
+      },
+      {
+       "t": "str",
+       "v": "hello"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "c"
+      },
+      {
+       "t": "list",
+       "v": [
+        {
+         "t": "str",
+         "v": "hello"
+        },
+        {
+         "t": "str",
+         "v": "hello"
+        }
+       ]
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: *nope\n",
+   "problem": "x.yaml is not valid YAML: found undefined alias (line 1)"
+  },
+  {
+   "text": "k: <<\n",
+   "problem": "x.yaml is not valid YAML: could not determine a constructor for the tag 'tag:yaml.org,2002:merge' (line 1)"
+  },
+  {
+   "text": "k: =\n",
+   "problem": "x.yaml is not valid YAML: could not determine a constructor for the tag 'tag:yaml.org,2002:value' (line 1)"
+  },
+  {
+   "text": "k: |\n  line1\n  line2\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "line1\nline2\n"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: |-\n  line1\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "line1"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: |+\n  line1\n\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "line1\n\n"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: >\n  folded\n  text\n\n  para\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "folded text\npara\n"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: >-\n  a\n  b\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "a b"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: plain\n  continued\n  more\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "plain continued more"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 'single\n  quoted'\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "single quoted"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: \"double\n  quoted\"\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "double quoted"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k:\n  - a\n  - b: 1\n    c: 2\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "list",
+       "v": [
+        {
+         "t": "str",
+         "v": "a"
+        },
+        {
+         "t": "dict",
+         "v": [
+          [
+           {
+            "t": "str",
+            "v": "b"
+           },
+           {
+            "t": "int",
+            "v": "1"
+           }
+          ],
+          [
+           {
+            "t": "str",
+            "v": "c"
+           },
+           {
+            "t": "int",
+            "v": "2"
+           }
+          ]
+         ]
+        }
+       ]
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k:\n- a\n- b\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "list",
+       "v": [
+        {
+         "t": "str",
+         "v": "a"
+        },
+        {
+         "t": "str",
+         "v": "b"
+        }
+       ]
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: [a, {b: 1}, [c]]\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "list",
+       "v": [
+        {
+         "t": "str",
+         "v": "a"
+        },
+        {
+         "t": "dict",
+         "v": [
+          [
+           {
+            "t": "str",
+            "v": "b"
+           },
+           {
+            "t": "int",
+            "v": "1"
+           }
+          ]
+         ]
+        },
+        {
+         "t": "list",
+         "v": [
+          {
+           "t": "str",
+           "v": "c"
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: {a: [1, 2], b: {c: null}}\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "dict",
+       "v": [
+        [
+         {
+          "t": "str",
+          "v": "a"
+         },
+         {
+          "t": "list",
+          "v": [
+           {
+            "t": "int",
+            "v": "1"
+           },
+           {
+            "t": "int",
+            "v": "2"
+           }
+          ]
+         }
+        ],
+        [
+         {
+          "t": "str",
+          "v": "b"
+         },
+         {
+          "t": "dict",
+          "v": [
+           [
+            {
+             "t": "str",
+             "v": "c"
+            },
+            {
+             "t": "null"
+            }
+           ]
+          ]
+         }
+        ]
+       ]
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: v\n\tbad: tab\n",
+   "problem": "x.yaml is not valid YAML: found a tab character that violates indentation (line 2)"
+  },
+  {
+   "text": "k: [a, b\n",
+   "problem": "x.yaml is not valid YAML: did not find expected ',' or ']' (line 2)"
+  },
+  {
+   "text": "k: {a: 1\n",
+   "problem": "x.yaml is not valid YAML: did not find expected ',' or '}' (line 2)"
+  },
+  {
+   "text": "k: v\n  bad: indent\n",
+   "problem": "x.yaml is not valid YAML: mapping values are not allowed in this context (line 2)"
+  },
+  {
+   "text": "k: 'unterminated\n",
+   "problem": "x.yaml is not valid YAML: found unexpected end of stream (line 2)"
+  },
+  {
+   "text": "a:\nb\n",
+   "problem": "x.yaml is not valid YAML: could not find expected ':' (line 3)"
+  },
+  {
+   "text": "k: v: w\n",
+   "problem": "x.yaml is not valid YAML: mapping values are not allowed in this context (line 1)"
+  },
+  {
+   "text": "- a\nk: v\n",
+   "problem": "x.yaml is not valid YAML: did not find expected '-' indicator (line 2)"
+  },
+  {
+   "text": "k: v\n- a\n",
+   "problem": "x.yaml is not valid YAML: did not find expected key (line 2)"
+  },
+  {
+   "text": "k: @x\n",
+   "problem": "x.yaml is not valid YAML: found character that cannot start any token (line 1)"
+  },
+  {
+   "text": "k: `x\n",
+   "problem": "x.yaml is not valid YAML: found character that cannot start any token (line 1)"
+  },
+  {
+   "text": "k: !custom x\n",
+   "problem": "x.yaml is not valid YAML: could not determine a constructor for the tag '!custom' (line 1)"
+  },
+  {
+   "text": "k: !!python/name:os.system\n",
+   "problem": "x.yaml is not valid YAML: could not determine a constructor for the tag 'tag:yaml.org,2002:python/name:os.system' (line 1)"
+  },
+  {
+   "text": "k: !!binary aGVsbG8=\n",
+   "error": "TypeError",
+   "message": "no tag for bytes"
+  },
+  {
+   "text": "k: !!set {a, b}\n",
+   "error": "TypeError",
+   "message": "no tag for set"
+  },
+  {
+   "text": "k: !!omap [a: 1]\n",
+   "error": "TypeError",
+   "message": "no tag for tuple"
+  },
+  {
+   "text": "%YAML 1.1\n---\nk: v\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "v"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: v # c\nj: w\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "v"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "j"
+      },
+      {
+       "t": "str",
+       "v": "w"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: \"a\\x41\\u00e9\"\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "aA\u00e9"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 'it''s'\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "it's"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "steps:\n  - {id: a, kind: other, label: A}\n  - {id: b, status: done, started: 2026-10-01}\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "steps"
+      },
+      {
+       "t": "list",
+       "v": [
+        {
+         "t": "dict",
+         "v": [
+          [
+           {
+            "t": "str",
+            "v": "id"
+           },
+           {
+            "t": "str",
+            "v": "a"
+           }
+          ],
+          [
+           {
+            "t": "str",
+            "v": "kind"
+           },
+           {
+            "t": "str",
+            "v": "other"
+           }
+          ],
+          [
+           {
+            "t": "str",
+            "v": "label"
+           },
+           {
+            "t": "str",
+            "v": "A"
+           }
+          ]
+         ]
+        },
+        {
+         "t": "dict",
+         "v": [
+          [
+           {
+            "t": "str",
+            "v": "id"
+           },
+           {
+            "t": "str",
+            "v": "b"
+           }
+          ],
+          [
+           {
+            "t": "str",
+            "v": "status"
+           },
+           {
+            "t": "str",
+            "v": "done"
+           }
+          ],
+          [
+           {
+            "t": "str",
+            "v": "started"
+           },
+           {
+            "t": "date",
+            "v": "2026-10-01"
+           }
+          ]
+         ]
+        }
+       ]
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "steps:\n  - {id: a, started: '2026-10-01'}\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "steps"
+      },
+      {
+       "t": "list",
+       "v": [
+        {
+         "t": "dict",
+         "v": [
+          [
+           {
+            "t": "str",
+            "v": "id"
+           },
+           {
+            "t": "str",
+            "v": "a"
+           }
+          ],
+          [
+           {
+            "t": "str",
+            "v": "started"
+           },
+           {
+            "t": "str",
+            "v": "2026-10-01"
+           }
+          ]
+         ]
+        }
+       ]
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "steps:\n  - {id: a, started: 2026-02-30}\n",
+   "error": "ValueError",
+   "message": "day is out of range for month"
+  },
+  {
+   "text": "k: 2026-13-01\n",
+   "error": "ValueError",
+   "message": "month must be in 1..12"
+  },
+  {
+   "text": "k: 2026-10-01 25:00:00\n",
+   "error": "ValueError",
+   "message": "hour must be in 0..23"
+  },
+  {
+   "text": "k: 0b2\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "0b2"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 09\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "09"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 1__0\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "int",
+       "v": "10"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 1_\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "int",
+       "v": "1"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: _1\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "_1"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 0x\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "0x"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 1:60\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "1:60"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 1:5\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "int",
+       "v": "65"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: -.5\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "-.5"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: +12_345\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "int",
+       "v": "12345"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 1:30:00.25\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "float",
+       "v": "5400.25"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "list: [1, 2, 3]\nnested:\n  deeper:\n    deepest: x\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "list"
+      },
+      {
+       "t": "list",
+       "v": [
+        {
+         "t": "int",
+         "v": "1"
+        },
+        {
+         "t": "int",
+         "v": "2"
+        },
+        {
+         "t": "int",
+         "v": "3"
+        }
+       ]
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "nested"
+      },
+      {
+       "t": "dict",
+       "v": [
+        [
+         {
+          "t": "str",
+          "v": "deeper"
+         },
+         {
+          "t": "dict",
+          "v": [
+           [
+            {
+             "t": "str",
+             "v": "deepest"
+            },
+            {
+             "t": "str",
+             "v": "x"
+            }
+           ]
+          ]
+         }
+        ]
+       ]
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: v\r\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "v"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "\"quoted key\": 1\n'single key': 2\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "quoted key"
+      },
+      {
+       "t": "int",
+       "v": "1"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "single key"
+      },
+      {
+       "t": "int",
+       "v": "2"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: 'a\n\n  b'\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "a\nb"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: \"\\t\"\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "\t"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "k: |2\n    indented\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "k"
+      },
+      {
+       "t": "str",
+       "v": "  indented\n"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "# a comment\n# a comment\n# a comment\n# a comment\n\nexperiment: YYYY-MM-Topic\ntitle: Short description of the experiment\nstatus: active            # a comment\nlab_contact: maccoss      # a comment\ninstrument: null          # a comment\n\n# a comment\nfunding:\n  type: null              # a comment\n  quotes: []\n  grant: null\n\nnotebooks: []\n# a comment\n# a comment\n\n# a comment\npanorama: []\n# a comment\n# a comment\n\n# a comment\n# a comment\nprotocols: []\n# a comment\n\n# a comment\nanalysis:\n  repo: null              # a comment\n  folder: null            # a comment\n\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\nsteps:\n  - {id: data_acquisition, kind: data_acquisition, status: pending}\n  - {id: data_deposited, kind: data_deposited, status: pending}\n  - {id: signal_processing, kind: signal_processing, status: pending}\n  - {id: data_analysis, kind: data_analysis, status: pending}\n  - {id: results_returned, kind: results_returned, status: pending}\n\nnotes: []\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "experiment"
+      },
+      {
+       "t": "str",
+       "v": "YYYY-MM-Topic"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "title"
+      },
+      {
+       "t": "str",
+       "v": "Short description of the experiment"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "status"
+      },
+      {
+       "t": "str",
+       "v": "active"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "lab_contact"
+      },
+      {
+       "t": "str",
+       "v": "maccoss"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "instrument"
+      },
+      {
+       "t": "null"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "funding"
+      },
+      {
+       "t": "dict",
+       "v": [
+        [
+         {
+          "t": "str",
+          "v": "type"
+         },
+         {
+          "t": "null"
+         }
+        ],
+        [
+         {
+          "t": "str",
+          "v": "quotes"
+         },
+         {
+          "t": "list",
+          "v": []
+         }
+        ],
+        [
+         {
+          "t": "str",
+          "v": "grant"
+         },
+         {
+          "t": "null"
+         }
+        ]
+       ]
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "notebooks"
+      },
+      {
+       "t": "list",
+       "v": []
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "panorama"
+      },
+      {
+       "t": "list",
+       "v": []
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "protocols"
+      },
+      {
+       "t": "list",
+       "v": []
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "analysis"
+      },
+      {
+       "t": "dict",
+       "v": [
+        [
+         {
+          "t": "str",
+          "v": "repo"
+         },
+         {
+          "t": "null"
+         }
+        ],
+        [
+         {
+          "t": "str",
+          "v": "folder"
+         },
+         {
+          "t": "null"
+         }
+        ]
+       ]
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "steps"
+      },
+      {
+       "t": "list",
+       "v": [
+        {
+         "t": "dict",
+         "v": [
+          [
+           {
+            "t": "str",
+            "v": "id"
+           },
+           {
+            "t": "str",
+            "v": "data_acquisition"
+           }
+          ],
+          [
+           {
+            "t": "str",
+            "v": "kind"
+           },
+           {
+            "t": "str",
+            "v": "data_acquisition"
+           }
+          ],
+          [
+           {
+            "t": "str",
+            "v": "status"
+           },
+           {
+            "t": "str",
+            "v": "pending"
+           }
+          ]
+         ]
+        },
+        {
+         "t": "dict",
+         "v": [
+          [
+           {
+            "t": "str",
+            "v": "id"
+           },
+           {
+            "t": "str",
+            "v": "data_deposited"
+           }
+          ],
+          [
+           {
+            "t": "str",
+            "v": "kind"
+           },
+           {
+            "t": "str",
+            "v": "data_deposited"
+           }
+          ],
+          [
+           {
+            "t": "str",
+            "v": "status"
+           },
+           {
+            "t": "str",
+            "v": "pending"
+           }
+          ]
+         ]
+        },
+        {
+         "t": "dict",
+         "v": [
+          [
+           {
+            "t": "str",
+            "v": "id"
+           },
+           {
+            "t": "str",
+            "v": "signal_processing"
+           }
+          ],
+          [
+           {
+            "t": "str",
+            "v": "kind"
+           },
+           {
+            "t": "str",
+            "v": "signal_processing"
+           }
+          ],
+          [
+           {
+            "t": "str",
+            "v": "status"
+           },
+           {
+            "t": "str",
+            "v": "pending"
+           }
+          ]
+         ]
+        },
+        {
+         "t": "dict",
+         "v": [
+          [
+           {
+            "t": "str",
+            "v": "id"
+           },
+           {
+            "t": "str",
+            "v": "data_analysis"
+           }
+          ],
+          [
+           {
+            "t": "str",
+            "v": "kind"
+           },
+           {
+            "t": "str",
+            "v": "data_analysis"
+           }
+          ],
+          [
+           {
+            "t": "str",
+            "v": "status"
+           },
+           {
+            "t": "str",
+            "v": "pending"
+           }
+          ]
+         ]
+        },
+        {
+         "t": "dict",
+         "v": [
+          [
+           {
+            "t": "str",
+            "v": "id"
+           },
+           {
+            "t": "str",
+            "v": "results_returned"
+           }
+          ],
+          [
+           {
+            "t": "str",
+            "v": "kind"
+           },
+           {
+            "t": "str",
+            "v": "results_returned"
+           }
+          ],
+          [
+           {
+            "t": "str",
+            "v": "status"
+           },
+           {
+            "t": "str",
+            "v": "pending"
+           }
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "notes"
+      },
+      {
+       "t": "list",
+       "v": []
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "# a comment\n# a comment\n# a comment\n# a comment\n\nlab: Institution-PI\ntitle: Short description of the lab or collaboration\npi: First Last, Ph.D.\ninstitution: Full institution name\nstatus: active            # a comment\nlab_contact: maccoss      # a comment\n\n# a comment\ncontacts: []\n# a comment\n# a comment\n\n# a comment\nanalysis_repo: null       # a comment\n\n# a comment\nnotebooks: []\n# a comment\n# a comment\n\nnotes: []\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "lab"
+      },
+      {
+       "t": "str",
+       "v": "Institution-PI"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "title"
+      },
+      {
+       "t": "str",
+       "v": "Short description of the lab or collaboration"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "pi"
+      },
+      {
+       "t": "str",
+       "v": "First Last, Ph.D."
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "institution"
+      },
+      {
+       "t": "str",
+       "v": "Full institution name"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "status"
+      },
+      {
+       "t": "str",
+       "v": "active"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "lab_contact"
+      },
+      {
+       "t": "str",
+       "v": "maccoss"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "contacts"
+      },
+      {
+       "t": "list",
+       "v": []
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "analysis_repo"
+      },
+      {
+       "t": "null"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "notebooks"
+      },
+      {
+       "t": "list",
+       "v": []
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "notes"
+      },
+      {
+       "t": "list",
+       "v": []
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "text": "# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n\nproject: Name-Of-Project\ntitle: Short description of the project\nstatus: active            # a comment\nlab_contact: maccoss      # a comment\nseries: null              # a comment\n\n# a comment\n# a comment\nfunding:\n  type: internal          # a comment\n  quotes: []              # a comment\n  grant: null             # a comment\n\n# a comment\n# a comment\nhuman: false\nspecies: null\nsample_type: null         # a comment\nexpected_samples: null    # a comment\n\nnotebooks: []\n# a comment\n# a comment\n\n# a comment\n# a comment\nprotocols: []\n# a comment\n\n# a comment\nanalysis:\n  repo: null              # a comment\n  folder: null\n\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\nsteps:\n  - {id: samples_received, kind: samples_received, status: pending}\n  - {id: metadata_organized, kind: metadata_organized, status: pending}\n  - {id: plate_layout, kind: plate_layout, status: pending}\n  - {id: sample_prep, kind: sample_prep, status: pending}\n\nnotes: []\n\n# a comment\n# a comment\nwiki: null                # a comment\n",
+   "value": {
+    "t": "dict",
+    "v": [
+     [
+      {
+       "t": "str",
+       "v": "project"
+      },
+      {
+       "t": "str",
+       "v": "Name-Of-Project"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "title"
+      },
+      {
+       "t": "str",
+       "v": "Short description of the project"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "status"
+      },
+      {
+       "t": "str",
+       "v": "active"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "lab_contact"
+      },
+      {
+       "t": "str",
+       "v": "maccoss"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "series"
+      },
+      {
+       "t": "null"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "funding"
+      },
+      {
+       "t": "dict",
+       "v": [
+        [
+         {
+          "t": "str",
+          "v": "type"
+         },
+         {
+          "t": "str",
+          "v": "internal"
+         }
+        ],
+        [
+         {
+          "t": "str",
+          "v": "quotes"
+         },
+         {
+          "t": "list",
+          "v": []
+         }
+        ],
+        [
+         {
+          "t": "str",
+          "v": "grant"
+         },
+         {
+          "t": "null"
+         }
+        ]
+       ]
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "human"
+      },
+      {
+       "t": "bool",
+       "v": false
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "species"
+      },
+      {
+       "t": "null"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "sample_type"
+      },
+      {
+       "t": "null"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "expected_samples"
+      },
+      {
+       "t": "null"
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "notebooks"
+      },
+      {
+       "t": "list",
+       "v": []
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "protocols"
+      },
+      {
+       "t": "list",
+       "v": []
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "analysis"
+      },
+      {
+       "t": "dict",
+       "v": [
+        [
+         {
+          "t": "str",
+          "v": "repo"
+         },
+         {
+          "t": "null"
+         }
+        ],
+        [
+         {
+          "t": "str",
+          "v": "folder"
+         },
+         {
+          "t": "null"
+         }
+        ]
+       ]
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "steps"
+      },
+      {
+       "t": "list",
+       "v": [
+        {
+         "t": "dict",
+         "v": [
+          [
+           {
+            "t": "str",
+            "v": "id"
+           },
+           {
+            "t": "str",
+            "v": "samples_received"
+           }
+          ],
+          [
+           {
+            "t": "str",
+            "v": "kind"
+           },
+           {
+            "t": "str",
+            "v": "samples_received"
+           }
+          ],
+          [
+           {
+            "t": "str",
+            "v": "status"
+           },
+           {
+            "t": "str",
+            "v": "pending"
+           }
+          ]
+         ]
+        },
+        {
+         "t": "dict",
+         "v": [
+          [
+           {
+            "t": "str",
+            "v": "id"
+           },
+           {
+            "t": "str",
+            "v": "metadata_organized"
+           }
+          ],
+          [
+           {
+            "t": "str",
+            "v": "kind"
+           },
+           {
+            "t": "str",
+            "v": "metadata_organized"
+           }
+          ],
+          [
+           {
+            "t": "str",
+            "v": "status"
+           },
+           {
+            "t": "str",
+            "v": "pending"
+           }
+          ]
+         ]
+        },
+        {
+         "t": "dict",
+         "v": [
+          [
+           {
+            "t": "str",
+            "v": "id"
+           },
+           {
+            "t": "str",
+            "v": "plate_layout"
+           }
+          ],
+          [
+           {
+            "t": "str",
+            "v": "kind"
+           },
+           {
+            "t": "str",
+            "v": "plate_layout"
+           }
+          ],
+          [
+           {
+            "t": "str",
+            "v": "status"
+           },
+           {
+            "t": "str",
+            "v": "pending"
+           }
+          ]
+         ]
+        },
+        {
+         "t": "dict",
+         "v": [
+          [
+           {
+            "t": "str",
+            "v": "id"
+           },
+           {
+            "t": "str",
+            "v": "sample_prep"
+           }
+          ],
+          [
+           {
+            "t": "str",
+            "v": "kind"
+           },
+           {
+            "t": "str",
+            "v": "sample_prep"
+           }
+          ],
+          [
+           {
+            "t": "str",
+            "v": "status"
+           },
+           {
+            "t": "str",
+            "v": "pending"
+           }
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "notes"
+      },
+      {
+       "t": "list",
+       "v": []
+      }
+     ],
+     [
+      {
+       "t": "str",
+       "v": "wiki"
+      },
+      {
+       "t": "null"
+      }
+     ]
+    ]
+   }
+  }
+ ]
+}

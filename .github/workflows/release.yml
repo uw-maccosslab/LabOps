@@ -110,6 +110,16 @@ jobs:
 
           Get-ChildItem $tools | Format-Table Name, Length
 
+      # The labops tool (the lab's engines on the command line, for Claude's skills and the
+      # pre-commit hook), compiled ahead of time: one file, no .NET needed, quick to start.
+      - name: Publish the labops tool into tools
+        shell: pwsh
+        run: |
+          dotnet publish src/LabOps.Cli/LabOps.Cli.csproj -c Release -r win-x64 -o "$env:RUNNER_TEMP/labops"
+          Copy-Item "$env:RUNNER_TEMP/labops/labops.exe" src/LabOps.App/tools/
+          & src/LabOps.App/tools/labops.exe --version
+          if ($LASTEXITCODE -ne 0) { throw "labops did not run" }
+
       - name: Publish
         run: >
           dotnet publish src/LabOps.App/LabOps.App.csproj

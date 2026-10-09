@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    labops: the lab's engines on the command line, for Claude's skills, the pre-commit hook and
+    GitHub Actions (labops projects check, labops projects stage ..., as project.py once was).
+    The app ships it in its tools folder, which is first on the PATH of every Claude session it
+    starts. Plain net10.0 so it also builds and runs on Linux in CI.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>labops</AssemblyName>
+    <RootNamespace>LabOps.Cli</RootNamespace>
+    <!--
+      Released compiled ahead of time (release.yml): one 10 MB file that needs no .NET and starts in
+      a tenth of a second, which matters for the pre-commit hook and every command Claude runs.
+      Publishing needs the C++ build tools; a build does not, and gets AOT's analyzers either way.
+    -->
+    <PublishAot>true</PublishAot>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\LabOps.Engines\LabOps.Engines.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="LabOps.Tests" />
+  </ItemGroup>
+
+</Project>

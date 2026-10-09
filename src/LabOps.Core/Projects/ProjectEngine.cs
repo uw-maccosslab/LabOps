@@ -1,4 +1,7 @@
 using System.Text.Json;
+using LabOps.Engines;
+using LabOps.Engines.CommandLine;
+using LabOps.Engines.Projects;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using LabOps.Core.Engines;
@@ -8,12 +11,14 @@ using LabOps.Core.Sync;
 namespace LabOps.Core.Projects;
 
 /// <summary>
-/// Runs <c>scripts/project.py</c> in the lab projects repository and reads its JSON output.
+/// Runs the lab projects engine's commands on the clone and reads their answers.
 /// </summary>
 /// <remarks>
-/// Every rule (stages, identifier checks, the Octopus formats) lives in project.py, which changes
-/// with the repository. This class only invokes it, so a fix to a rule reaches everyone through a
-/// normal sync rather than an app release. It is also the repository's pre-commit check.
+/// The engine is LabOps.Engines' C# port of LabOps-Projects' scripts/project.py, run in-process
+/// with the same command lines the labops tool takes (ProjectsCommandLine), so the app, Claude's
+/// skills and the pre-commit hook always mean the same thing. LABOPS_PROJECT_ENGINE=python runs
+/// scripts/project.py instead, for one release, in case the port has a gap. It is also the
+/// repository's pre-commit check.
 /// </remarks>
 public sealed class ProjectEngine : IPreCommitCheck
 {
@@ -33,6 +38,16 @@ public sealed class ProjectEngine : IPreCommitCheck
 
     /// <summary>The clone of the projects repository. Set once setup has found or made it.</summary>
     public string? RepositoryPath { get; set; }
+
+    /// <summary>
+    /// True to run scripts/project.py with uv, as LabOps did before the engine was ported (the
+    /// LABOPS_PROJECT_ENGINE=python fallback, and tests of that path); false runs the C# engine.
+    /// </summary>
+    public bool UsePython { get; init; } = PythonRequested;
+
+    /// <summary>LABOPS_PROJECT_ENGINE=python: run scripts/project.py rather than the C# engine.</summary>
+    public static bool PythonRequested =>
+        string.Equals(Environment.GetEnvironmentVariable("LABOPS_PROJECT_ENGINE"), "python", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Every lab, project and experiment.</summary>
     /// <param name="includeClosed">
@@ -288,8 +303,11 @@ public sealed class ProjectEngine : IPreCommitCheck
         return ReadProblems(doc.RootElement).Select(p => new CommitProblem(p.Level, p.Message)).ToList();
     }
 
+    /// <summary>Prepares the Python environment, which only the project.py fallback needs.</summary>
     public Task EnsureEnvironmentAsync(CancellationToken cancellationToken = default) =>
-        EngineJson.EnsureEnvironmentAsync(_runner, _tools, RequireRepository(), m => new EngineException(m), cancellationToken);
+        UsePython
+            ? EngineJson.EnsureEnvironmentAsync(_runner, _tools, RequireRepository(), m => new EngineException(m), cancellationToken)
+            : Task.CompletedTask;
 
     internal static ProjectList ReadList(JsonElement root)
     {
@@ -313,12 +331,52 @@ public sealed class ProjectEngine : IPreCommitCheck
 
     private async Task<JsonDocument> RunAsync(IReadOnlyList<string> args, CancellationToken cancellationToken, bool allowNotOk = false)
     {
+        if (!UsePython)
+        {
+            var root = RequireRepository();
+            var begun = System.Diagnostics.Stopwatch.GetTimestamp();
+            // The engine reads and writes files, so it runs off the window's thread.
+            var answer = await Task.Run(() => RunInProcess(root, args, allowNotOk), cancellationToken).ConfigureAwait(false);
+            _log.LogDebug("projects {Arguments} ({Milliseconds} ms)", string.Join(' ', args),
+                (int)System.Diagnostics.Stopwatch.GetElapsedTime(begun).TotalMilliseconds);
+            return answer;
+        }
+
         var started = System.Diagnostics.Stopwatch.GetTimestamp();
         var result = await EngineJson.RunAsync(_runner, _tools, RequireRepository(), Script, args, cancellationToken)
             .ConfigureAwait(false);
         _log.LogDebug("project.py {Arguments} ({Milliseconds} ms)", string.Join(' ', args),
             (int)System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds);
         return Parse(result, allowNotOk);
+    }
+
+    /// <summary>One command line run by the C# engine, answered as project.py's JSON would be.</summary>
+    internal static JsonDocument RunInProcess(string root, IReadOnlyList<string> args, bool allowNotOk = false)
+    {
+        CommandResult result;
+        try
+        {
+            result = ProjectsCommandLine.Execute(new ProjectRepository(root), args);
+        }
+        catch (EngineError ex)
+        {
+            throw new EngineException(ex.Message);
+        }
+        catch (Exception ex) when (ex is UsageError or IOException or UnauthorizedAccessException or InvalidOperationException
+                                       or FormatException or ArgumentException)
+        {
+            throw new EngineException($"The project engine could not run: {ex.Message}");
+        }
+
+        var doc = JsonDocument.Parse(result.Payload.ToJsonString());
+        var answer = doc.RootElement;
+        if (answer.GetProperty("ok").GetBoolean() || (allowNotOk && answer.TryGetProperty("problems", out _)))
+        {
+            return doc;
+        }
+
+        doc.Dispose();
+        throw new EngineException("The project engine reported a problem.");
     }
 
     internal static JsonDocument Parse(ProcessResult result, bool allowNotOk = false) =>

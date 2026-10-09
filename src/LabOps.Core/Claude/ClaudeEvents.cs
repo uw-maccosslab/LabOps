@@ -89,6 +89,29 @@ public static class ToolDescriptions
             };
         }
 
+        // The projects engine, as the labops tool (and, until LabOps-Projects moved to it, project.py).
+        var projects = command.IndexOf("labops projects", StringComparison.Ordinal) is var tool and >= 0
+            ? tool + "labops projects".Length
+            : command.IndexOf("scripts/project.py", StringComparison.Ordinal) is var script and >= 0 ? script + "scripts/project.py".Length : -1;
+        if (projects >= 0)
+        {
+            var rest = command[projects..].Replace("--json", "", StringComparison.Ordinal).Trim();
+            return rest.Split(' ', 2)[0] switch
+            {
+                "list" => "Looking through the projects",
+                "check" => "Checking the projects",
+                "scan" => "Checking the file for identifying information",
+                "sheet" => "Reading the sheet",
+                "new-lab" or "new-project" or "new-experiment" => "Creating the record",
+                "stage" or "assign" or "add-step" or "remove-step" => "Updating the steps",
+                "link" or "unlink" => "Updating the links",
+                "wiki" => "Building the wiki page",
+                "octopus-input" => "Writing the Octopus input",
+                "import-layout" => "Importing the plate layout",
+                _ => $"Running labops projects {rest}",
+            };
+        }
+
         var protocol = command.IndexOf("scripts/protocol.py", StringComparison.Ordinal);
         if (protocol >= 0)
         {

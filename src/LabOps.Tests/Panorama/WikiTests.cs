@@ -292,7 +292,7 @@ public sealed class WikiTests
 
             Directory.CreateDirectory(Path.Combine(_dir.Path, "tools"));
             File.WriteAllText(Path.Combine(_dir.Path, "tools", "uv.exe"), "");
-            var engine = new ProjectEngine(new Runner(this, hash), new ToolLocator(_dir.Path)) { RepositoryPath = _dir.Path };
+            var engine = new ProjectEngine(new Runner(this, hash), new ToolLocator(_dir.Path)) { RepositoryPath = _dir.Path, UsePython = true };
             Wiki = new WikiPublisher(new PanoramaSignIn(store, Server), engine, new WorkTracker(NullLogger<WorkTracker>.Instance),
                 new AppPaths(_dir.Path), NullLogger<WikiPublisher>.Instance) { Handler = Handler };
         }

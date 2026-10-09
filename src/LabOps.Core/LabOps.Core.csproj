@@ -25,4 +25,8 @@
     <InternalsVisibleTo Include="LabOps.Tests" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\LabOps.Engines\LabOps.Engines.csproj" />
+  </ItemGroup>
+
 </Project>

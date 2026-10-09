@@ -1,0 +1,1478 @@
+{
+ "engine_version": "26.4.0",
+ "headers": [
+  {
+   "header": "",
+   "words": [],
+   "hit": null
+  },
+  {
+   "header": "Name",
+   "words": [
+    "name"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a person's name (rename it if it names something else, for example Sample Name)"
+   ]
+  },
+  {
+   "header": "names",
+   "words": [
+    "name"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a person's name (rename it if it names something else, for example Sample Name)"
+   ]
+  },
+  {
+   "header": "Patient_Name",
+   "words": [
+    "patient",
+    "name"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a person's name (rename it if it names something else, for example Sample Name)"
+   ]
+  },
+  {
+   "header": "PatientName",
+   "words": [
+    "patient",
+    "name"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a person's name (rename it if it names something else, for example Sample Name)"
+   ]
+  },
+  {
+   "header": "patientNAME",
+   "words": [
+    "patient",
+    "name"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a person's name (rename it if it names something else, for example Sample Name)"
+   ]
+  },
+  {
+   "header": "\uff2e\uff41\uff4d\uff45",
+   "words": [
+    "name"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a person's name (rename it if it names something else, for example Sample Name)"
+   ]
+  },
+  {
+   "header": "Na\u200bme",
+   "words": [
+    "name"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a person's name (rename it if it names something else, for example Sample Name)"
+   ]
+  },
+  {
+   "header": "Pr\u00e9nom",
+   "words": [
+    "prenom"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a person's name"
+   ]
+  },
+  {
+   "header": "Apellido",
+   "words": [
+    "apellido"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a person's name"
+   ]
+  },
+  {
+   "header": "Address1",
+   "words": [
+    "address",
+    "1"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like an address"
+   ]
+  },
+  {
+   "header": "HomeAddress2",
+   "words": [
+    "home",
+    "address",
+    "2"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like an address"
+   ]
+  },
+  {
+   "header": "e_mail",
+   "words": [
+    "e",
+    "mail"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like an email address"
+   ]
+  },
+  {
+   "header": "E Mail",
+   "words": [
+    "e",
+    "mail"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like an email address"
+   ]
+  },
+  {
+   "header": "Telephone #",
+   "words": [
+    "telephone"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a phone number"
+   ]
+  },
+  {
+   "header": "Zip+4",
+   "words": [
+    "zip",
+    "4"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a ZIP code"
+   ]
+  },
+  {
+   "header": "ZIP_CODE",
+   "words": [
+    "zip",
+    "code"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a ZIP code"
+   ]
+  },
+  {
+   "header": "PostCode",
+   "words": [
+    "post",
+    "code"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a postal code"
+   ]
+  },
+  {
+   "header": "Social Security",
+   "words": [
+    "social",
+    "security"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a Social Security number"
+   ]
+  },
+  {
+   "header": "SocialSecurityNumber",
+   "words": [
+    "social",
+    "security",
+    "number"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a Social Security number"
+   ]
+  },
+  {
+   "header": "MedicalRecordNo",
+   "words": [
+    "medical",
+    "record",
+    "no"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a medical record number"
+   ]
+  },
+  {
+   "header": "Subject Initial",
+   "words": [
+    "subject",
+    "initial"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a person's initials"
+   ]
+  },
+  {
+   "header": "Middle Initial",
+   "words": [
+    "middle",
+    "initial"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a person's initials"
+   ]
+  },
+  {
+   "header": "Initial",
+   "words": [
+    "initial"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a person's initials"
+   ]
+  },
+  {
+   "header": "Initial weight",
+   "words": [
+    "initial",
+    "weight"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Pt Initial",
+   "words": [
+    "pt",
+    "initial"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a person's initials"
+   ]
+  },
+  {
+   "header": "Specificity",
+   "words": [
+    "specificity"
+   ],
+   "hit": null
+  },
+  {
+   "header": "mRNA",
+   "words": [
+    "m",
+    "rna"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Cities",
+   "words": [
+    "city"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a location smaller than a state"
+   ]
+  },
+  {
+   "header": "Counties",
+   "words": [
+    "county"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a location smaller than a state"
+   ]
+  },
+  {
+   "header": "Addresses",
+   "words": [
+    "address"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like an address"
+   ]
+  },
+  {
+   "header": "Emails",
+   "words": [
+    "email"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like an email address"
+   ]
+  },
+  {
+   "header": "Phones",
+   "words": [
+    "phone"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a phone number"
+   ]
+  },
+  {
+   "header": "Owners",
+   "words": [
+    "owner"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like an animal owner's details"
+   ]
+  },
+  {
+   "header": "Contacts",
+   "words": [
+    "contact"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like contact details"
+   ]
+  },
+  {
+   "header": "Sample_Name",
+   "words": [
+    "sample",
+    "name"
+   ],
+   "hit": null
+  },
+  {
+   "header": "SampleName",
+   "words": [
+    "sample",
+    "name"
+   ],
+   "hit": null
+  },
+  {
+   "header": "filename",
+   "words": [
+    "filename"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Run name",
+   "words": [
+    "run",
+    "name"
+   ],
+   "hit": null
+  },
+  {
+   "header": "raw file name",
+   "words": [
+    "raw",
+    "file",
+    "name"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Lab Name",
+   "words": [
+    "lab",
+    "name"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Folder name",
+   "words": [
+    "folder",
+    "name"
+   ],
+   "hit": null
+  },
+  {
+   "header": "dataset name",
+   "words": [
+    "dataset",
+    "name"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Patient ID",
+   "words": [
+    "patient",
+    "id"
+   ],
+   "hit": [
+    "WARN",
+    "check that this is a study code, not a medical record number"
+   ]
+  },
+  {
+   "header": "patient",
+   "words": [
+    "patient"
+   ],
+   "hit": [
+    "WARN",
+    "check that this is a study code, not a medical record number"
+   ]
+  },
+  {
+   "header": "Patient #",
+   "words": [
+    "patient"
+   ],
+   "hit": [
+    "WARN",
+    "check that this is a study code, not a medical record number"
+   ]
+  },
+  {
+   "header": "Donor",
+   "words": [
+    "donor"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Batch3",
+   "words": [
+    "batch",
+    "3"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Plate10",
+   "words": [
+    "plate",
+    "10"
+   ],
+   "hit": null
+  },
+  {
+   "header": "\uff21\uff44\uff44\uff52\uff45\uff53\uff53",
+   "words": [
+    "address"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like an address"
+   ]
+  },
+  {
+   "header": "na\u00efve",
+   "words": [
+    "naive"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Sample\u00adName",
+   "words": [
+    "sample",
+    "name"
+   ],
+   "hit": null
+  },
+  {
+   "header": "\u540d\u524d",
+   "words": [],
+   "hit": null
+  },
+  {
+   "header": "Tube 1",
+   "words": [
+    "tube",
+    "1"
+   ],
+   "hit": null
+  },
+  {
+   "header": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "words": [
+    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+   ],
+   "hit": null
+  },
+  {
+   "header": "First-Name",
+   "words": [
+    "first",
+    "name"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a person's name"
+   ]
+  },
+  {
+   "header": "first.name",
+   "words": [
+    "first",
+    "name"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a person's name"
+   ]
+  },
+  {
+   "header": "FIRST NAME",
+   "words": [
+    "first",
+    "name"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a person's name"
+   ]
+  },
+  {
+   "header": "FullName",
+   "words": [
+    "full",
+    "name"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a person's name"
+   ]
+  },
+  {
+   "header": "Birth Year",
+   "words": [
+    "birth",
+    "year"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a date of birth"
+   ]
+  },
+  {
+   "header": "BirthWeight",
+   "words": [
+    "birth",
+    "weight"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a date of birth"
+   ]
+  },
+  {
+   "header": "Collection date",
+   "words": [
+    "collection",
+    "date"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Age",
+   "words": [
+    "age"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Sex",
+   "words": [
+    "sex"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Notes",
+   "words": [
+    "notes"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Comments",
+   "words": [
+    "comments"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Box Number",
+   "words": [
+    "box",
+    "number"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Box Position",
+   "words": [
+    "box",
+    "position"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Sample Identifier",
+   "words": [
+    "sample",
+    "identifier"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Sample Type",
+   "words": [
+    "sample",
+    "type"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Assay",
+   "words": [
+    "assay"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Sample Group",
+   "words": [
+    "sample",
+    "group"
+   ],
+   "hit": null
+  },
+  {
+   "header": "QC",
+   "words": [
+    "qc"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Species",
+   "words": [
+    "species"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Weight",
+   "words": [
+    "weight"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Treatment",
+   "words": [
+    "treatment"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Other covariate (Relabel column without commas or special characters)",
+   "words": [
+    "other",
+    "covariate",
+    "relabel",
+    "column",
+    "without",
+    "commas",
+    "or",
+    "special",
+    "characters"
+   ],
+   "hit": null
+  },
+  {
+   "header": "First Name",
+   "words": [
+    "first",
+    "name"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a person's name"
+   ]
+  },
+  {
+   "header": "LastName",
+   "words": [
+    "last",
+    "name"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a person's name"
+   ]
+  },
+  {
+   "header": "Firstname",
+   "words": [
+    "firstname"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a person's name"
+   ]
+  },
+  {
+   "header": "Patient Name",
+   "words": [
+    "patient",
+    "name"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a person's name (rename it if it names something else, for example Sample Name)"
+   ]
+  },
+  {
+   "header": "Name of donor",
+   "words": [
+    "name",
+    "of",
+    "donor"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a person's name (rename it if it names something else, for example Sample Name)"
+   ]
+  },
+  {
+   "header": "Surname",
+   "words": [
+    "surname"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a person's name"
+   ]
+  },
+  {
+   "header": "DOB",
+   "words": [
+    "dob"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a date of birth"
+   ]
+  },
+  {
+   "header": "Date of Birth",
+   "words": [
+    "date",
+    "of",
+    "birth"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a date of birth"
+   ]
+  },
+  {
+   "header": "BirthDate",
+   "words": [
+    "birth",
+    "date"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a date of birth"
+   ]
+  },
+  {
+   "header": "MRN",
+   "words": [
+    "mrn"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a medical record number"
+   ]
+  },
+  {
+   "header": "Medical Record Number",
+   "words": [
+    "medical",
+    "record",
+    "number"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a medical record number"
+   ]
+  },
+  {
+   "header": "SSN",
+   "words": [
+    "ssn"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a Social Security number"
+   ]
+  },
+  {
+   "header": "Address",
+   "words": [
+    "address"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like an address"
+   ]
+  },
+  {
+   "header": "Street",
+   "words": [
+    "street"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like an address"
+   ]
+  },
+  {
+   "header": "City",
+   "words": [
+    "city"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a location smaller than a state"
+   ]
+  },
+  {
+   "header": "Zip",
+   "words": [
+    "zip"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a ZIP code"
+   ]
+  },
+  {
+   "header": "ZipCode",
+   "words": [
+    "zip",
+    "code"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a ZIP code"
+   ]
+  },
+  {
+   "header": "Postal Code",
+   "words": [
+    "postal",
+    "code"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a postal code"
+   ]
+  },
+  {
+   "header": "Email",
+   "words": [
+    "email"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like an email address"
+   ]
+  },
+  {
+   "header": "E-mail",
+   "words": [
+    "e",
+    "mail"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like an email address"
+   ]
+  },
+  {
+   "header": "eMail",
+   "words": [
+    "e",
+    "mail"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like an email address"
+   ]
+  },
+  {
+   "header": "Phone",
+   "words": [
+    "phone"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a phone number"
+   ]
+  },
+  {
+   "header": "Cell phone",
+   "words": [
+    "cell",
+    "phone"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a phone number"
+   ]
+  },
+  {
+   "header": "Mobile number",
+   "words": [
+    "mobile",
+    "number"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a phone number"
+   ]
+  },
+  {
+   "header": "Fax",
+   "words": [
+    "fax"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a fax number"
+   ]
+  },
+  {
+   "header": "Owner",
+   "words": [
+    "owner"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like an animal owner's details"
+   ]
+  },
+  {
+   "header": "Owner Name",
+   "words": [
+    "owner",
+    "name"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like an animal owner's details"
+   ]
+  },
+  {
+   "header": "Contact",
+   "words": [
+    "contact"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like contact details"
+   ]
+  },
+  {
+   "header": "Initials",
+   "words": [
+    "initials"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a person's initials"
+   ]
+  },
+  {
+   "header": "Username",
+   "words": [
+    "username"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a person's name (rename it if it names something else, for example Sample Name)"
+   ]
+  },
+  {
+   "header": "Sample Name",
+   "words": [
+    "sample",
+    "name"
+   ],
+   "hit": null
+  },
+  {
+   "header": "File Name",
+   "words": [
+    "file",
+    "name"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Filename",
+   "words": [
+    "filename"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Species name",
+   "words": [
+    "species",
+    "name"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Search name",
+   "words": [
+    "search",
+    "name"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Protein Name",
+   "words": [
+    "protein",
+    "name"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Cell line name",
+   "words": [
+    "cell",
+    "line",
+    "name"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Common name",
+   "words": [
+    "common",
+    "name"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Sample_ID",
+   "words": [
+    "sample",
+    "id"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Subject ID",
+   "words": [
+    "subject",
+    "id"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Mobile Phase",
+   "words": [
+    "mobile",
+    "phase"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Timepoint",
+   "words": [
+    "timepoint"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Outcome",
+   "words": [
+    "outcome"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Phone1",
+   "words": [
+    "phone",
+    "1"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a phone number"
+   ]
+  },
+  {
+   "header": "Email2",
+   "words": [
+    "email",
+    "2"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like an email address"
+   ]
+  },
+  {
+   "header": "Zip5",
+   "words": [
+    "zip",
+    "5"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a ZIP code"
+   ]
+  },
+  {
+   "header": "MRN2",
+   "words": [
+    "mrn",
+    "2"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a medical record number"
+   ]
+  },
+  {
+   "header": "DOB1",
+   "words": [
+    "dob",
+    "1"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a date of birth"
+   ]
+  },
+  {
+   "header": "Homeaddress",
+   "words": [
+    "homeaddress"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like an address"
+   ]
+  },
+  {
+   "header": "patientdob",
+   "words": [
+    "patientdob"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a date of birth"
+   ]
+  },
+  {
+   "header": "PatientEmail",
+   "words": [
+    "patient",
+    "email"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like an email address"
+   ]
+  },
+  {
+   "header": "Names",
+   "words": [
+    "name"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a person's name (rename it if it names something else, for example Sample Name)"
+   ]
+  },
+  {
+   "header": "First Names",
+   "words": [
+    "first",
+    "name"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a person's name"
+   ]
+  },
+  {
+   "header": "Last Names",
+   "words": [
+    "last",
+    "name"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a person's name"
+   ]
+  },
+  {
+   "header": "Patient Names",
+   "words": [
+    "patient",
+    "name"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a person's name (rename it if it names something else, for example Sample Name)"
+   ]
+  },
+  {
+   "header": "First\u00a0Name",
+   "words": [
+    "first",
+    "name"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a person's name"
+   ]
+  },
+  {
+   "header": "Apellidos",
+   "words": [
+    "apellido"
+   ],
+   "hit": [
+    "ERROR",
+    "looks like a person's name"
+   ]
+  },
+  {
+   "header": "mRNA level",
+   "words": [
+    "m",
+    "rna",
+    "level"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Initial volume",
+   "words": [
+    "initial",
+    "volume"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Plate1",
+   "words": [
+    "plate",
+    "1"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Sample2",
+   "words": [
+    "sample",
+    "2"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Batch 3",
+   "words": [
+    "batch",
+    "3"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Samples",
+   "words": [
+    "samples"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Status",
+   "words": [
+    "status"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Postdose",
+   "words": [
+    "postdose"
+   ],
+   "hit": null
+  },
+  {
+   "header": "Sample Names",
+   "words": [
+    "sample",
+    "name"
+   ],
+   "hit": null
+  }
+ ],
+ "contacts": [
+  {
+   "text": "",
+   "phone": false,
+   "contact": false
+  },
+  {
+   "text": "206-555-0100",
+   "phone": true,
+   "contact": true
+  },
+  {
+   "text": "(206) 555-0100",
+   "phone": true,
+   "contact": true
+  },
+  {
+   "text": "+1 206 555 0100",
+   "phone": true,
+   "contact": true
+  },
+  {
+   "text": "206.555.0100",
+   "phone": true,
+   "contact": true
+  },
+  {
+   "text": "2065550100",
+   "phone": false,
+   "contact": false
+  },
+  {
+   "text": "+44 20 7946 0958",
+   "phone": true,
+   "contact": true
+  },
+  {
+   "text": "+57.021464",
+   "phone": false,
+   "contact": false
+  },
+  {
+   "text": "+57.02 1464",
+   "phone": false,
+   "contact": false
+  },
+  {
+   "text": "pat@example.org",
+   "phone": false,
+   "contact": true
+  },
+  {
+   "text": "pat at example dot org",
+   "phone": false,
+   "contact": false
+  },
+  {
+   "text": "a@b.c",
+   "phone": false,
+   "contact": false
+  },
+  {
+   "text": "x@y.co",
+   "phone": false,
+   "contact": true
+  },
+  {
+   "text": "S-123-4567-8",
+   "phone": false,
+   "contact": false
+  },
+  {
+   "text": "123-456-7890 and more",
+   "phone": true,
+   "contact": true
+  },
+  {
+   "text": "call 555 0100",
+   "phone": false,
+   "contact": false
+  },
+  {
+   "text": "+1 (206) 555-0100",
+   "phone": true,
+   "contact": true
+  },
+  {
+   "text": "+\u0661\u0662\u0663 4567 8901",
+   "phone": true,
+   "contact": true
+  },
+  {
+   "text": "BC-2026-0001",
+   "phone": false,
+   "contact": false
+  },
+  {
+   "text": "1-800-555-0199",
+   "phone": true,
+   "contact": true
+  },
+  {
+   "text": "+33 1 23 45 67 89",
+   "phone": true,
+   "contact": true
+  },
+  {
+   "text": "(206)555-0100",
+   "phone": true,
+   "contact": true
+  },
+  {
+   "text": "206 555 0100",
+   "phone": true,
+   "contact": true
+  },
+  {
+   "text": "206-5550100",
+   "phone": false,
+   "contact": false
+  }
+ ]
+}

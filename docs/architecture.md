@@ -12,11 +12,13 @@ Three ideas explain most of the design:
    [LabOps-Quotes](https://github.com/uw-maccosslab/LabOps-Quotes). Everyone works on their own
    copy (a clone), and the app keeps it in step with GitHub: it saves each change as a commit and
    brings in everyone else's.
-2. **Each repository carries its own rules.** Its engine (`scripts/project.py` or
-   `scripts/quote.py`), its `CLAUDE.md` and its Claude skills decide prices, validation, wording and
-   what counts as identifying information. The app runs the engine and shows the answer; it never
-   computes a price or judges a sample sheet itself. So a rule change reaches everyone on their
-   next sync, without an app release.
+2. **Each repository carries its own records, text and skills; the engines decide the rules.** The
+   quotes' and protocols' engines (`scripts/quote.py`, `scripts/protocol.py`) live in their
+   repositories, so a change to one reaches everyone on their next sync. The projects engine was
+   `scripts/project.py` until October 2026; it is now part of LabOps (`LabOps.Engines`, a C# port
+   that gives the same answers), run in-process by the app and as the `labops` tool by Claude's
+   skills, the pre-commit hook and GitHub Actions. A change to a projects rule is an app release,
+   and `config/app.yaml`'s `min_app_version` makes sure nobody edits with an app that lacks it.
 3. **Claude edits files; the app alone saves them.** Claude Code runs inside the app and does the
    paperwork. When it finishes a turn, the app checks, commits and pushes what it changed. Claude
    is not allowed to run git commands that change history.
@@ -32,7 +34,7 @@ flowchart LR
         claude["Claude Code"]
         subgraph clone["A clone: LabOps-Projects, LabOps-Protocols or LabOps-Quotes"]
             records["Records<br/>projects/, protocols/ or quotes/"]
-            engine["Engine<br/>project.py, protocol.py or quote.py"]
+            engine["Engine<br/>labops (built in), protocol.py or quote.py"]
             guide["Instructions for Claude<br/>CLAUDE.md and skills"]
         end
     end
@@ -79,7 +81,7 @@ flowchart LR
     eln --> browse
     creds["Windows Credential Manager<br/>PanoramaBridge's saved sign-in"] -.-> browse
     browse -->|"records your choice"| experiment["LabOps-Projects<br/>experiment.yaml"]
-    folder -->|"Skyline documents counted"| wikiBuild["LabOps: Wiki page<br/>project.py wiki builds it"]
+    folder -->|"Skyline documents counted"| wikiBuild["LabOps: Wiki page<br/>the projects engine builds it"]
     wikiBuild -->|"publishes"| wikiPage["Wiki page<br/>.../BioTRACK, page default"]
     creds -.-> wikiBuild
 ```
@@ -92,7 +94,7 @@ for one and keep it under its own name.
 
 ```mermaid
 flowchart LR
-    push["A push to main,<br/>from anyone"] --> check["check workflow<br/>engine tests, then quote.py verify<br/>or project.py check"]
+    push["A push to main,<br/>from anyone"] --> check["check workflow<br/>engine tests, then quote.py verify<br/>or labops projects check"]
     push --> index["index workflow<br/>rebuilds the README table,<br/>commits it as github-actions"]
     index -->|"arrives with everyone's next sync"| clones["Everyone's clone"]
     check -->|"result shown in the app's status bar"| status["Checks passed or failed"]
@@ -107,7 +109,8 @@ flowchart LR
 | LabOps-Projects | Labs, projects, experiments, deidentified sample tables, plate layouts. Open to the lab. | GitHub, plus a clone on each computer | A push to `main`; others get it on their next sync |
 | LabOps-Protocols | The lab's protocols, every published version, figures and originals. Open to the lab. | GitHub, plus a clone on each computer | A push to `main` |
 | LabOps-Quotes | Quotes, rates, templates. Private to the people who prepare quotes. | GitHub, plus a clone where needed | A push to `main` |
-| `project.py`, `protocol.py`, `quote.py` | The engines: every rule, command and generated file | Inside each clone, run with uv and Python | Pushed with the repository; tagged `engine-v...` for release notes |
+| `protocol.py`, `quote.py` | The quotes' and protocols' engines: every rule, command and generated file | Inside each clone, run with uv and Python | Pushed with the repository; tagged `engine-v...` for release notes |
+| `LabOps.Engines`, `labops` | The projects engine (the port of `project.py`), in the app and as its command-line tool | Inside LabOps; `labops.exe` in its `tools` folder | A LabOps release |
 | `CLAUDE.md`, `.claude/skills/` | What Claude follows in each repository | Inside each clone | Pushed with the repository |
 | `config/app.yaml` | `min_app_version`, and for quotes the `approvers` who may send | Inside each clone | Pushed with the repository |
 | Claude Code | `claude.exe`, one process per conversation | Started by the app in the clone's folder | Its own updates |
@@ -159,47 +162,51 @@ flowchart LR
   (`calculation.md`, `quote.md`), and whether commits must pass the identifier check
   (LabOps-Projects only). Each open clone gets its own `GitClient` and `SyncService`; `Workspace`
   holds the ones that are open.
-- **Engines are separate programs.** `ProjectEngine` and `QuoteEngine` run
-  `uv run --frozen python scripts/<engine>.py --json <command>` in the clone and read the JSON it
-  prints. The table below lists what each button runs.
+- **The quotes' and protocols' engines are separate programs.** `QuoteEngine` and `ProtocolEngine`
+  run `uv run --frozen python scripts/<engine>.py --json <command>` in the clone and read the JSON
+  it prints. `ProjectEngine` builds the same command lines `project.py` took and runs them
+  in-process (`ProjectsCommandLine` in `LabOps.Engines`), getting the same JSON back; the `labops`
+  tool runs those command lines for Claude, the hook and CI. The table below lists what each button
+  runs, as the command line Claude would type.
 - **Claude talks to the app through a small local server.** `AppToolServer` listens on
   `127.0.0.1` (a random port, with a secret token) and gives Claude three tools: `ask_user`
   (a question in the chat pane), `report_quote_summary` (the quote card) and `approve` (the
   permission prompt). It is named `quotes-app` in both repositories, for historical reasons.
 - **Panorama is read, except for wiki pages.** The app reads folder listings, the notebook list
   and each results folder's Skyline documents, and writes one thing: a project's wiki page
-  (`wiki-saveWiki.api`), built by `project.py wiki`. LabKey wants a CSRF token on every POST, even
+  (`wiki-saveWiki.api`), built by the engine's `wiki` command. LabKey wants a CSRF token on every POST, even
   with an API key, so the save first gets one from `login-whoami.api` and sends it with that
   session's cookies. The app republishes a page on its own only when the page's footer marks it as
   LabOps's, nobody has edited it on Panorama since (the footer fingerprints the page), and its
   written parts are the ones published last; replacing a page written or edited by hand, and
-  publishing new text from Claude, are done in the Wiki page window. What you choose when browsing is written to LabOps-Projects by `project.py link`.
+  publishing new text from Claude, are done in the Wiki page window. What you choose when browsing is written to LabOps-Projects by the engine's `link` command.
 - **The bundled tools.** The installer carries pinned copies of `uv` and `gh` in its `tools`
-  folder. Git and Claude Code are installed by Setup.
+  folder, and the `labops` tool (compiled ahead of time, so it needs no .NET). Git and Claude Code
+  are installed by Setup.
 
 ### What each action runs
 
 | In the app | Engine command | Saved as |
 |---|---|---|
-| Projects list, quotes list | `project.py list --active` (`list` with Show closed), `quote.py list` | nothing |
+| Projects list, quotes list | `labops projects list --active` (`list` with Show closed), `quote.py list` | nothing |
 | View samples | none: the app reads `metadata/samples.csv` and `metadata/received/*.csv` | nothing |
-| Start, Done, Skip, Reopen a step | `project.py stage <item> <step> start\|done\|skip` | `<item>: <step> done` |
-| Assign | `project.py assign <item> <steps> --to <login>` | `<item>: <step> assigned to <login>` |
-| Add a step, Remove a step | `project.py add-step`, `remove-step` | `<item>: added step ...` |
-| Add notebook, Add raw data folder, Add results folder, Remove a link | `project.py link`, `unlink` | `<item>: raw data on Panorama` |
-| Organize with Claude | `project.py scan <file>`, then Claude | `<project>: updated with Claude` |
-| Wiki page (the first time: where it goes) | `project.py link <project> wiki <folder> --page <name>` | `<project>: wiki page on Panorama` |
-| Wiki page, Publish; and after every saved change | `project.py wiki <project> --documents <file>`, then Panorama's `wiki-saveWiki.api` | nothing in git |
+| Start, Done, Skip, Reopen a step | `labops projects stage <item> <step> start\|done\|skip` | `<item>: <step> done` |
+| Assign | `labops projects assign <item> <steps> --to <login>` | `<item>: <step> assigned to <login>` |
+| Add a step, Remove a step | `labops projects add-step`, `remove-step` | `<item>: added step ...` |
+| Add notebook, Add raw data folder, Add results folder, Remove a link | `labops projects link`, `unlink` | `<item>: raw data on Panorama` |
+| Organize with Claude | `labops projects scan <file>`, then Claude | `<project>: updated with Claude` |
+| Wiki page (the first time: where it goes) | `labops projects link <project> wiki <folder> --page <name>` | `<project>: wiki page on Panorama` |
+| Wiki page, Publish; and after every saved change | `labops projects wiki <project> --documents <file>`, then Panorama's `wiki-saveWiki.api` | nothing in git |
 | Write the text with Claude | the update-wiki skill writes `wiki.yaml` | `<project>: updated with Claude` |
-| Open in Octopus, Import layout | `project.py octopus-input`, `import-layout` | `<project>: plate layout from Octopus` |
-| Every commit in LabOps-Projects | `project.py check --staged` | refuses the commit on an error |
+| Open in Octopus, Import layout | `labops projects octopus-input`, `import-layout` | `<project>: plate layout from Octopus` |
+| Every commit in LabOps-Projects | `labops projects check --staged` | refuses the commit on an error |
 | Protocols list | `protocol.py list` | nothing |
 | Showing a version, Print | `protocol.py render <id> --version N --out <file>` | nothing |
 | Show changes | `protocol.py diff <id>` | nothing |
 | New protocol (from a file), Update from a file | `protocol.py import <file>`, then Claude (format-protocol, revise-protocol) | `<id>: added with Claude` |
 | Publish version N | `protocol.py publish <id> --summary ... --by <login>` | `<id>: version N` |
 | Retire, Make active | `protocol.py status <id> retired\|active` | `<id>: retired` |
-| Add protocol (on a step) | `project.py link <item> protocol <id> --version N --step <step>` | `<item>: protocol <id> version N for <step>` |
+| Add protocol (on a step) | `labops projects link <item> protocol <id> --version N --step <step>` | `<item>: protocol <id> version N for <step>` |
 | Every commit in LabOps-Protocols | `protocol.py check --staged` | refuses a change to a published version |
 | Send, PO received, Invoiced, Declined | `quote.py send`, `quote.py status` | `<number>: sent` |
 | Make a revision | `quote.py revise` | `<revision>: revision of <number>` |

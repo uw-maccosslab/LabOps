@@ -235,7 +235,7 @@ public sealed partial class SetupViewModel : ObservableObject
 
         var dialog = new OpenFolderDialog
         {
-            Title = $"Choose your existing copy of the {profile.DisplayName} (the folder that contains {profile.EngineScript.Replace('/', '\\')})",
+            Title = $"Choose your existing copy of the {profile.DisplayName} (the folder that contains {profile.CloneMarker.Replace('/', '\\')})",
             InitialDirectory = _workspace.Get(profile)?.Path ?? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
         };
 

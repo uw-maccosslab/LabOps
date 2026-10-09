@@ -22,21 +22,27 @@ text alike.
 
 ## The division of labor
 
-- **Each repository owns its logic.** Quotes: `scripts/quote.py`, its `CLAUDE.md`, and the skills
-  `new-quote` and `revise-quote`. Projects: `scripts/project.py`, its `CLAUDE.md`, and the skills
-  `new-experiment`, `organize-metadata` and `update-experiment`. Protocols: `scripts/protocol.py`,
-  its `CLAUDE.md`, and the skills `format-protocol` and `revise-protocol`. Each has `config/app.yaml`
-  (`min_app_version`; the quotes also `approvers`). A change there reaches every user with a sync,
-  no app release.
-- **The app never computes a price or judges an identifier.** It runs
-  `uv run --frozen python scripts/<engine>.py --json ...` (`QuoteEngine`, `ProjectEngine`,
-  `ProtocolEngine`) and shows what comes back.
+- **Each repository owns its records, text and skills; the projects engine is ours now.**
+  Quotes: `scripts/quote.py`, its `CLAUDE.md`, and the skills `new-quote` and `revise-quote`.
+  Protocols: `scripts/protocol.py`, its `CLAUDE.md`, and the skills `format-protocol` and
+  `revise-protocol`. Projects: its `CLAUDE.md`, templates, `config/` and the skills
+  `new-experiment`, `organize-metadata` and `update-experiment`; its engine is `LabOps.Engines`, the
+  C# port of `scripts/project.py` (October 2026), so a projects rule changes with an app release.
+  Each repository has `config/app.yaml` (`min_app_version`; the quotes also `approvers`).
+- **The projects engine is one engine, three ways in.** The app runs it in-process
+  (`ProjectEngine`, which builds `project.py`'s command lines and hands them to
+  `ProjectsCommandLine`); Claude's skills, the pre-commit hook and GitHub Actions run the same
+  command lines as the `labops` tool (`labops projects stage ...`), which the app ships in its
+  `tools\` folder. Records it writes must stay byte for byte what `project.py` wrote (see the
+  engine tests below). `LABOPS_PROJECT_ENGINE=python` runs `project.py` instead, for one release.
+- **The app never computes a price.** It runs `uv run --frozen python scripts/<engine>.py --json ...`
+  for quotes and protocols (`QuoteEngine`, `ProtocolEngine`) and shows what comes back.
 - **One `Repository` per clone.** `RepositoryProfile` holds what differs (GitHub name, engine,
   root folder and item depth, generated files, whether commits are checked);
   `RepositoryFactory` gives each open clone its own `GitClient` and `SyncService`. Never share a
   git client between repositories. `Workspace` holds the open ones; any may be missing.
 - **Nothing identifying reaches LabOps-Projects' history.** Its `SyncService` runs the
-  `IPreCommitCheck` (`project.py check --staged`) before every commit and refuses on an error;
+  `IPreCommitCheck` (the engine's `check --staged`) before every commit and refuses on an error;
   clones also get `core.hooksPath=.githooks`. Originals stay in its git-ignored `inbox/`, and the
   app scans a collaborator's file before Claude may read it.
 - **A published protocol version never changes.** LabOps-Protocols' `SyncService` runs
@@ -67,8 +73,15 @@ src/LabOps.Core/     all logic, no UI types                     net10.0
   Repositories/              RepositoryProfile, Repository, RepositoryFactory
   Sync/                      GitClient, SyncService, ItemHistory (the Modified column)
   Setup/, GitHub/            first-run checks; the gh CLI
+src/LabOps.Engines/  the lab's rules, no UI and no ASP.NET      net10.0 (AOT-compatible)
+  Python/                    Python's str, repr, ==, truth, float repr, json.dumps and json.loads
+  Yaml/                      PyYAML 1.1 reading (YamlLoader) and yaml.dump's quoting (YamlEmitter); line edits
+  Projects/                  the port of project.py: validation, identifiers, sheets, summaries, wiki page, commands
+  CommandLine/               argparse-compatible command lines (ProjectsCommandLine), for the tool and the app
+src/LabOps.Cli/      the labops tool, published Native AOT        net10.0
 src/LabOps.App/      WPF shell (MVVM with CommunityToolkit.Mvvm) net10.0-windows
 src/LabOps.Tests/    xUnit v3 + Shouldly                        net10.0-windows
+tools/engine-golden/         make_golden.py and make_workbooks.py: the Python engine's behavior, as test tables
 docs/                        how the app, repositories, engines, Claude and Panorama fit together
 ```
 
@@ -82,10 +95,28 @@ dotnet test --project src/LabOps.Tests/LabOps.Tests.csproj
 - `SERVICES_QUOTES_REPO=<clone of LabOps-Quotes>` also runs the real quote engine in a test,
   `LAB_PROJECTS_REPO=<clone of LabOps-Projects>` the real project engine, and
   `LAB_PROTOCOLS_REPO=<clone of LabOps-Protocols>` the real protocol engine.
-- `Fixtures/project-*.json` were recorded from the real `project.py`; re-record them when its JSON
-  changes (LabOps-Projects' `tests/test_commands.py::test_list_returns_what_the_app_reads` guards
-  that side). `Fixtures/protocol-*.json` were recorded from the real `protocol.py` (its
-  `tests/test_contract.py` guards that side).
+- **The projects engine is tested against the Python one it replaced.**
+  - `Fixtures/engine-golden/*.json` hold what `project.py` did: about 10,000 YAML scalars as
+    `yaml.dump` wrote them, YAML and JSON as PyYAML and `json.loads` read them (problems worded as
+    libyaml words them), the line edits, and the identifier rules on every header in
+    LabOps-Projects' tests. `tools/engine-golden/make_golden.py` records them; run it again only to
+    add cases.
+  - `Engines/ParityTests` and `ParityWriteTests` (opt-in: `LAB_PROJECTS_REPO` and uv) run both
+    engines on the real clone, on a repository of edge cases, on generated workbooks, on staged
+    commits, and through a 90-command write scenario, comparing JSON, text, exit codes and every
+    file byte for byte.
+  - LabOps-Projects' own pytest suite runs against the tool:
+    `PROJECT_ENGINE_CMD="<path>/labops.exe projects" uv run pytest -q` in that clone.
+  - Where the C# engine deliberately differs (Python crashed, or a line edit was wrong),
+    `Engines/EngineFixTests` and `YamlEditTests` say so; anything else that differs is a bug.
+- `Fixtures/project-*.json` were recorded from the real `project.py`; they test the app's reading
+  of the engine's JSON, which the C# engine keeps unchanged. `Fixtures/protocol-*.json` were
+  recorded from the real `protocol.py` (its `tests/test_contract.py` guards that side).
+- **Publishing the labops tool** compiles it ahead of time, which needs Visual Studio's C++ build
+  tools (release.yml's runner has them). In Git Bash, put
+  `/c/Program Files (x86)/Microsoft Visual Studio/Installer` on the PATH first, or the link step
+  cannot find vswhere. A development build of the app copies the tool's ordinary build into
+  `tools\` instead.
 - The sync tests run real git against a temporary bare repository.
 - CI (`ci.yml`) builds and runs every test on Windows for each push; `release.yml` runs them again
   before packaging, so a failing test stops a release. The real-engine test runs in CI only when a

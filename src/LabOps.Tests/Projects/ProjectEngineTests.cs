@@ -2,6 +2,7 @@ using System.Text.Json;
 using LabOps.Core.Engines;
 using LabOps.Core.Processes;
 using LabOps.Core.Projects;
+using LabOps.Tests.TestSupport;
 
 namespace LabOps.Tests.Projects;
 
@@ -169,6 +170,51 @@ public sealed class ProjectEngineTests
         engine.Calls.Count.ShouldBe(1);
     }
 
+    /// <summary>
+    /// The app's calls run the C# engine in-process: each builds project.py's command line, and the
+    /// answer comes back as the same JSON. No Python and no process.
+    /// </summary>
+    [Fact]
+    public async Task The_app_changes_records_with_the_built_in_engine()
+    {
+        using var dir = new TempDirectory();
+        void Write(string rel, string text)
+        {
+            var path = dir.Combine(rel.Split('/'));
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, text);
+        }
+
+        Write("config/people.yaml", "people:\n  - {login: maccoss, name: Michael MacCoss, role: PI}\n");
+        Write("projects/Lab-A/lab.yaml", "lab: Lab-A\ntitle: A lab\nstatus: active\n");
+        Write("projects/Lab-A/Proj/project.yaml",
+            "project: Proj\ntitle: A project\nstatus: active\nfunding: {type: internal}\nnotebooks: []\n"
+            + "steps:\n  - {id: samples_received, kind: samples_received, status: pending}\n  - {id: sample_prep, kind: sample_prep, status: pending}\n");
+        Write("projects/Lab-A/Proj/2026-10-Proj-DIA/experiment.yaml",
+            "experiment: 2026-10-Proj-DIA\ntitle: DIA\nstatus: active\npanorama: []\nsteps:\n  - {id: data_acquisition, kind: data_acquisition, status: pending}\n");
+        var engine = new ProjectEngine(new ProcessRunner(new ToolLocator(dir.Path)), new ToolLocator(dir.Path)) { RepositoryPath = dir.Path };
+
+        await engine.StageAsync("Proj", "samples_received", StageAction.Done, new DateOnly(2026, 10, 1), "maccoss", "92 tubes: on dry ice");
+        await engine.AssignAsync("Proj", ["sample_prep"], "maccoss");
+        await engine.AddStepAsync("Proj", "other", "Second shipment", "samples_received");
+        await engine.LinkPanoramaAsync("2026-10-Proj-DIA", "https://panoramaweb.org/MacCoss/X/Raw/project-begin.view", "raw");
+        await engine.LinkNotebookAsync("Proj", null, "ELN-4485-20230314-179");
+        await engine.RemoveStepAsync("Proj", "second_shipment");
+
+        File.ReadAllText(dir.Combine("projects", "Lab-A", "Proj", "project.yaml")).ShouldBe(
+            "project: Proj\ntitle: A project\nstatus: active\nfunding: {type: internal}\n"
+            + "notebooks:\n  - {id: ELN-4485-20230314-179, url: 'https://panoramaweb.org/MacCoss/samplemanager-app.view#/notebooks/179'}\n"
+            + "steps:\n  - {id: samples_received, kind: samples_received, status: done, started: 2026-10-01, finished: 2026-10-01, by: maccoss, note: '92 tubes: on dry ice'}\n"
+            + "  - {id: sample_prep, kind: sample_prep, status: pending, assigned: maccoss}\n");
+        var project = (await engine.ListAsync()).Labs.Single().Projects.Single();
+        project.CurrentStage.ShouldBe("sample_prep");
+        project.Experiments.Single().Panorama.Single().ShouldBe(new PanoramaFolder("/MacCoss/X/Raw", "raw"));
+
+        // A refusal comes back as the engine's message, as project.py's {"ok": false, "error"} did.
+        (await Should.ThrowAsync<EngineException>(() => engine.RemoveStepAsync("Proj", "samples_received")))
+            .Message.ShouldBe("step samples_received has been started or has a record; skip it instead of removing it");
+    }
+
     /// <summary>A ProjectEngine whose process runner answers from a function and records each command.</summary>
     private sealed class FakeEngine : IProcessRunner, IDisposable
     {
@@ -179,7 +225,7 @@ public sealed class ProjectEngineTests
             Respond = respond;
             Directory.CreateDirectory(Path.Combine(_folder, "tools"));
             File.WriteAllText(Path.Combine(_folder, "tools", "uv.exe"), "");
-            Engine = new ProjectEngine(this, new ToolLocator(_folder)) { RepositoryPath = _folder };
+            Engine = new ProjectEngine(this, new ToolLocator(_folder)) { RepositoryPath = _folder, UsePython = true };
         }
 
         public ProjectEngine Engine { get; }
@@ -202,11 +248,32 @@ public sealed class ProjectEngineTests
     }
 
     /// <summary>
-    /// Runs the real project.py through uv against a clone of LabOps-Projects. Opt-in: set
+    /// Runs the engine (in-process, the C# one) against a clone of LabOps-Projects. Opt-in: set
     /// LAB_PROJECTS_REPO to the clone's path.
     /// </summary>
     [Fact]
     public async Task Real_engine_lists_and_checks_the_repository()
+    {
+        var repo = Environment.GetEnvironmentVariable("LAB_PROJECTS_REPO");
+        if (string.IsNullOrWhiteSpace(repo))
+        {
+            Assert.Skip("Set LAB_PROJECTS_REPO to a clone of LabOps-Projects to run this.");
+        }
+
+        var tools = new ToolLocator();
+        var engine = new ProjectEngine(new ProcessRunner(tools), tools) { RepositoryPath = repo };
+        engine.UsePython.ShouldBeFalse();
+        var list = await engine.ListAsync();
+
+        list.Labs.ShouldNotBeEmpty();
+        list.Problems.ShouldNotContain(p => p.IsError);
+        (await engine.CheckStagedAsync(CancellationToken.None)).ShouldNotContain(p => p.IsError);
+        (await engine.WikiAsync(list.Labs.SelectMany(l => l.Projects).First().Project)).Html.ShouldContain("labops-wiki");
+    }
+
+    /// <summary>The LABOPS_PROJECT_ENGINE=python fallback: project.py through uv, on a real clone. Opt-in like the test above.</summary>
+    [Fact]
+    public async Task The_python_fallback_lists_the_same_projects()
     {
         var repo = Environment.GetEnvironmentVariable("LAB_PROJECTS_REPO");
         if (string.IsNullOrWhiteSpace(repo))
@@ -220,10 +287,9 @@ public sealed class ProjectEngineTests
             Assert.Skip("uv is not installed.");
         }
 
-        var engine = new ProjectEngine(new ProcessRunner(tools), tools) { RepositoryPath = repo };
-        var list = await engine.ListAsync();
-
-        list.Problems.ShouldNotContain(p => p.IsError);
-        (await engine.CheckStagedAsync(CancellationToken.None)).ShouldNotContain(p => p.IsError);
+        var python = await new ProjectEngine(new ProcessRunner(tools), tools) { RepositoryPath = repo, UsePython = true }.ListAsync();
+        var csharp = await new ProjectEngine(new ProcessRunner(tools), tools) { RepositoryPath = repo }.ListAsync();
+        System.Text.Json.JsonSerializer.Serialize(csharp.Labs).ShouldBe(System.Text.Json.JsonSerializer.Serialize(python.Labs));
+        csharp.People.ShouldBe(python.People);
     }
 }

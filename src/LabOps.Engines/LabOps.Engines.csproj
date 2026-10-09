@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The lab's rules: what the data repositories' engines decide (validation, identifier checks,
+    record edits). Plain net10.0 with no WPF or ASP.NET Core, so the labops command-line tool
+    that Claude's skills and GitHub Actions run (on Windows and Linux) carries nothing else.
+    It started as a port of LabOps-Projects' scripts/project.py, which it reproduces byte for
+    byte where a record is written; the golden tables under LabOps.Tests/Fixtures/engine-golden
+    hold the Python engine's behavior.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>LabOps.Engines</RootNamespace>
+    <!-- The labops tool is compiled ahead of time; this keeps the analyzers that guard that on in every build. -->
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="YamlDotNet" Version="18.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="LabOps.Tests" />
+  </ItemGroup>
+
+</Project>
