@@ -162,7 +162,7 @@ internal sealed class Parity
         }
     }
 
-    private static readonly HashSet<string> Added = ["planned_start", "planned_finish"];
+    private static readonly HashSet<string> Added = ["planned_start", "planned_finish", "instruments"];
 
     /// <summary>The first place two JSON values differ, or null when they are the same.</summary>
     public static string? Difference(JsonNode? python, JsonNode? csharp, string at = "$")
@@ -174,8 +174,9 @@ internal sealed class Parity
             case (JsonObject p, JsonObject c):
                 var pk = p.Select(x => x.Key).ToList();
                 // Keys the C# engine added after project.py was retired, which project.py never
-                // printed: a step's plan. Compared only when they hold something.
-                var ck = c.Where(x => !(x.Value is null && Added.Contains(x.Key) && !p.ContainsKey(x.Key))).Select(x => x.Key).ToList();
+                // printed: a step's plan, the lab's instruments. Compared only when they hold something.
+                var ck = c.Where(x => !(x.Value is null or JsonArray { Count: 0 } && Added.Contains(x.Key) && !p.ContainsKey(x.Key)))
+                    .Select(x => x.Key).ToList();
                 if (!pk.SequenceEqual(ck))
                 {
                     return $"{at}: keys python [{string.Join(", ", pk)}] c# [{string.Join(", ", ck)}]";

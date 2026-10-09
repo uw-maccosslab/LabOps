@@ -353,10 +353,15 @@ public sealed record Person(string Login, string? Name, string? Role)
     public string DisplayName => string.IsNullOrWhiteSpace(Name) ? Login : Name!;
 }
 
-/// <summary>Everything <c>project.py list</c> returns.</summary>
+/// <summary>Everything <c>labops projects list</c> returns.</summary>
 /// <param name="ClosedHidden">How many closed projects <c>list --active</c> left out; 0 when it listed them all.</param>
+/// <param name="Instruments">The lab's instruments (config/instruments.yaml), in order; empty when it lists none.</param>
 public sealed record ProjectList(
-    IReadOnlyList<LabSummary> Labs, IReadOnlyList<Person> People, IReadOnlyList<ProjectIssue> Problems, int ClosedHidden = 0);
+    IReadOnlyList<LabSummary> Labs, IReadOnlyList<Person> People, IReadOnlyList<ProjectIssue> Problems, int ClosedHidden = 0,
+    IReadOnlyList<string>? Instruments = null)
+{
+    public IReadOnlyList<string> Instruments { get; init; } = Instruments ?? [];
+}
 
 /// <summary>One sheet the scan read: its name, row count and column headers (never its values).</summary>
 public sealed record ScanSheet(string Sheet, int Rows, IReadOnlyList<string> Columns);

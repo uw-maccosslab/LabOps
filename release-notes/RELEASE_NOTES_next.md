@@ -12,6 +12,12 @@ the GitHub Release description and fails if it is missing.
   refused a plan that was not dates or that finished before it started; nothing in the check depended
   on the day it ran. A step counted as late when its planned finish had passed and it was not done or
   skipped, or when its planned start had passed and it had not started.
+- **The lab's instruments could be listed.** LabOps-Projects' `config/instruments.yaml` named the
+  lab's instruments (`- name: Orbitrap Astral`); `check` warned about an experiment whose instrument
+  was not one of them, and `labops projects list` gave the list. Without the file nothing changed.
+- **The README index listed only open work.** `labops projects index` left closed projects out of
+  the table, with a line saying how many it left out, so the index stayed the size of the current
+  work however many projects the repository held.
 
 ## Bug Fixes
 

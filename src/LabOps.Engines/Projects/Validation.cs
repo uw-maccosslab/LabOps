@@ -365,6 +365,14 @@ public static partial class Validation
     {
         var folder = Path.GetDirectoryName(path)!;
         var output = ExperimentRules(e, Path.GetFileName(folder), knownPeople);
+        var instruments = repo.Instruments();
+        if (instruments.Count > 0 && Values.Text(e["instrument"]) is { } instrument
+            && !instruments.Contains(instrument, StringComparer.OrdinalIgnoreCase))
+        {
+            output.Add(("WARN", $"instrument {PyText.ReprString(instrument)} is not in config/instruments.yaml "
+                                + $"({string.Join(", ", instruments)}); use one of those names, or add it there"));
+        }
+
         var project = Path.GetDirectoryName(folder)!;
         if (!File.Exists(Path.Combine(project, "project.yaml")))
         {

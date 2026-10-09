@@ -33,7 +33,8 @@ public sealed class ParityTests
         using var copy = new TempDirectory();
         parity.Seed(copy.Path);
         Parity.CopyFolder(Path.Combine(root, "projects"), Path.Combine(copy.Path, "projects"));
-        parity.Compare(copy.Path, differences, ["index"], e => e.Index());
+        // The C# index also says how many closed projects it left out (none here).
+        parity.Compare(copy.Path, differences, ["index"], e => e.Index(), "closed_hidden");
         ShouldMatch(differences);
     }
 
@@ -68,7 +69,7 @@ public sealed class ParityTests
             parity.Compare(root, differences, ["sheet", shown, "--rows", "2"], e => e.Sheet(file, rows: 2));
         }
 
-        parity.Compare(root, differences, ["index"], e => e.Index());
+        // No index here: it leaves out closed projects now, which project.py's listed (IndexTests).
         ShouldMatch(differences);
     }
 

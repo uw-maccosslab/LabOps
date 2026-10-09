@@ -297,7 +297,7 @@ public sealed class CommandTests
             "  - login: maccoss\n    name: Michael MacCoss\n    role: PI\n" +
             "  - login: jdoe\n    name: Jordan Doe\n    role: graduate student\n");
         var json = repo.Ok("list");
-        json.Select(kv => kv.Key).ShouldBe(["ok", "engine_version", "labs", "projects", "people", "closed_hidden", "problems"], ignoreOrder: true);
+        json.Select(kv => kv.Key).ShouldBe(["ok", "engine_version", "labs", "projects", "people", "instruments", "closed_hidden", "problems"], ignoreOrder: true);
         json["closed_hidden"]!.GetValue<int>().ShouldBe(0);
         ShouldBeJson(json["people"], """
             [{"login": "maccoss", "name": "Michael MacCoss", "role": "PI"},

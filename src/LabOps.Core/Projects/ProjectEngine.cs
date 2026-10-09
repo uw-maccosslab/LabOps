@@ -290,7 +290,8 @@ public sealed class ProjectEngine : IPreCommitCheck
         {
             var people = root.TryGetProperty("people", out var list) ? list.Deserialize<List<Person>>(EngineJson.Options) ?? [] : [];
             var hidden = root.TryGetProperty("closed_hidden", out var h) && h.TryGetInt32(out var n) ? n : 0;
-            return new ProjectList(labs.Deserialize<List<LabSummary>>(EngineJson.Options) ?? [], people, ReadProblems(root), hidden);
+            var instruments = root.TryGetProperty("instruments", out var i) ? i.Deserialize<List<string>>(EngineJson.Options) ?? [] : [];
+            return new ProjectList(labs.Deserialize<List<LabSummary>>(EngineJson.Options) ?? [], people, ReadProblems(root), hidden, instruments);
         });
     }
 

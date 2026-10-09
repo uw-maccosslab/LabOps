@@ -136,7 +136,6 @@ public sealed class ParityWriteTests
             (e, root) => e.ImportLayout("Proj-A", root + "/layout.json", stepId: "samples_received")),
         S(["stage", "Proj-A", "sample_prep", "start"], e => e.Stage("Proj-A", "sample_prep", "start")),
         S(["import-layout", "Proj-A", "{root}/layout.json"], (e, root) => e.ImportLayout("Proj-A", root + "/layout.json")),
-        S(["index"], e => e.Index()),
     ];
 
     /// <summary>Files the scenario reads: a sample table for Proj-A, its Octopus layouts.</summary>

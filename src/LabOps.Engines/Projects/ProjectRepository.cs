@@ -137,6 +137,26 @@ public sealed class ProjectRepository
 
     /// <summary>The logins in config/people.yaml, lowercase.</summary>
     public HashSet<string> People() => [.. PeopleList().Select(p => p.Login.ToLowerInvariant())];
+
+    private IReadOnlyList<string>? _instruments;
+
+    /// <summary>
+    /// config/instruments.yaml: the lab's instruments, which experiments name and the instrument
+    /// schedule shows, in the file's order (each entry `- name: Orbitrap Astral`, or just the
+    /// name). Empty when there is no such file, and then no instrument is questioned.
+    /// </summary>
+    public IReadOnlyList<string> Instruments()
+    {
+        if (_instruments is not null)
+        {
+            return _instruments;
+        }
+
+        var path = Path.Combine(Config, "instruments.yaml");
+        var doc = File.Exists(path) ? Yaml.YamlLoader.Load(Yaml.YamlText.ReadText(path, "config/instruments.yaml")) as PyDict ?? [] : [];
+        var entries = doc["instruments"] as List<object?> ?? [];
+        return _instruments = [.. entries.Select(e => Values.Text(e is PyDict d ? d["name"] : e)).OfType<string>().Distinct(StringComparer.Ordinal)];
+    }
 }
 
 /// <summary>
