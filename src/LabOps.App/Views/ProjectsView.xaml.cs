@@ -77,15 +77,17 @@ public partial class ProjectsView : UserControl
         try
         {
             var paths = App.Services.GetRequiredService<AppPaths>();
-            await WebViewGuard.SecureAsync(OverviewPage, paths);
+            await WebViewGuard.SecureAsync(OverviewPage, paths, uri => _vm?.Overview.Follow(uri) == true);
             OverviewPage.CoreWebView2.NavigationStarting += OnNavigating;
             _page = Path.Combine(paths.Root, "overview", "overview.html");
             _ready = true;
             ShowPage();
         }
-        catch (Exception ex) when (ex is WebView2RuntimeNotFoundException or System.Runtime.InteropServices.COMException)
+        catch (Exception ex)
         {
-            Serilog.Log.Warning(ex, "The WebView2 runtime is unavailable; the projects overview is disabled.");
+            // Whatever stopped it (no runtime, a profile folder it may not use), the overview says
+            // it cannot be shown rather than staying blank; the list still works.
+            Serilog.Log.Warning(ex, "The WebView2 browser could not start; the projects overview is disabled.");
             OverviewPage.Visibility = Visibility.Collapsed;
             NoOverview.Visibility = Visibility.Visible;
         }

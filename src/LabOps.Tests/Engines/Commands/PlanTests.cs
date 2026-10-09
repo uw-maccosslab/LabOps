@@ -44,6 +44,26 @@ public sealed class PlanTests
         TestRepo.Steps(experiment)["data_acquisition"].ContainsKey("planned_finish").ShouldBeFalse();
     }
 
+    [Fact]
+    public void One_date_can_be_removed_and_the_other_set_in_one_write()
+    {
+        using var repo = TestRepo.Create();
+        var project = repo.NewProject("Pilot-Project");
+        repo.Ok("plan", "Pilot-Project", "sample_prep", "--start", "2026-11-02", "--finish", "2026-11-13");
+
+        repo.RunText("plan", "Pilot-Project", "sample_prep", "--no-start", "--finish", "2026-11-20").Stdout
+            .ShouldStartWith("Pilot-Project: sample_prep planned start removed, planned to finish 2026-11-20", Case.Sensitive);
+
+        var step = TestRepo.Steps(project)["sample_prep"];
+        step.ContainsKey("planned_start").ShouldBeFalse();
+        step["planned_finish"].ShouldBe(new DateOnly(2026, 11, 20));
+        repo.RunText("plan", "Pilot-Project", "sample_prep", "--no-finish").Stdout
+            .ShouldStartWith("Pilot-Project: sample_prep planned finish removed", Case.Sensitive);
+        TestRepo.Steps(project)["sample_prep"].ContainsKey("planned_finish").ShouldBeFalse();
+        repo.Fails("plan", "Pilot-Project", "sample_prep", "--start", "2026-11-02", "--no-start")["error"]!.GetValue<string>()
+            .ShouldBe("give a date or remove it, not both: --start or --no-start, --finish or --no-finish");
+    }
+
     [Theory]
     [InlineData("--finish", "2026-11-01", "would be planned to finish (2026-11-01) before it starts (2026-11-02)")]
     [InlineData("--start", "2026-11-31", "--start 2026-11-31 is not a date written YYYY-MM-DD")]

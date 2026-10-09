@@ -34,7 +34,7 @@ public sealed class ParityTests
         parity.Seed(copy.Path);
         Parity.CopyFolder(Path.Combine(root, "projects"), Path.Combine(copy.Path, "projects"));
         // The C# index also says how many closed projects it left out (none here).
-        parity.Compare(copy.Path, differences, ["index"], e => e.Index(), "closed_hidden");
+        parity.Compare(copy.Path, differences, ["index"], e => e.Index(), "closed_hidden", "closed_experiments_hidden");
         ShouldMatch(differences);
     }
 

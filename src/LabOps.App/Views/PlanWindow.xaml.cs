@@ -23,7 +23,7 @@ public partial class PlanWindow : Window
         Loaded += (_, _) => Start.Focus();
     }
 
-    /// <summary>The plan to record, or null if cancelled.</summary>
+    /// <summary>The plan to record, or null if canceled.</summary>
     public static PlanAnswer? Ask(Window? owner, string heading, DateOnly? start, DateOnly? finish)
     {
         var window = new PlanWindow(owner, heading, start, finish);

@@ -28,7 +28,7 @@ public sealed class CommandTests
         p["expected_samples"].ShouldBe(150L);
         p["sample_type"].ShouldBe("plasma");
         StepIds(project).ShouldBe(["samples_received", "metadata_organized", "plate_layout", "sample_prep"]);
-        TestRepo.Raw(project).ShouldContain("  type: grant          # quote | grant | internal");
+        TestRepo.Raw(project).ShouldContain("  type: grant          # quote | grant | internal", Case.Sensitive);
         Directory.Exists(Path.Combine(repo.Root, "inbox", "BioTRACK")).ShouldBeTrue();
 
         var dia = repo.NewExperiment("2026-09-BioTRACK-DIA", "BioTRACK", "--instrument", "Orbitrap Astral");
@@ -43,7 +43,7 @@ public sealed class CommandTests
             Dict(("id", "assay_development"), ("kind", "assay_development"), ("status", "pending")),
             Dict(("id", "data_acquisition"), ("kind", "data_acquisition"), ("status", "pending")),
         });
-        TestRepo.Raw(prm).ShouldContain("# Only when this experiment is paid for differently");
+        TestRepo.Raw(prm).ShouldContain("# Only when this experiment is paid for differently", Case.Sensitive);
         repo.Problems().ShouldBeEmpty();
     }
 
@@ -52,16 +52,16 @@ public sealed class CommandTests
     {
         using var repo = TestRepo.Create();
         repo.NewExperiment("2026-10-Pilot");
-        Error(repo.Fails("new-experiment", "Test-Project", "Pilot", "--title", "x")).ShouldContain("YYYY-MM-Topic");
-        Error(repo.Fails("new-experiment", "Test-Project", "2026-13-Pilot", "--title", "x")).ShouldContain("YYYY-MM-Topic");
-        Error(repo.Fails("new-project", "Test-Lab", "2026-Study", "--title", "x")).ShouldContain("starting with a letter");
+        Error(repo.Fails("new-experiment", "Test-Project", "Pilot", "--title", "x")).ShouldContain("YYYY-MM-Topic", Case.Sensitive);
+        Error(repo.Fails("new-experiment", "Test-Project", "2026-13-Pilot", "--title", "x")).ShouldContain("YYYY-MM-Topic", Case.Sensitive);
+        Error(repo.Fails("new-project", "Test-Lab", "2026-Study", "--title", "x")).ShouldContain("starting with a letter", Case.Sensitive);
         repo.NewProject("Other-Project", "Other-Lab");
         // Names are what commands go by, so they are unique across labs and projects.
-        Error(repo.Fails("new-project", "Other-Lab", "Test-Project", "--title", "x")).ShouldContain("already exists");
-        Error(repo.Fails("new-experiment", "Other-Project", "2026-10-Pilot", "--title", "x")).ShouldContain("already exists");
-        Error(repo.Fails("new-project", "Nobody-Lab", "Some-Project", "--title", "x")).ShouldContain("no lab");
-        Error(repo.Fails("new-experiment", "Nobody-Project", "2026-10-Other", "--title", "x")).ShouldContain("no project");
-        Error(repo.Fails("new-lab", "Other-Lab", "--title", "t", "--pi", "p", "--institution", "i")).ShouldContain("already exists");
+        Error(repo.Fails("new-project", "Other-Lab", "Test-Project", "--title", "x")).ShouldContain("already exists", Case.Sensitive);
+        Error(repo.Fails("new-experiment", "Other-Project", "2026-10-Pilot", "--title", "x")).ShouldContain("already exists", Case.Sensitive);
+        Error(repo.Fails("new-project", "Nobody-Lab", "Some-Project", "--title", "x")).ShouldContain("no lab", Case.Sensitive);
+        Error(repo.Fails("new-experiment", "Nobody-Project", "2026-10-Other", "--title", "x")).ShouldContain("no project", Case.Sensitive);
+        Error(repo.Fails("new-lab", "Other-Lab", "--title", "t", "--pi", "p", "--institution", "i")).ShouldContain("already exists", Case.Sensitive);
     }
 
     [Fact]
@@ -79,12 +79,13 @@ public sealed class CommandTests
             ("started", new DateOnly(2026, 10, 1)), ("finished", TestRepo.Today), ("by", "maccoss"), ("note", "92 tubes on dry ice")));
         ShouldEqual(TestRepo.Steps(project)["metadata_organized"], Dict(("status", "skipped")));
         json["project"]!["current_stage"]!.GetValue<string>().ShouldBe("plate_layout");
-        TestRepo.Raw(project).ShouldContain("# The samples' timeline");
+        TestRepo.Raw(project).ShouldContain("# The samples' timeline", Case.Sensitive);
 
         json = repo.Ok("stage", Path.GetFileName(experiment), "data_acquisition", "start", "--date", "2026-10-05");
         ShouldEqual(TestRepo.Steps(experiment)["data_acquisition"], Dict(("status", "in_progress"), ("started", new DateOnly(2026, 10, 5))));
         json["experiment"]!["current_stage"]!.GetValue<string>().ShouldBe("data_acquisition");
-        Error(repo.Fails("stage", Path.GetFileName(experiment), "sample_prep", "done")).ShouldContain("there is no step 'sample_prep'");
+        Error(repo.Fails("stage", Path.GetFileName(experiment), "sample_prep", "done"))
+            .ShouldContain("there is no step 'sample_prep'", Case.Sensitive);
     }
 
     [Fact]
@@ -97,8 +98,8 @@ public sealed class CommandTests
         var projectName = Path.GetFileName(project);
         repo.Ok("stage", projectName, "samples_received", "done", "--date", "2026-10-01");
         repo.Ok("stage", projectName, "metadata_organized", "done", "--date", "2026-10-02");
-        TestRepo.Raw(project).ShouldNotContain("&");
-        TestRepo.Raw(project).ShouldNotContain("*id");
+        TestRepo.Raw(project).ShouldNotContain("&", Case.Sensitive);
+        TestRepo.Raw(project).ShouldNotContain("*id", Case.Insensitive);   // stricter than Python's test: no alias in any case
         ShouldEqual(TestRepo.Steps(project)["metadata_organized"], Dict(("status", "done"),
             ("started", new DateOnly(2026, 10, 2)), ("finished", new DateOnly(2026, 10, 2))));
     }
@@ -117,13 +118,13 @@ public sealed class CommandTests
             "sample_prep", "aliquots_returned_to_the_client"]);
         ShouldEqual(TestRepo.Steps(project)["samples_received_2"], Dict(("label", "Second shipment"), ("status", "pending")));
 
-        Error(repo.Fails("add-step", projectName, "other")).ShouldContain("needs a label");
-        Error(repo.Fails("add-step", projectName, "unblinding")).ShouldContain("not a kind of step");
-        Error(repo.Fails("add-step", projectName, "plate_layout", "--id", "plate_layout")).ShouldContain("cannot be a step id");
+        Error(repo.Fails("add-step", projectName, "other")).ShouldContain("needs a label", Case.Sensitive);
+        Error(repo.Fails("add-step", projectName, "unblinding")).ShouldContain("not a kind of step", Case.Sensitive);
+        Error(repo.Fails("add-step", projectName, "plate_layout", "--id", "plate_layout")).ShouldContain("cannot be a step id", Case.Sensitive);
 
         repo.Ok("remove-step", projectName, "late-metadata");
         repo.Ok("stage", projectName, "samples_received_2", "start");
-        Error(repo.Fails("remove-step", projectName, "samples_received_2")).ShouldContain("skip it instead");
+        Error(repo.Fails("remove-step", projectName, "samples_received_2")).ShouldContain("skip it instead", Case.Sensitive);
         TestRepo.Steps(project).ShouldNotContainKey("late-metadata");
         // The second shipment started before the first is recorded: a warning, as it should be.
         repo.Problems().ShouldBe([
@@ -142,13 +143,13 @@ public sealed class CommandTests
         ShouldEqual(TestRepo.Steps(experiment)["data_acquisition"], Dict(("status", "pending"), ("assigned", "maccoss")));
         ShouldEqual(TestRepo.Steps(experiment)["data_deposited"], Dict(("status", "pending"), ("assigned", "maccoss")));
         json["experiment"]!["stages"]![0]!["assigned"]!.GetValue<string>().ShouldBe("maccoss");
-        TestRepo.Raw(experiment).ShouldContain("{id: data_acquisition, kind: data_acquisition, status: pending, assigned: maccoss}");
+        TestRepo.Raw(experiment).ShouldContain("{id: data_acquisition, kind: data_acquisition, status: pending, assigned: maccoss}", Case.Sensitive);
 
         repo.Ok("assign", experimentName, "data_deposited", "--nobody");
         ShouldEqual(TestRepo.Steps(experiment)["data_deposited"], Dict(("status", "pending")));
-        Error(repo.Fails("assign", experimentName, "data_deposited")).ShouldContain("--nobody");
-        Error(repo.Fails("assign", experimentName, "data_deposited", "--to", "maccoss", "--nobody")).ShouldContain("--nobody");
-        Error(repo.Fails("assign", projectName, "data_analysis", "--to", "maccoss")).ShouldContain("there is no step");
+        Error(repo.Fails("assign", experimentName, "data_deposited")).ShouldContain("--nobody", Case.Sensitive);
+        Error(repo.Fails("assign", experimentName, "data_deposited", "--to", "maccoss", "--nobody")).ShouldContain("--nobody", Case.Sensitive);
+        Error(repo.Fails("assign", projectName, "data_analysis", "--to", "maccoss")).ShouldContain("there is no step", Case.Sensitive);
 
         // Someone already assigned keeps the step when another person starts it.
         repo.Ok("stage", experimentName, "data_acquisition", "start", "--by", "someone-else");
@@ -160,9 +161,9 @@ public sealed class CommandTests
             Dict(("label", "Aliquots returned"), ("status", "pending"), ("assigned", "new-student")));
         repo.Problems().ShouldContain(("WARN", $"{projectName}: step aliquots_returned: new-student is not in config/people.yaml"));
         repo.Ok("remove-step", projectName, "aliquots_returned");
-        repo.RunText("list").Stdout.ShouldContain("samples: samples_received\n");
+        repo.RunText("list").Stdout.ShouldContain("samples: samples_received\n", Case.Sensitive);
         repo.Ok("assign", projectName, "samples_received", "--to", "maccoss");
-        repo.RunText("list").Stdout.ShouldContain("samples: samples_received (maccoss)");
+        repo.RunText("list").Stdout.ShouldContain("samples: samples_received (maccoss)", Case.Sensitive);
     }
 
     [Fact]
@@ -258,7 +259,7 @@ public sealed class CommandTests
         active["closed_hidden"]!.GetValue<int>().ShouldBe(1);
         active["labs"]![0]!["projects"]![0]!["experiments"]!.AsArray().Select(e => e!["experiment"]!.GetValue<string>())
             .ShouldBe(["2026-10-Open-DIA", "2026-11-Open-PRM"]);
-        repo.RunText("list", "--active").Stdout.ShouldContain("(1 closed project(s) not shown)");
+        repo.RunText("list", "--active").Stdout.ShouldContain("(1 closed project(s) not shown)", Case.Sensitive);
         repo.Problems().ShouldContain(p => p.Message.Contains("Done-Project", StringComparison.Ordinal));  // check still covers closed projects
     }
 
@@ -343,12 +344,13 @@ public sealed class CommandTests
         repo.Ok("index");
         var readme = ReadText(Path.Combine(repo.Root, "README.md"));
         readme.ShouldContain("| [Test-Lab](projects/Test-Lab/) | [Pilot-Project](projects/Test-Lab/Pilot-Project/) | samples | active | " +
-            "Samples received |  | quote: MacCoss-2026-TEST-A |");
-        readme.ShouldContain("| | | [2026-10-Pilot-DIA](projects/Test-Lab/Pilot-Project/2026-10-Pilot-DIA/) | active | Data acquisition |  |  |");
+            "Samples received |  | quote: MacCoss-2026-TEST-A |", Case.Sensitive);
+        readme.ShouldContain("| | | [2026-10-Pilot-DIA](projects/Test-Lab/Pilot-Project/2026-10-Pilot-DIA/) | active | Data acquisition |  |  |",
+            Case.Sensitive);
         repo.Ok("assign", "2026-10-Pilot-DIA", "data_acquisition", "--to", "maccoss");
         repo.Ok("index");
         readme = ReadText(Path.Combine(repo.Root, "README.md"));
-        readme.ShouldContain("| active | Data acquisition | maccoss |  |");
+        readme.ShouldContain("| active | Data acquisition | maccoss |  |", Case.Sensitive);
         repo.Ok("index");
         ReadText(Path.Combine(repo.Root, "README.md")).ShouldBe(readme);
     }
@@ -358,7 +360,7 @@ public sealed class CommandTests
     {
         using var repo = TestRepo.Create();
         var json = repo.Fails("stage", "2099-01-Nothing", "sample_prep", "start");
-        Error(json).ShouldContain("no project or experiment");
+        Error(json).ShouldContain("no project or experiment", Case.Sensitive);
     }
 
     [Fact]
@@ -407,7 +409,7 @@ public sealed class CommandTests
         projects["Other-Project"]["issues"]!.AsArray().Select(i => i!["level"]!.GetValue<string>()).ShouldBeEmpty();
         var issue = projects["Test-Project"]["issues"]!.AsArray().ShouldHaveSingleItem()!;
         issue["level"]!.GetValue<string>().ShouldBe("ERROR");
-        issue["message"]!.GetValue<string>().ShouldStartWith("project.yaml is not valid YAML");
+        issue["message"]!.GetValue<string>().ShouldStartWith("project.yaml is not valid YAML", Case.Sensitive);
         projects["Test-Project"]["experiments"]!.AsArray().Select(x => x!["experiment"]!.GetValue<string>())
             .ShouldBe([Path.GetFileName(experiment)]);
         repo.Problems().ShouldContain(p => p.Level == "ERROR" && p.Message.Contains("project.yaml is not valid YAML", StringComparison.Ordinal));
@@ -419,7 +421,7 @@ public sealed class CommandTests
         ];
         foreach (var command in commands)
         {
-            Error(repo.Fails(command)).ShouldContain("fix it first");
+            Error(repo.Fails(command)).ShouldContain("fix it first", Case.Sensitive);
         }
 
         TestRepo.WriteRaw(experiment, "- a list\n- not a record\n");
@@ -440,7 +442,7 @@ public sealed class CommandTests
         error.ShouldBe("--date 10/05/2026 is not a date written YYYY-MM-DD");
         repo.Ok("stage", projectName, "samples_received", "start", "--date", "2026-10-05");
         error = Error(repo.Fails("stage", projectName, "samples_received", "done", "--date", "2026-09-01"));
-        error.ShouldContain("started on 2026-10-05, so it cannot be done on 2026-09-01");
+        error.ShouldContain("started on 2026-10-05, so it cannot be done on 2026-09-01", Case.Sensitive);
         TestRepo.Steps(project)["samples_received"]["status"].ShouldBe("in_progress");
     }
 
@@ -454,7 +456,7 @@ public sealed class CommandTests
         var template = ReadText(Path.Combine(repo.Root, "templates", "project.example.yaml"));
         Write(Path.Combine(outside, "project.yaml"), template);
         var error = Error(repo.Fails("stage", outside, "samples_received", "done"));
-        error.ShouldContain("is not in this repository's projects/ folder");
+        error.ShouldContain("is not in this repository's projects/ folder", Case.Sensitive);
         ReadText(Path.Combine(outside, "project.yaml")).ShouldBe(template);
     }
 
@@ -466,7 +468,7 @@ public sealed class CommandTests
         repo.Ok("index");
         var row = File.ReadAllLines(Path.Combine(repo.Root, "README.md"), Encoding.UTF8)
             .First(l => l.Contains("Grant-Project", StringComparison.Ordinal));
-        row.ShouldEndWith(@"| grant: NIH R01 \| supplement |");
+        row.ShouldEndWith(@"| grant: NIH R01 \| supplement |", Case.Sensitive);
         row.Replace(@"\|", "", StringComparison.Ordinal).Count(c => c == '|').ShouldBe(8);
     }
 

@@ -40,19 +40,17 @@ public sealed partial class SetupViewModel : ObservableObject
     private readonly SetupService _setup;
     private readonly Workspace _workspace;
     private readonly QuoteEngine _quoteEngine;
-    private readonly ProjectEngine _projectEngine;
     private readonly ProtocolEngine _protocolEngine;
     private readonly ClaudeSignInFlow _signIn;
     private CancellationTokenSource? _waiting;
 
     public SetupViewModel(
-        SetupService setup, Workspace workspace, QuoteEngine quoteEngine, ProjectEngine projectEngine, ProtocolEngine protocolEngine,
+        SetupService setup, Workspace workspace, QuoteEngine quoteEngine, ProtocolEngine protocolEngine,
         ClaudeSignInFlow signIn)
     {
         _setup = setup;
         _workspace = workspace;
         _quoteEngine = quoteEngine;
-        _projectEngine = projectEngine;
         _protocolEngine = protocolEngine;
         _signIn = signIn;
         Claude = new ClaudeSettingsViewModel(workspace.Settings, workspace.SaveSettings, ClaudeChoices.ReadClaudeDefaults());

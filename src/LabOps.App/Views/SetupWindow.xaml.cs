@@ -25,7 +25,6 @@ public partial class SetupWindow : Window
             services.GetRequiredService<SetupService>(),
             services.GetRequiredService<Workspace>(),
             services.GetRequiredService<QuoteEngine>(),
-            services.GetRequiredService<ProjectEngine>(),
             services.GetRequiredService<ProtocolEngine>(),
             services.GetRequiredService<ClaudeSignInFlow>());
 

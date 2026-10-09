@@ -35,6 +35,41 @@ public sealed class InstrumentTests
     }
 
     [Fact]
+    public void A_list_that_does_not_read_is_reported_and_every_command_still_works()
+    {
+        using var repo = TestRepo.Create();
+        WriteInstruments(repo, "instruments:\n  - name: Stellar: 2\n");
+        var experiment = repo.NewExperiment("2026-10-Pilot-DIA", "Pilot-Project", "--instrument", "Stellar");
+
+        // The record is written and the answer is ordinary JSON, not a crash after the write.
+        repo.Ok("plan", "2026-10-Pilot-DIA", "data_acquisition", "--start", "2026-11-02");
+        TestRepo.Steps(experiment)["data_acquisition"]["planned_start"].ShouldBe(new DateOnly(2026, 11, 2));
+        repo.Ok("list")["instruments"]!.AsArray().ShouldBeEmpty();
+        var problem = repo.Problems().ShouldHaveSingleItem();
+        problem.Level.ShouldBe("ERROR");
+        problem.Message.ShouldStartWith("config/instruments.yaml: mapping values are not allowed", Case.Sensitive);
+    }
+
+    [Fact]
+    public void A_people_list_that_does_not_read_is_reported_too()
+    {
+        using var repo = TestRepo.Create();
+        File.WriteAllText(Path.Combine(repo.Root, "config", "people.yaml"), "people:\n  - login: a: b\n");
+
+        repo.Ok("list")["people"]!.AsArray().ShouldBeEmpty();
+        repo.Problems().ShouldContain(p => p.Level == "ERROR" && p.Message.StartsWith("config/people.yaml: ", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void A_bare_list_of_names_is_read_too()
+    {
+        using var repo = TestRepo.Create();
+        WriteInstruments(repo, "- Orbitrap Astral\n- Stellar\n");
+
+        repo.Ok("list")["instruments"]!.AsArray().Select(i => i!.GetValue<string>()).ShouldBe(["Orbitrap Astral", "Stellar"]);
+    }
+
+    [Fact]
     public void An_instrument_can_be_listed_by_name_alone()
     {
         using var repo = TestRepo.Create();

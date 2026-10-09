@@ -3,7 +3,6 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json.Nodes;
 using LabOps.Engines.CommandLine;
-using LabOps.Engines.Projects;
 using LabOps.Engines.Python;
 using LabOps.Engines.Yaml;
 using LabOps.Tests.TestSupport;
@@ -20,18 +19,29 @@ namespace LabOps.Tests.Engines.Commands;
 /// </summary>
 internal sealed class TestRepo : IDisposable
 {
+    private static readonly TimeZoneInfo Seattle = TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles");
+
     private readonly TempDirectory _temp;
+
+    // An empty file beside the repository that git reads as the global config (see RunGit).
+    private readonly string _emptyGitConfig;
 
     private TestRepo(TempDirectory temp, string root)
     {
         _temp = temp;
         Root = root;
+        _emptyGitConfig = temp.Combine("empty.gitconfig");
+        File.WriteAllBytes(_emptyGitConfig, []);
     }
 
     public string Root { get; }
 
-    /// <summary>Today in Seattle, the date the engine records a step on.</summary>
-    public static DateOnly Today => ProjectRepository.LabToday();
+    /// <summary>
+    /// Today in Seattle, the date the engine records a step on. Worked out here, as conftest.py's
+    /// today() did, rather than asked of the engine (ProjectRepository.LabToday), so a time-zone
+    /// mistake there gives a wrong date instead of agreeing with itself.
+    /// </summary>
+    public static DateOnly Today => DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, Seattle));
 
     public static string Iso(DateOnly date) => date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
@@ -49,10 +59,12 @@ internal sealed class TestRepo : IDisposable
         Directory.CreateDirectory(Path.Combine(root, "projects"));
 
         var repo = new TestRepo(temp, root);
-        repo.Git("init", "-q", "-b", "main");
+        // No template: a template directory (GIT_TEMPLATE_DIR) can hold hooks of its own.
+        repo.Git("init", "-q", "-b", "main", "--template=");
         repo.Git("config", "user.name", "Test");
         repo.Git("config", "user.email", "test@example.org");
         repo.Git("config", "core.autocrlf", "false");
+        repo.Git("config", "commit.gpgsign", "false");
         repo.Commit("base");
         return repo;
     }
@@ -169,9 +181,11 @@ internal sealed class TestRepo : IDisposable
         WriteCsv(Path.Combine(project, "metadata", "samples.csv"), rows);
 
     /// <summary>
-    /// A CSV as Python's csv.writer writes one (lineterminator "\n"): a field is quoted when it
-    /// holds a comma, a quote or a line break, a row of one empty field is "", None is empty, and
-    /// True and False are spelled as Python does.
+    /// A CSV of text, None and booleans as Python's csv.writer writes one (lineterminator "\n"): a
+    /// field is quoted when it holds a comma, a quote or a line break, a row of one empty field is
+    /// "", None is empty, and True and False are spelled as Python does. An integer comes out as
+    /// Python's would, but a float or a date does not (Python writes 1.0 and 2026-10-01), so the
+    /// tests give those as text.
     /// </summary>
     public static void WriteCsv(string path, IEnumerable<IEnumerable<object?>> rows)
     {
@@ -262,7 +276,8 @@ internal sealed class TestRepo : IDisposable
 
     public GitResult Git(bool check, params string[] args) => RunGit(Root, check, args);
 
-    public static GitResult RunGit(string folder, bool check, params string[] args)
+    /// <summary>git in <paramref name="folder"/>: the repository, or a worktree of it.</summary>
+    public GitResult RunGit(string folder, bool check, params string[] args)
     {
         var start = new ProcessStartInfo("git")
         {
@@ -278,6 +293,14 @@ internal sealed class TestRepo : IDisposable
         {
             start.ArgumentList.Add(a);
         }
+
+        // Only this repository's own config, never the developer's: a global commit.gpgsign would
+        // fail every commit here (or wait for a passphrase), and a global core.hooksPath would run
+        // that person's hooks, which --no-verify does not stop for every hook. With no terminal, a
+        // prompt fails at once instead of hanging the test.
+        start.Environment["GIT_CONFIG_GLOBAL"] = _emptyGitConfig;
+        start.Environment["GIT_CONFIG_NOSYSTEM"] = "1";
+        start.Environment["GIT_TERMINAL_PROMPT"] = "0";
 
         using var process = Process.Start(start)!;
         var stderr = process.StandardError.ReadToEndAsync();

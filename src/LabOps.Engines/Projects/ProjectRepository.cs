@@ -123,14 +123,7 @@ public sealed class ProjectRepository
     /// <summary>config/people.yaml's people: login, name and role (null when missing).</summary>
     public IReadOnlyList<(string Login, string? Name, string? Role)> PeopleList()
     {
-        var path = Path.Combine(Config, "people.yaml");
-        if (!File.Exists(path))
-        {
-            return [];
-        }
-
-        var doc = Yaml.YamlLoader.Load(Yaml.YamlText.ReadText(path, "config/people.yaml")) as PyDict ?? [];
-        var entries = doc["people"] is List<object?> list && PyText.Truthy(list) ? list : [];
+        var entries = ReadConfig("people.yaml") is PyDict doc && doc["people"] is List<object?> list && PyText.Truthy(list) ? list : [];
         return [.. entries.OfType<PyDict>().Where(p => PyText.Truthy(p["login"]))
             .Select(p => (Values.Text(p["login"])!, Values.Text(p["name"]), Values.Text(p["role"])))];
     }
@@ -142,8 +135,9 @@ public sealed class ProjectRepository
 
     /// <summary>
     /// config/instruments.yaml: the lab's instruments, which experiments name and the instrument
-    /// schedule shows, in the file's order (each entry `- name: Orbitrap Astral`, or just the
-    /// name). Empty when there is no such file, and then no instrument is questioned.
+    /// schedule shows, in the file's order (`instruments:` with each entry `- name: Orbitrap
+    /// Astral` or just the name; a bare list is read the same way). Empty when there is no such
+    /// file, and then no instrument is questioned.
     /// </summary>
     public IReadOnlyList<string> Instruments()
     {
@@ -152,10 +146,47 @@ public sealed class ProjectRepository
             return _instruments;
         }
 
-        var path = Path.Combine(Config, "instruments.yaml");
-        var doc = File.Exists(path) ? Yaml.YamlLoader.Load(Yaml.YamlText.ReadText(path, "config/instruments.yaml")) as PyDict ?? [] : [];
-        var entries = doc["instruments"] as List<object?> ?? [];
+        var entries = ReadConfig("instruments.yaml") switch
+        {
+            PyDict doc => doc["instruments"] as List<object?> ?? [],
+            List<object?> list => list,
+            _ => [],
+        };
         return _instruments = [.. entries.Select(e => Values.Text(e is PyDict d ? d["name"] : e)).OfType<string>().Distinct(StringComparer.Ordinal)];
+    }
+
+    private readonly List<string> _configProblems = [];
+
+    /// <summary>What was wrong with the config files read so far ("config/people.yaml: ..."); check reports them.</summary>
+    public IReadOnlyList<string> ConfigProblems => _configProblems;
+
+    /// <summary>
+    /// A file in config/ as YAML, or null when there is none. One that cannot be read is noted in
+    /// <see cref="ConfigProblems"/> and read as empty: a slip in a hand-edited list must not stop
+    /// every command, least of all one that has already written its record.
+    /// </summary>
+    private object? ReadConfig(string name)
+    {
+        var path = Path.Combine(Config, name);
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+
+        try
+        {
+            return Yaml.YamlLoader.Load(Yaml.YamlText.ReadText(path, "config/" + name));
+        }
+        catch (Exception ex) when (ex is Yaml.YamlProblemException or EngineError)
+        {
+            var problem = $"config/{name}: {ex.Message}";
+            if (!_configProblems.Contains(problem))
+            {
+                _configProblems.Add(problem);
+            }
+
+            return null;
+        }
     }
 }
 

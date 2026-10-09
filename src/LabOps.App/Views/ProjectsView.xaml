@@ -316,7 +316,7 @@
                 <Grid>
                     <wv2:WebView2 x:Name="OverviewPage" DefaultBackgroundColor="White" />
                     <TextBlock x:Name="NoOverview" Visibility="Collapsed" Margin="12" TextWrapping="Wrap" Style="{StaticResource Muted}"
-                               Text="The overview cannot be shown because the WebView2 runtime is missing. The list of projects still works." />
+                               Text="The overview cannot be shown because its browser component (WebView2) could not start. The list of projects still works." />
                 </Grid>
             </Border>
         </DockPanel>

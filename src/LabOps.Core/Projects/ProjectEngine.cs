@@ -121,33 +121,23 @@ public sealed class ProjectEngine : IPreCommitCheck
 
     /// <summary>
     /// Plans steps: when they should start and finish. Both dates are written as given, so a date
-    /// left out (null) is removed; with neither, the plan is cleared.
+    /// left out (null) is removed; with neither, the plan is cleared. It is one write either way.
     /// </summary>
     /// <param name="item">The project or experiment, by name.</param>
     /// <param name="stages">The steps' ids.</param>
     public async Task PlanAsync(string item, IReadOnlyList<string> stages, DateOnly? start, DateOnly? finish,
         CancellationToken cancellationToken = default)
     {
-        // plan keeps a date it is not given, so clear first and then set what there is.
-        using (await RunAsync(["plan", item, .. stages, "--clear"], cancellationToken).ConfigureAwait(false))
-        {
-        }
-
-        if (start is null && finish is null)
-        {
-            return;
-        }
-
         var args = new List<string> { "plan", item };
         args.AddRange(stages);
-        if (start is { } s)
+        if (start is null && finish is null)
         {
-            args.AddRange(["--start", s.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)]);
+            args.Add("--clear");
         }
-
-        if (finish is { } f)
+        else
         {
-            args.AddRange(["--finish", f.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)]);
+            args.AddRange(start is { } s ? ["--start", s.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)] : ["--no-start"]);
+            args.AddRange(finish is { } f ? ["--finish", f.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)] : ["--no-finish"]);
         }
 
         using var doc = await RunAsync(args, cancellationToken).ConfigureAwait(false);
@@ -355,7 +345,7 @@ public sealed class ProjectEngine : IPreCommitCheck
             throw new EngineException(ex.Message);
         }
         catch (Exception ex) when (ex is UsageError or IOException or UnauthorizedAccessException or InvalidOperationException
-                                       or FormatException or ArgumentException)
+                                       or FormatException or ArgumentException or LabOps.Engines.Yaml.YamlProblemException)
         {
             throw new EngineException($"The project engine could not run: {ex.Message}");
         }

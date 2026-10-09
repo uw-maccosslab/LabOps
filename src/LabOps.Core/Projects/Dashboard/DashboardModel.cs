@@ -31,8 +31,24 @@ public sealed record DashboardFilter(string? Person = null, string? Lab = null)
 /// </summary>
 public sealed record DashboardItem(
     string Name, bool IsExperiment, string Lab, string Project, string? Title, string? Instrument, string? LabContact,
-    IReadOnlyList<StageEntry> Steps, StageEntry? Current, IReadOnlyList<ProjectIssue> Issues, WikiLocation? Wiki)
+    IReadOnlyList<StageEntry> Steps, StageEntry? Current, IReadOnlyList<ProjectIssue> Issues, WikiLocation? Wiki, string? Status = null)
 {
+    /// <summary>Paused (on_hold, or an experiment of a paused project): its plan may pass without it being late.</summary>
+    public bool IsOnHold => Status == "on_hold";
+
+    /// <summary>The step is late, and the work is not paused.</summary>
+    public bool IsLate(StageEntry step, DateOnly today) => !IsOnHold && step.IsLate(today);
+
+    /// <summary>
+    /// Whether a step is the person's: assigned to them, recorded by them, or nobody's on an item
+    /// they are the lab contact for. Everyone's, without a person.
+    /// </summary>
+    public bool IsTheirs(StageEntry step, DashboardFilter filter) =>
+        filter.Person is not { } person
+        || string.Equals(step.Assigned, person, StringComparison.OrdinalIgnoreCase)
+        || string.Equals(step.By, person, StringComparison.OrdinalIgnoreCase)
+        || (step.Assigned is null && string.Equals(LabContact, person, StringComparison.OrdinalIgnoreCase));
+
     /// <summary>
     /// Whether the item is the person's (they are its lab contact, or a step not yet done or
     /// skipped is assigned to them) and in the lab.
@@ -79,10 +95,10 @@ public static class DashboardModel
             foreach (var p in lab.Projects.Where(p => !p.IsClosed))
             {
                 items.Add(new DashboardItem(p.Project, false, p.Lab, p.Project, p.Title, null, p.LabContact ?? lab.LabContact,
-                    p.Stages, p.Stages.FirstOrDefault(s => s.Stage == p.CurrentStage), p.Issues, p.Wiki));
+                    p.Stages, p.Stages.FirstOrDefault(s => s.Stage == p.CurrentStage), p.Issues, p.Wiki, p.Status));
                 items.AddRange(p.Experiments.Where(e => !e.IsClosed).Select(e => new DashboardItem(
                     e.Experiment, true, e.Lab, e.Project, e.Title, e.Instrument, e.LabContact ?? p.LabContact ?? lab.LabContact,
-                    e.Stages, e.Current, e.Issues, p.Wiki)));
+                    e.Stages, e.Current, e.Issues, p.Wiki, p.Status == "on_hold" ? "on_hold" : e.Status)));
             }
         }
 
@@ -212,6 +228,11 @@ public static class DashboardModel
                     var end = StageEntry.Date(step.Finished)
                               ?? (step.IsDone ? s : plannedFinish is { } pf && pf >= today ? pf : today);
                     bookings.Add(new Booking(item.Instrument!.Trim(), item, step, s, end < s ? s : end, false));
+                }
+                else if (StageEntry.Date(step.Finished) is { } f)
+                {
+                    // Only its finish was recorded: it happened, that day, whatever was planned.
+                    bookings.Add(new Booking(item.Instrument!.Trim(), item, step, f, f, false));
                 }
                 else if ((plannedStart ?? plannedFinish) is { } from)
                 {

@@ -133,7 +133,8 @@ public static class LabopsCommandLine
 
             return 1;
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException or FormatException or ArgumentException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException or FormatException
+                                       or ArgumentException or Yaml.YamlProblemException)
         {
             var message = $"{ex.GetType().Name}: {ex.Message}";
             if (json)

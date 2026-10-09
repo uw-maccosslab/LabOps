@@ -147,7 +147,7 @@ public sealed class DashboardTests
         html.ShouldNotContain(DashboardHtml.OpenPrefix, Case.Sensitive);
         html.ShouldNotContain("<style", Case.Insensitive);
         html.ShouldContain("style=\"", Case.Sensitive);
-        html.ShouldContain("href=\"/MacCoss/Collaborations/MNRF/BioTRACK/project-begin.view\"", Case.Sensitive);
+        html.ShouldContain("href=\"/MacCoss/Collaborations/MNRF/BioTRACK/wiki-page.view?name=default\"", Case.Sensitive);
         html.ShouldNotContain("looks like a name", Case.Sensitive);
         html.ShouldContain("1 record(s) have errors; open LabOps to see them.", Case.Sensitive);
     }

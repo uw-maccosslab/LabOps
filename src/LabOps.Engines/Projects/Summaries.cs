@@ -103,6 +103,13 @@ public static class Summaries
                 {
                     var (e, eProblem) = LoadRecord(ef);
                     var eIssues = eProblem is not null ? [("ERROR", eProblem)] : Validation.ValidateExperiment(repo, ef, known, e);
+                    // Work on a closed project drops out of the index and the overview, so an
+                    // experiment still open there would be forgotten without a word.
+                    if (eProblem is null && Equals(p["status"], "closed") && !Equals(e["status"], "closed"))
+                    {
+                        eIssues.Add(("WARN", "its project is closed but this experiment is not; close it too, or reopen the project"));
+                    }
+
                     experiments.Add((JsonNode)Experiment(repo, Path.GetDirectoryName(ef)!, eIssues, funding, e));
                 }
 
@@ -125,6 +132,7 @@ public static class Summaries
             });
         }
 
+        problems.AddRange(repo.ConfigProblems.Select(c => ("ERROR", c)));
         return new Collected(labs, problems, hidden);
     }
 

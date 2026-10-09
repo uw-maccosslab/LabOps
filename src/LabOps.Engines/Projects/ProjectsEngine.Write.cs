@@ -329,14 +329,22 @@ public sealed partial class ProjectsEngine
     }
 
     /// <summary>
-    /// plan &lt;item&gt; &lt;step&gt;... [--start DATE] [--finish DATE] | --clear: when steps should start and
-    /// finish. A date not given keeps the one recorded; --clear removes both.
+    /// plan &lt;item&gt; &lt;step&gt;... [--start DATE | --no-start] [--finish DATE | --no-finish] | --clear: when
+    /// steps should start and finish. A date not mentioned keeps the one recorded; --no-start and
+    /// --no-finish remove one, --clear both. Whatever is asked is one write, so a plan is never
+    /// left half changed.
     /// </summary>
-    public CommandResult Plan(string item, IReadOnlyList<string> stepIds, string? start, string? finish, bool clear)
+    public CommandResult Plan(string item, IReadOnlyList<string> stepIds, string? start, string? finish, bool clear,
+        bool noStart = false, bool noFinish = false)
     {
-        if (clear == (start is not null || finish is not null))
+        if (clear ? start is not null || finish is not null || noStart || noFinish : start is null && finish is null && !noStart && !noFinish)
         {
             throw new EngineError("give --start DATE and/or --finish DATE, or --clear to remove the plan");
+        }
+
+        if ((start is not null && noStart) || (finish is not null && noFinish))
+        {
+            throw new EngineError("give a date or remove it, not both: --start or --no-start, --finish or --no-finish");
         }
 
         var from = start is null ? (DateOnly?)null : ParseDate(start, "--start");
@@ -345,11 +353,14 @@ public sealed partial class ProjectsEngine
         var chosen = stepIds.Select(s => Steps.Find(t.Steps, s)).ToList();
         foreach (var step in chosen)
         {
-            if (clear)
+            if (clear || noStart)
             {
                 step.Remove("planned_start");
+            }
+
+            if (clear || noFinish)
+            {
                 step.Remove("planned_finish");
-                continue;
             }
 
             if (from is { } f)
@@ -370,14 +381,22 @@ public sealed partial class ProjectsEngine
 
         YamlText.WriteText(t.Path, RecordEdits.WriteSteps(t.Raw, t.Steps));
         var names = string.Join(", ", chosen.Select(s => PyText.Str(s["id"])));
-        var what = clear ? "plan cleared"
-            : (from, to) switch
-            {
-                ({ } f, { } u) => $"planned {Iso(f)} to {Iso(u)}",
-                ({ } f, null) => $"planned to start {Iso(f)}",
-                _ => $"planned to finish {Iso(to!.Value)}",
-            };
-        return Report(t.Kind, t.Folder, t.Path, $"{Path.GetFileName(t.Folder)}: {names} {what}");
+        var what = new List<string>();
+        if (clear)
+        {
+            what.Add("plan cleared");
+        }
+        else if (from is { } f && to is { } u)
+        {
+            what.Add($"planned {Iso(f)} to {Iso(u)}");
+        }
+        else
+        {
+            what.AddRange(from is { } f2 ? [$"planned to start {Iso(f2)}"] : noStart ? ["planned start removed"] : []);
+            what.AddRange(to is { } u2 ? [$"planned to finish {Iso(u2)}"] : noFinish ? ["planned finish removed"] : []);
+        }
+
+        return Report(t.Kind, t.Folder, t.Path, $"{Path.GetFileName(t.Folder)}: {names} {string.Join(", ", what)}");
 
         static string Iso(DateOnly d) => d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
     }

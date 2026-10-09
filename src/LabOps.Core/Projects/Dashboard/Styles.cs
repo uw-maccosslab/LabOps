@@ -4,8 +4,10 @@ namespace LabOps.Core.Projects.Dashboard;
 
 /// <summary>
 /// The overview's look, one rule per class and no other selectors, so the same table makes the
-/// app's stylesheet and Panorama's inline styles. Where an element has several classes, later ones
-/// override earlier ones, in both.
+/// app's stylesheet and Panorama's inline styles. Where an element has several classes, the later
+/// ones override the earlier: inline because their declarations come later, and in the stylesheet
+/// because their rules come later in this table, which a test holds every view to. Text colors
+/// keep at least 4.5:1 contrast with their background.
 /// </summary>
 internal static class Styles
 {
@@ -15,14 +17,13 @@ internal static class Styles
         ("title", "font-size:17px;font-weight:600;margin:0 0 2px 0"),
         ("sub", "color:#5b6670;margin:0 0 10px 0"),
         ("section", "font-size:13px;font-weight:600;color:#364152;margin:14px 0 4px 0"),
-        ("empty", "color:#7b8794;margin:2px 0 6px 0"),
-        ("legend", "color:#7b8794;font-size:12px;margin:8px 0 0 0"),
+        ("empty", "color:#5b6670;margin:2px 0 6px 0"),
+        ("legend", "color:#5b6670;font-size:12px;margin:8px 0 0 0"),
         ("list", "border-collapse:collapse"),
         ("head", "text-align:left;color:#5b6670;font-weight:600;font-size:12px;padding:3px 22px 3px 0;border-bottom:1px solid #d9e0e6"),
         ("cell", "text-align:left;vertical-align:top;padding:3px 22px 3px 0;border-bottom:1px solid #eef1f4"),
         ("num", "text-align:right"),
         ("lab", "color:#5b6670"),
-        ("late", "color:#b42318;font-weight:600"),
         ("item", "color:#0b5cad;text-decoration:none;font-weight:600"),
         ("item-plain", "font-weight:600"),
         ("badge", "display:inline-block;padding:0 6px;border-radius:9px;font-size:11px;background:#eef1f4;color:#364152"),
@@ -34,6 +35,8 @@ internal static class Styles
         ("card", "background:#ffffff;border:1px solid #e3e8ee;border-radius:5px;padding:5px 7px;margin-bottom:6px"),
         ("card-late", "border-left:3px solid #b42318"),
         ("card-line", "color:#5b6670;font-size:12px"),
+        // After every class it is combined with, so its red wins in the stylesheet as it does inline.
+        ("late", "color:#b42318;font-weight:600"),
         ("tl", "width:100%"),
         ("tl-lab", "font-weight:600;color:#364152;margin:10px 0 2px 0"),
         ("tl-row", "display:flex;align-items:center;border-bottom:1px solid #eef1f4;min-height:22px"),
@@ -52,7 +55,7 @@ internal static class Styles
         ("cal", "border-collapse:collapse;width:100%;table-layout:fixed"),
         ("cal-head", "font-size:12px;color:#5b6670;font-weight:600;padding:4px;text-align:left"),
         ("cal-day", "border:1px solid #e3e8ee;vertical-align:top;height:88px;padding:3px;overflow:hidden"),
-        ("cal-out", "background:#f9fafb;color:#9aa5b1"),
+        ("cal-out", "background:#f9fafb;color:#5b6670"),
         ("cal-today", "border:2px solid #f59e0b"),
         ("day", "font-size:11px;color:#5b6670"),
         ("chip", "display:block;font-size:11px;padding:1px 4px;margin-top:2px;border-radius:3px;background:#e6f0fb;color:#1f2933;"
@@ -97,4 +100,7 @@ internal static class Styles
     }
 
     public static bool Has(string cls) => ByClass.ContainsKey(cls);
+
+    /// <summary>Where a class's rule is in the stylesheet, which decides what wins between equal selectors.</summary>
+    public static int Order(string cls) => Array.FindIndex(Rules, r => r.Class == cls);
 }

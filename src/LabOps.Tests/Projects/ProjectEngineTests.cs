@@ -146,6 +146,26 @@ public sealed class ProjectEngineTests
         engine.Calls[1].ShouldBe("list");
     }
 
+    /// <summary>The Plan dialog's answer is the whole plan, written with one command so it is never half changed.</summary>
+    [Fact]
+    public async Task A_plan_is_one_command_whatever_it_changes()
+    {
+        using var engine = new FakeEngine(_ => """{"ok": true}""");
+
+        await engine.Engine.PlanAsync("Proj", ["sample_prep"], new DateOnly(2026, 11, 2), new DateOnly(2026, 11, 13));
+        await engine.Engine.PlanAsync("Proj", ["sample_prep"], null, new DateOnly(2026, 11, 13));
+        await engine.Engine.PlanAsync("Proj", ["sample_prep"], new DateOnly(2026, 11, 2), null);
+        await engine.Engine.PlanAsync("Proj", ["sample_prep"], null, null);
+
+        engine.Calls.ShouldBe(
+        [
+            "plan Proj sample_prep --start 2026-11-02 --finish 2026-11-13",
+            "plan Proj sample_prep --no-start --finish 2026-11-13",
+            "plan Proj sample_prep --start 2026-11-02 --no-finish",
+            "plan Proj sample_prep --clear",
+        ]);
+    }
+
     /// <summary>
     /// The app's calls run the C# engine in-process: each builds project.py's command line, and the
     /// answer comes back as the same JSON. No Python and no process.

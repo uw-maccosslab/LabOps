@@ -14,7 +14,12 @@ namespace LabOps.App.Services;
 internal static class WebViewGuard
 {
     /// <summary>Starts the view's browser with the app's own profile and locks it down.</summary>
-    public static async Task SecureAsync(WebView2 view, AppPaths paths)
+    /// <param name="ownLinks">
+    /// Handles one of the page's own links (true when it was one), so that opening it in a new
+    /// window (ctrl-click, middle-click, the context menu) does what a click does rather than
+    /// sending it to the browser.
+    /// </param>
+    public static async Task SecureAsync(WebView2 view, AppPaths paths, Func<string, bool>? ownLinks = null)
     {
         var environment = await CoreWebView2Environment.CreateAsync(userDataFolder: Path.Combine(paths.Root, "webview2"));
         await view.EnsureCoreWebView2Async(environment);
@@ -33,7 +38,10 @@ internal static class WebViewGuard
         core.NewWindowRequested += (_, args) =>
         {
             args.Handled = true;
-            OpenOutside(args.Uri);
+            if (ownLinks?.Invoke(args.Uri) != true)
+            {
+                OpenOutside(args.Uri);
+            }
         };
     }
 

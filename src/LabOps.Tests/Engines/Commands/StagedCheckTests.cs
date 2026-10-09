@@ -34,6 +34,10 @@ public sealed class StagedCheckTests
         using var repo = TestRepo.Create();
         var folder = repo.NewProject();
         var received = Path.Combine(folder, "metadata", "received");
+        // new-project makes the folders sample data goes in. Python's test wrote straight into
+        // them, so it failed if they were missing; Write here would make them, so check first.
+        Directory.Exists(received).ShouldBeTrue();
+        Directory.Exists(Path.Combine(folder, "layout")).ShouldBeTrue();
         Write(Path.Combine(received, "manifest.json"), """[{"Sample_ID": "S1", "First Name": "Pat", "Remark": "206-555-0100"}]""");
         Write(Path.Combine(received, "manifest.yaml"), "- {Sample_ID: S1, Owner: Pat}\n");
         Write(Path.Combine(received, "notes.md"), "Shipped by pat@example.org.\n\n| Sample_ID | Last Name |\n| --- | --- |\n| S1 | Doe |\n");
@@ -157,7 +161,7 @@ public sealed class StagedCheckTests
         repo.Git("worktree", "add", "-q", "--detach", worktree);
         TestRepo.WriteCsv(Path.Combine(worktree, "projects", "Test-Lab", "Test-Project", "metadata", "samples.csv"),
             [["Sample_ID", "QC", "Owner Name"], ["S1", "FALSE", "Pat"]]);
-        TestRepo.RunGit(worktree, true, "add", "-A");
+        repo.RunGit(worktree, true, "add", "-A");
         var stdout = new StringWriter { NewLine = "\n" };
         var stderr = new StringWriter { NewLine = "\n" };
         var exitCode = LabopsCommandLine.Run(["projects", "--root", worktree, "--json", "check", "--staged"], stdout, stderr, worktree);

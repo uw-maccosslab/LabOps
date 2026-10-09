@@ -29,8 +29,10 @@ public sealed class IdentifierCommandTests
     [Fact]
     public void Phone_numbers_in_other_formats_are_errors_but_barcodes_and_mass_shifts_are_not()
     {
+        // The same made-up number twice: written as a phone number it is one, as a bare run of
+        // digits it is read as a barcode.
         IReadOnlyList<IReadOnlyList<object?>> rows =
-            [["S1", "(206)685-6989", "1234567890", "+57.021464"], ["S2", "+44 20 7946 0958", "2066856989", "C[+57.021]"]];
+            [["S1", "(206)555-0123", "1234567890", "+57.021464"], ["S2", "+44 20 7946 0958", "2065550123", "C[+57.021]"]];
         var found = Deidentification.SheetFindings(["Sample_ID", "Remarks", "Barcode", "Modification"], rows, "test.csv");
         found.Where(f => f.Level == "ERROR").Select(f => (f.Column, f.Message, f.Count))
             .ShouldBe(new (string?, string, int?)[] { ("Remarks", "contains phone numbers", 2) });
@@ -88,7 +90,7 @@ public sealed class IdentifierCommandTests
         using var repo = TestRepo.Create();
         var path = Path.Combine(repo.Root, "inbox", "manifest.xlsx");
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        WriteWorkbook(path, new WorkbookSheet("Sheet",
+        WriteWorkbook(path, StringCells.Inline, new WorkbookSheet("Sheet",
             [["Sample_ID", "QC", "First Name"], ["S1", "FALSE", "Pat"], ["S2", "FALSE", "Lee"], ["S3", "FALSE", "Kim"]],
             Dimension: "A1:B2"));
         var output = repo.Ok("scan", path);
@@ -140,13 +142,15 @@ public sealed class IdentifierCommandTests
             .ShouldContain(("WARN", "Notes", "is free text"));
     }
 
-    [Fact]
-    public void Scan_reports_columns_and_findings_but_never_values()
+    [Theory]
+    [InlineData(StringCells.Inline)]
+    [InlineData(StringCells.Shared)]
+    public void Scan_reports_columns_and_findings_but_never_values(StringCells strings)
     {
         using var repo = TestRepo.Create();
         var path = Path.Combine(repo.Root, "inbox", "manifest.xlsx");
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        WriteWorkbook(path, new WorkbookSheet("Samples",
+        WriteWorkbook(path, strings, new WorkbookSheet("Samples",
         [
             ["Sample Identifier", "Patient Name", "Collection date", "Contact email"],
             ["S001", "Jane Roe", new DateTime(2019, 3, 14), "jane.roe@example.org"],
@@ -169,13 +173,15 @@ public sealed class IdentifierCommandTests
         }
     }
 
-    [Fact]
-    public void Sheet_prints_a_workbook_as_csv()
+    [Theory]
+    [InlineData(StringCells.Inline)]
+    [InlineData(StringCells.Shared)]
+    public void Sheet_prints_a_workbook_as_csv(StringCells strings)
     {
         using var repo = TestRepo.Create();
         var path = Path.Combine(repo.Root, "inbox", "two.xlsx");
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        WriteWorkbook(path, new WorkbookSheet("First", [["Sample", "Value"], ["A", 1.0]]), new WorkbookSheet("Second", [["Other"]]));
+        WriteWorkbook(path, strings, new WorkbookSheet("First", [["Sample", "Value"], ["A", 1.0]]), new WorkbookSheet("Second", [["Other"]]));
         var output = repo.Ok("sheet", path, "--sheet", "First");
         ShouldBeJson(output["sheets"], """[{"sheet": "First", "headers": ["Sample", "Value"], "rows": [["A", "1"]], "total_rows": 1}]""");
     }
@@ -199,15 +205,26 @@ public sealed class IdentifierCommandTests
         _ => throw new ArgumentException($"no encoding {encoding}", nameof(encoding)),
     };
 
+    /// <summary>Where a workbook keeps its text; the engine reads either.</summary>
+    public enum StringCells
+    {
+        /// <summary>In each cell (t="inlineStr"), as openpyxl 3.1 saves every string: the Python tests' workbooks.</summary>
+        Inline,
+
+        /// <summary>In the shared-string table (t="s"), as Excel saves them.</summary>
+        Shared,
+    }
+
     /// <summary>One worksheet: its rows, and the size it claims (the real one when not given).</summary>
     private sealed record WorkbookSheet(string Name, object[][] Rows, string? Dimension = null);
 
     /// <summary>
-    /// An .xlsx as openpyxl's Workbook.save writes one, in the parts the engine reads: text in the
-    /// shared-string table, a number as "%.16g" writes it (1.0 is 1), and a datetime as its serial
-    /// number in the "yyyy-mm-dd h:mm:ss" format.
+    /// An .xlsx in the parts the engine reads, its text in each cell or in a shared-string table
+    /// (see <see cref="StringCells"/>). A number is in its shortest round-trip form, which for the
+    /// whole numbers here is what openpyxl's "%.16g" writes (1.0 is 1), and a datetime is its
+    /// serial number in the "yyyy-mm-dd h:mm:ss" format, as openpyxl writes one.
     /// </summary>
-    private static void WriteWorkbook(string path, params WorkbookSheet[] sheets)
+    private static void WriteWorkbook(string path, StringCells strings, params WorkbookSheet[] sheets)
     {
         XNamespace main = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
         XNamespace types = "http://schemas.openxmlformats.org/package/2006/content-types";
@@ -216,18 +233,22 @@ public sealed class IdentifierCommandTests
         const string RelType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/";
         const string ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.";
 
-        var strings = new List<string>();
+        var shared = strings == StringCells.Shared;
+        var table = new List<string>();
         XElement Cell(object value, int column, int row)
         {
             var cell = new XElement(main + "c", new XAttribute("r", $"{(char)('A' + column)}{row}"));
             switch (value)
             {
+                case string s when !shared:
+                    cell.Add(new XAttribute("t", "inlineStr"), new XElement(main + "is", new XElement(main + "t", s)));
+                    break;
                 case string s:
-                    var index = strings.IndexOf(s);
+                    var index = table.IndexOf(s);
                     if (index < 0)
                     {
-                        index = strings.Count;
-                        strings.Add(s);
+                        index = table.Count;
+                        table.Add(s);
                     }
 
                     cell.Add(new XAttribute("t", "s"), new XElement(main + "v", index));
@@ -262,8 +283,13 @@ public sealed class IdentifierCommandTests
                     row.Select((value, x) => Cell(value, x, y + 1)))))));
         }
 
-        Part("xl/sharedStrings.xml", new XElement(main + "sst", new XAttribute("uniqueCount", strings.Count),
-            strings.Select(s => new XElement(main + "si", new XElement(main + "t", s)))));
+        // openpyxl writes no table at all when its strings are inline, so neither is there one here.
+        if (shared)
+        {
+            Part("xl/sharedStrings.xml", new XElement(main + "sst", new XAttribute("uniqueCount", table.Count),
+                table.Select(s => new XElement(main + "si", new XElement(main + "t", s)))));
+        }
+
         Part("xl/styles.xml", new XElement(main + "styleSheet",
             new XElement(main + "numFmts", new XAttribute("count", 1),
                 new XElement(main + "numFmt", new XAttribute("numFmtId", 164), new XAttribute("formatCode", "yyyy-mm-dd h:mm:ss"))),
@@ -275,8 +301,8 @@ public sealed class IdentifierCommandTests
                 new XAttribute("name", s.Name), new XAttribute("sheetId", i + 1), new XAttribute(r + "id", $"rId{i + 1}"))))));
         Part("xl/_rels/workbook.xml.rels", new XElement(rels + "Relationships",
             sheets.Select((_, i) => Relationship(rels, $"rId{i + 1}", RelType + "worksheet", $"worksheets/sheet{i + 1}.xml"))
-                .Append(Relationship(rels, $"rId{sheets.Length + 1}", RelType + "styles", "styles.xml"))
-                .Append(Relationship(rels, $"rId{sheets.Length + 2}", RelType + "sharedStrings", "sharedStrings.xml"))));
+                .Append(Relationship(rels, $"rId{sheets.Length + 1}", RelType + "styles", "styles.xml")),
+            shared ? Relationship(rels, $"rId{sheets.Length + 2}", RelType + "sharedStrings", "sharedStrings.xml") : null));
         Part("_rels/.rels", new XElement(rels + "Relationships", Relationship(rels, "rId1", RelType + "officeDocument", "xl/workbook.xml")));
         Part("[Content_Types].xml", new XElement(types + "Types",
             new XElement(types + "Default", new XAttribute("Extension", "rels"), new XAttribute("ContentType", "application/vnd.openxmlformats-package.relationships+xml")),
@@ -284,7 +310,7 @@ public sealed class IdentifierCommandTests
             Override(types, "/xl/workbook.xml", ContentType + "sheet.main+xml"),
             sheets.Select((_, i) => Override(types, $"/xl/worksheets/sheet{i + 1}.xml", ContentType + "worksheet+xml")),
             Override(types, "/xl/styles.xml", ContentType + "styles+xml"),
-            Override(types, "/xl/sharedStrings.xml", ContentType + "sharedStrings+xml")));
+            shared ? Override(types, "/xl/sharedStrings.xml", ContentType + "sharedStrings+xml") : null));
 
         static XElement Relationship(XNamespace rels, string id, string type, string target) =>
             new(rels + "Relationship", new XAttribute("Id", id), new XAttribute("Type", type), new XAttribute("Target", target));

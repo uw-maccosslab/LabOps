@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Net;
 using System.Text;
+using LabOps.Core.Panorama;
 
 namespace LabOps.Core.Projects.Dashboard;
 
@@ -25,11 +26,14 @@ public static class DashboardHtml
 
     private static readonly CultureInfo English = CultureInfo.GetCultureInfo("en-US");
 
-    /// <summary>How long a view looks ahead for steps due or starting soon.</summary>
+    /// <summary>How many days, today included, a view looks ahead for steps due or starting soon.</summary>
     public const int SoonDays = 7;
 
     /// <summary>The most rows a section of the Panorama summary lists before saying how many more there are.</summary>
     public const int PanoramaRows = 25;
+
+    /// <summary>The most overlapping bookings the app lists; each clash also shows red on the schedule.</summary>
+    public const int ConflictRows = 50;
 
     public static string ViewTitle(DashboardView view) => view switch
     {
@@ -44,29 +48,32 @@ public static class DashboardHtml
     public static string Page(ProjectList list, DashboardRequest request)
     {
         var h = new Html(inline: false);
-        h.Raw("<!doctype html><html><head><meta charset=\"utf-8\"><style>").Raw(Styles.Sheet).Raw("</style></head><body>");
-        h.Open("div", "dash");
-        var items = DashboardModel.Items(list).Where(i => i.Matches(request.Filter)).ToList();
-        h.Element("h1", "title", request.View == DashboardView.Calendar
+        var title = request.View == DashboardView.Calendar
             ? $"{ViewTitle(request.View)}: {MonthOf(request).ToString("MMMM yyyy", English)}"
-            : ViewTitle(request.View));
-        h.Element("p", "sub", Subtitle(list, request));
+            : ViewTitle(request.View);
+        h.Raw("<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>").Text(title).Raw("</title><style>")
+            .Raw(Styles.Sheet).Raw("</style></head><body>");
+        h.Open("div", "dash");
+        var view = new View(list, request.Today, request.Filter, Links.App, int.MaxValue, "h2");
+        var items = DashboardModel.Items(list).Where(i => i.Matches(request.Filter)).ToList();
+        h.Element("h1", "title", title);
+        h.Element("p", "sub", Subtitle(view));
         switch (request.View)
         {
             case DashboardView.Attention:
-                Attention(h, list, items, request, links: Links.App, rows: int.MaxValue);
+                Attention(h, view, items);
                 break;
             case DashboardView.Board:
-                Board(h, items, request);
+                Board(h, view, items);
                 break;
             case DashboardView.Timeline:
                 Timeline(h, items, request.Today);
                 break;
             case DashboardView.Calendar:
-                Calendar(h, items, request);
+                Calendar(h, view, items, MonthOf(request));
                 break;
             default:
-                Instruments(h, list, items, request.Today, Links.App, rows: int.MaxValue);
+                Instruments(h, view, items);
                 break;
         }
 
@@ -83,15 +90,15 @@ public static class DashboardHtml
     {
         var h = new Html(inline: true);
         var items = DashboardModel.Items(list);
-        var request = new DashboardRequest(DashboardView.Attention, today, DashboardFilter.Everything);
+        var view = new View(list, today, DashboardFilter.Everything, Links.Panorama, PanoramaRows, "h3");
         h.Open("div", "dash");
         h.Element("p", "sub", $"Open lab projects and experiments as of {today.ToString("dddd, MMMM d, yyyy", English)}.");
         h.Element("h2", "section", "Needs attention");
-        Attention(h, list, items, request, Links.Panorama, PanoramaRows);
+        Attention(h, view, items);
         h.Element("h2", "section", "Work by phase");
         PhaseCounts(h, items);
         h.Element("h2", "section", "Instruments");
-        Instruments(h, list, items, today, Links.Panorama, PanoramaRows, weeksAhead: 4);
+        Instruments(h, view, items);
         h.Close("div");
         return h.ToString();
     }
@@ -102,26 +109,34 @@ public static class DashboardHtml
         Panorama,
     }
 
-    private static string Subtitle(ProjectList list, DashboardRequest request)
+    /// <summary>What every part of a page needs: the list, the day, whose work, how to link, how much to list, and the section heading.</summary>
+    private sealed record View(ProjectList List, DateOnly Today, DashboardFilter Filter, Links Links, int Rows, string Section)
     {
-        var whose = request.Filter.Person is { } login
-            ? $"{list.People.FirstOrDefault(p => string.Equals(p.Login, login, StringComparison.OrdinalIgnoreCase))?.DisplayName ?? login}'s work"
-            : "Everyone's work";
-        var where = request.Filter.Lab is { } lab ? $" with {lab}" : " in every lab";
-        return $"{whose}{where}, as of {request.Today.ToString("dddd, MMMM d, yyyy", English)}.";
+        /// <summary>A person's name for a login (as config/people.yaml has it), or the login.</summary>
+        public string Name(string? login) => login is null ? ""
+            : List.People.FirstOrDefault(p => string.Equals(p.Login, login, StringComparison.OrdinalIgnoreCase))?.DisplayName ?? login;
+    }
+
+    private static string Subtitle(View view)
+    {
+        var whose = view.Filter.Person is { } login ? $"{view.Name(login)}'s work" : "Everyone's work";
+        var where = view.Filter.Lab is { } lab ? $" with {lab}" : " in every lab";
+        return $"{whose}{where}, as of {view.Today.ToString("dddd, MMMM d, yyyy", English)}.";
     }
 
     // ---------------------------------------------------------------- needs attention
 
-    private static void Attention(Html h, ProjectList list, List<DashboardItem> items, DashboardRequest request, Links links, int rows)
+    private static void Attention(Html h, View view, List<DashboardItem> items)
     {
-        var today = request.Today;
-        var soon = today.AddDays(SoonDays);
+        var today = view.Today;
+        var soon = today.AddDays(SoonDays - 1);
         var late = new List<(DashboardItem Item, StageEntry Step, DateOnly Since, string What)>();
         var due = new List<(DashboardItem Item, StageEntry Step, DateOnly Day, string What)>();
-        foreach (var item in items)
+        // Paused work is not late, and a person sees their own steps (and the unassigned ones of
+        // projects they are the lab contact for), not everyone's on those projects.
+        foreach (var item in items.Where(i => !i.IsOnHold))
         {
-            foreach (var step in item.Steps.Where(s => !(s.IsDone || s.IsSkipped)))
+            foreach (var step in item.Steps.Where(s => !(s.IsDone || s.IsSkipped) && item.IsTheirs(s, view.Filter)))
             {
                 var plannedStart = StageEntry.Date(step.PlannedStart);
                 var plannedFinish = StageEntry.Date(step.PlannedFinish);
@@ -142,43 +157,50 @@ public static class DashboardHtml
             }
         }
 
-        h.Element("h3", "section", Counted("Late", late.Count));
+        h.Element(view.Section, "section", Counted("Late", late.Count));
         if (late.Count == 0)
         {
             h.Element("p", "empty", "Nothing is late.");
         }
         else
         {
-            StepTable(h, late.OrderBy(l => l.Since).ThenBy(l => l.Item.Name, StringComparer.OrdinalIgnoreCase)
-                .Select(l => (l.Item, l.Step, $"{l.What} {Short(l.Since)}", Days(today.DayNumber - l.Since.DayNumber), true)).ToList(), links, rows);
+            StepTable(h, view, late.OrderBy(l => l.Since).ThenBy(l => l.Item.Name, StringComparer.OrdinalIgnoreCase)
+                .Select(l => (l.Item, l.Step, $"{l.What} {Short(l.Since)}", Days(today.DayNumber - l.Since.DayNumber), true)).ToList());
         }
 
-        h.Element("h3", "section", Counted($"Due or starting in the next {SoonDays} days", due.Count));
+        h.Element(view.Section, "section", Counted($"Due or starting in the next {SoonDays} days", due.Count));
         if (due.Count == 0)
         {
-            h.Element("p", "empty", "Nothing is planned to finish or start this week.");
+            h.Element("p", "empty", $"Nothing is planned to finish or start in the next {SoonDays} days.");
         }
         else
         {
-            StepTable(h, due.OrderBy(d => d.Day).ThenBy(d => d.Item.Name, StringComparer.OrdinalIgnoreCase)
+            StepTable(h, view, due.OrderBy(d => d.Day).ThenBy(d => d.Item.Name, StringComparer.OrdinalIgnoreCase)
                 .Select(d => (d.Item, d.Step, $"{d.What} {Short(d.Day)}",
                     d.Day == today ? "today" : d.Day.DayNumber - today.DayNumber == 1 ? "tomorrow" : $"in {d.Day.DayNumber - today.DayNumber} days", false))
-                .ToList(), links, rows);
+                .ToList());
         }
 
+        // Errors in lab.yaml count as well as those in projects and experiments; a person's view
+        // leaves out the labs and the repository as a whole, which are nobody's in particular.
         var broken = items.Where(i => i.Issues.Any(x => x.IsError)).ToList();
-        var whole = request.Filter == DashboardFilter.Everything ? list.Problems.Where(p => p.IsError).ToList() : [];
-        h.Element("h3", "section", Counted("Records with errors", broken.Count + whole.Count));
-        if (broken.Count + whole.Count == 0)
+        var labs = view.Filter.Person is null
+            ? view.List.Labs.Where(l => (view.Filter.Lab is null || string.Equals(l.Lab, view.Filter.Lab, StringComparison.OrdinalIgnoreCase))
+                                        && l.Issues.Any(x => x.IsError)).ToList()
+            : [];
+        var whole = view.Filter == DashboardFilter.Everything ? view.List.Problems.Where(p => p.IsError).ToList() : [];
+        var count = broken.Count + labs.Count + whole.Count;
+        h.Element(view.Section, "section", Counted("Records with errors", count));
+        if (count == 0)
         {
             h.Element("p", "empty", "Every record checks clean.");
             return;
         }
 
-        if (links == Links.Panorama)
+        if (view.Links == Links.Panorama)
         {
             // The messages are for whoever fixes the records, in LabOps; the page only says how many.
-            h.Element("p", "empty", $"{broken.Count + whole.Count} record(s) have errors; open LabOps to see them.");
+            h.Element("p", "empty", $"{count} record(s) have errors; open LabOps to see them.");
             return;
         }
 
@@ -186,8 +208,14 @@ public static class DashboardHtml
         foreach (var item in broken)
         {
             h.Open("tr").Open("td", "cell");
-            ItemLink(h, item, links);
+            ItemLink(h, item, view.Links);
             h.Close("td").Element("td", "cell lab", item.Lab).Element("td", "cell late", item.Issues.First(x => x.IsError).Message).Close("tr");
+        }
+
+        foreach (var lab in labs)
+        {
+            h.Open("tr").Element("td", "cell", "lab.yaml").Element("td", "cell lab", lab.Lab)
+                .Element("td", "cell late", lab.Issues.First(x => x.IsError).Message).Close("tr");
         }
 
         foreach (var problem in whole)
@@ -198,33 +226,33 @@ public static class DashboardHtml
         h.Close("table");
     }
 
-    private static void StepTable(Html h, List<(DashboardItem Item, StageEntry Step, string When, string HowLong, bool Late)> rows, Links links, int max)
+    private static void StepTable(Html h, View view, List<(DashboardItem Item, StageEntry Step, string When, string HowLong, bool Late)> rows)
     {
         h.Open("table", "list");
         h.Open("tr").Element("th", "head", "Project or experiment").Element("th", "head", "Lab").Element("th", "head", "Step")
             .Element("th", "head", "Assigned").Element("th", "head", "When").Element("th", "head", "").Close("tr");
-        foreach (var (item, step, when, howLong, late) in rows.Take(max))
+        foreach (var (item, step, when, howLong, late) in rows.Take(view.Rows))
         {
             h.Open("tr").Open("td", "cell");
-            ItemLink(h, item, links);
+            ItemLink(h, item, view.Links);
             h.Close("td")
                 .Element("td", "cell lab", item.Lab)
                 .Element("td", "cell", step.DisplayLabel)
-                .Element("td", "cell", step.Assigned ?? "nobody")
+                .Element("td", "cell", step.Assigned is { } who ? view.Name(who) : "nobody")
                 .Element("td", late ? "cell late" : "cell", when)
                 .Element("td", late ? "cell late" : "cell lab", howLong)
                 .Close("tr");
         }
 
         h.Close("table");
-        More(h, rows.Count - max);
+        More(h, rows.Count - view.Rows);
     }
 
     // ---------------------------------------------------------------- board
 
-    private static void Board(Html h, List<DashboardItem> items, DashboardRequest request)
+    private static void Board(Html h, View view, List<DashboardItem> items)
     {
-        var detailed = request.Filter != DashboardFilter.Everything;
+        var detailed = view.Filter != DashboardFilter.Everything;
         var placed = items.Select(i => (Item: i, Phase: DashboardModel.Phase(i))).Where(x => x.Phase >= 0).ToList();
         if (placed.Count == 0)
         {
@@ -236,14 +264,14 @@ public static class DashboardHtml
         for (var phase = 0; phase < DashboardModel.Phases.Count; phase++)
         {
             var here = placed.Where(x => x.Phase == phase).Select(x => x.Item)
-                .OrderByDescending(i => i.Current!.IsLate(request.Today))
+                .OrderByDescending(i => i.IsLate(i.Current!, view.Today))
                 .ThenBy(i => i.Lab, StringComparer.OrdinalIgnoreCase).ThenBy(i => i.Name, StringComparer.OrdinalIgnoreCase).ToList();
             h.Open("div", "col");
             h.Element("div", "col-head", Counted(DashboardModel.Phases[phase].Label, here.Count));
             foreach (var item in here)
             {
                 var step = item.Current!;
-                var late = step.IsLate(request.Today);
+                var late = item.IsLate(step, view.Today);
                 h.Open("div", late ? "card card-late" : "card");
                 ItemLink(h, item, Links.App);
                 h.Element("div", "card-line", item.IsExperiment ? $"{item.Lab} / {item.Project}" : item.Lab);
@@ -253,9 +281,9 @@ public static class DashboardHtml
                 }
 
                 h.Open("div", "card-line").Text(step.DisplayLabel + " ");
-                Badge(h, step, request.Today);
+                Badge(h, item, step, view.Today);
                 h.Close("div");
-                var who = step.Assigned is { } a ? a : "nobody assigned";
+                var who = step.Assigned is { } a ? view.Name(a) : "nobody assigned";
                 var plan = StageEntry.Date(step.PlannedFinish) is { } f ? $", due {Short(f)}" : "";
                 h.Element("div", late ? "card-line late" : "card-line", who + plan);
                 h.Close("div");
@@ -267,9 +295,13 @@ public static class DashboardHtml
         h.Close("div");
     }
 
-    private static void Badge(Html h, StageEntry step, DateOnly today)
+    private static void Badge(Html h, DashboardItem item, StageEntry step, DateOnly today)
     {
-        if (step.IsLate(today))
+        if (item.IsOnHold)
+        {
+            h.Element("span", "badge", "on hold");
+        }
+        else if (step.IsLate(today))
         {
             h.Element("span", "badge badge-late", "late");
         }
@@ -341,17 +373,22 @@ public static class DashboardHtml
         foreach (var lab in rows.GroupBy(r => r.Item.Lab, StringComparer.OrdinalIgnoreCase))
         {
             h.Element("div", "tl-lab", lab.Key);
+            // An experiment sits indented under its project only when the project's own line is
+            // there to sit under; otherwise it would read as the line above's.
+            string? projectShown = null;
             foreach (var (item, spans) in lab)
             {
-                h.Open("div", "tl-row").Open("div", item.IsExperiment ? "tl-name tl-sub" : "tl-name");
+                var under = item.IsExperiment && projectShown == item.Project;
+                projectShown = item.IsExperiment ? projectShown : item.Project;
+                h.Open("div", "tl-row").Open("div", under ? "tl-name tl-sub" : "tl-name");
                 ItemLink(h, item, Links.App);
                 h.Close("div").Open("div", "tl-track");
                 foreach (var span in spans)
                 {
-                    var late = span.Step.IsLate(today);
+                    var late = item.IsLate(span.Step, today);
                     var cls = span.Planned ? (late ? "bar-planned-late" : "bar-planned")
                         : span.Step.IsDone || span.Step.IsSkipped ? "bar-done" : late ? "bar-late" : "bar";
-                    var tip = $"{span.Step.DisplayLabel}: {Range(span.From, span.To)}{(span.Planned ? " (planned)" : "")}";
+                    var tip = $"{span.Step.DisplayLabel}: {Range(span.From, span.To)}{(span.Planned ? " (planned)" : "")}{(late ? ", late" : "")}";
                     h.Open("div", cls, Position(span.From, span.To, first, last), ("title", tip)).Close("div");
                 }
 
@@ -361,7 +398,8 @@ public static class DashboardHtml
         }
 
         h.Close("div");
-        h.Element("p", "legend", "Solid: what happened (gray once done). Dashed: what is planned. Red: late. The line is today.");
+        h.Element("p", "legend", "Solid: what happened (gray once done). Dashed: what is planned. Red: late. The line is today. "
+                                 + "Point at a bar for its step and dates.");
     }
 
     private static void Weeks(Html h, DateOnly first, DateOnly last)
@@ -402,14 +440,13 @@ public static class DashboardHtml
     /// <summary>The most chips a day shows; the rest are counted (and listed in the tooltip).</summary>
     public const int ChipsPerDay = 3;
 
-    private static void Calendar(Html h, List<DashboardItem> items, DashboardRequest request)
+    private static void Calendar(Html h, View view, List<DashboardItem> items, DateOnly month)
     {
-        var month = MonthOf(request);
         // Weeks start on Sunday, as the lab's calendars do.
         var first = month.AddDays(-(int)month.DayOfWeek);
         var lastOfMonth = month.AddMonths(1).AddDays(-1);
         var last = lastOfMonth.AddDays(6 - (int)lastOfMonth.DayOfWeek);
-        var events = DashboardModel.Events(items, first, last).ToLookup(e => e.Day);
+        var events = DashboardModel.Events(items, first, last).Where(e => e.Item.IsTheirs(e.Step, view.Filter)).ToLookup(e => e.Day);
         h.Open("table", "cal").Open("tr");
         foreach (var day in (string[])["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"])
         {
@@ -422,21 +459,21 @@ public static class DashboardHtml
             h.Open("tr");
             for (var day = week; day < week.AddDays(7); day = day.AddDays(1))
             {
-                var cls = day == request.Today ? "cal-day cal-today" : day.Month != month.Month ? "cal-day cal-out" : "cal-day";
+                var cls = day == view.Today ? "cal-day cal-today" : day.Month != month.Month ? "cal-day cal-out" : "cal-day";
                 h.Open("td", cls).Element("div", "day", day.Day.ToString(CultureInfo.InvariantCulture));
-                var today = events[day].ToList();
-                foreach (var e in today.Take(ChipsPerDay))
+                var those = events[day].ToList();
+                foreach (var e in those.Take(ChipsPerDay))
                 {
-                    var late = e.Planned && e.Step.IsLate(request.Today);
+                    var late = e.Planned && e.Item.IsLate(e.Step, view.Today);
                     var chip = late ? "chip chip-late" : e.Planned ? "chip chip-planned" : e.What is "finished" or "skipped" ? "chip chip-done" : "chip";
-                    var text = $"{e.Item.Name}: {e.Step.DisplayLabel} {e.What}";
+                    var text = $"{e.Item.Name}: {e.Step.DisplayLabel} {e.What}{(late ? " (late)" : "")}";
                     h.Open("a", chip, null, ("href", OpenPrefix + Uri.EscapeDataString(e.Item.Name)), ("title", text)).Text(text).Close("a");
                 }
 
-                if (today.Count > ChipsPerDay)
+                if (those.Count > ChipsPerDay)
                 {
-                    h.Element("div", "more", $"+{today.Count - ChipsPerDay} more", null,
-                        ("title", string.Join("\n", today.Skip(ChipsPerDay).Select(e => $"{e.Item.Name}: {e.Step.DisplayLabel} {e.What}"))));
+                    h.Element("div", "more", $"+{those.Count - ChipsPerDay} more", null,
+                        ("title", string.Join("\n", those.Skip(ChipsPerDay).Select(e => $"{e.Item.Name}: {e.Step.DisplayLabel} {e.What}"))));
                 }
 
                 h.Close("td");
@@ -451,41 +488,45 @@ public static class DashboardHtml
 
     // ---------------------------------------------------------------- instruments
 
-    private static void Instruments(Html h, ProjectList list, List<DashboardItem> items, DateOnly today, Links links, int rows, int? weeksAhead = null)
+    /// <summary>
+    /// Each instrument's bookings. The app draws the timeline's weeks as a schedule; Panorama lists
+    /// the last two weeks and the next four. Counts and overlaps are of what is shown.
+    /// </summary>
+    private static void Instruments(Html h, View view, List<DashboardItem> items)
     {
-        var horizon = weeksAhead is { } w ? today.AddDays(7 * w) : DateOnly.MaxValue;
-        var bookings = DashboardModel.Bookings(items, today)
-            .Where(b => b.To >= today.AddDays(-14) && b.From <= horizon)
+        var app = view.Links == Links.App;
+        var (first, last) = app ? TimelineWindow(view.Today) : (view.Today.AddDays(-14), view.Today.AddDays(28));
+        var bookings = DashboardModel.Bookings(items, view.Today)
+            .Where(b => b.To >= first && b.From <= last)
             .OrderBy(b => b.From).ThenBy(b => b.Item.Name, StringComparer.OrdinalIgnoreCase).ToList();
         var conflicts = DashboardModel.Conflicts(bookings);
+        var cap = app ? ConflictRows : view.Rows;
         if (conflicts.Count > 0)
         {
-            h.Element("h3", "section late", Counted("Overlapping bookings", conflicts.Count));
+            h.Element(view.Section, "section late", Counted("Overlapping bookings", conflicts.Count));
             h.Open("table", "list");
-            foreach (var (a, b) in conflicts.Take(rows))
+            foreach (var (a, b) in conflicts.Take(cap))
             {
                 h.Open("tr").Element("td", "cell", a.Instrument).Open("td", "cell");
-                ItemLink(h, a.Item, links);
+                ItemLink(h, a.Item, view.Links);
                 h.Text($" ({Range(a.From, a.To)})").Close("td").Open("td", "cell");
-                ItemLink(h, b.Item, links);
+                ItemLink(h, b.Item, view.Links);
                 h.Text($" ({Range(b.From, b.To)})").Close("td").Close("tr");
             }
 
             h.Close("table");
-            More(h, conflicts.Count - rows);
+            More(h, conflicts.Count - cap);
         }
 
-        var names = DashboardModel.InstrumentNames(list.Instruments, bookings);
+        var names = DashboardModel.InstrumentNames(view.List.Instruments, bookings);
         if (names.Count == 0)
         {
             h.Element("p", "empty", "No experiment names an instrument, and config/instruments.yaml lists none.");
             return;
         }
 
-        // In the app, a schedule: one line per booking on the timeline's weeks, clashes in red.
-        var (first, last) = TimelineWindow(today);
         var clashing = conflicts.SelectMany(c => (Booking[])[c.First, c.Second]).ToHashSet();
-        if (links == Links.App)
+        if (app)
         {
             h.Open("div", "tl");
             Weeks(h, first, last);
@@ -494,32 +535,31 @@ public static class DashboardHtml
         foreach (var name in names)
         {
             var mine = bookings.Where(b => string.Equals(b.Instrument, name, StringComparison.OrdinalIgnoreCase)).ToList();
-            if (links == Links.App)
+            if (app)
             {
                 h.Element("div", "tl-lab", Counted(name, mine.Count));
-                var shown = mine.Where(b => b.To >= first && b.From <= last).ToList();
-                if (shown.Count == 0)
+                if (mine.Count == 0)
                 {
                     h.Element("p", "empty", "Nothing booked in these weeks.");
                 }
 
-                foreach (var b in shown)
+                foreach (var b in mine)
                 {
                     h.Open("div", "tl-row").Open("div", "tl-name");
-                    ItemLink(h, b.Item, links);
+                    ItemLink(h, b.Item, view.Links);
                     h.Element("span", "lab", " " + b.Item.Lab).Close("div").Open("div", "tl-track");
                     var cls = clashing.Contains(b) ? "bar-clash" : b.Planned ? "bar-planned" : b.Step.IsDone ? "bar-done" : "bar";
                     var tip = $"{b.Item.Name} ({b.Item.Lab}): {Range(b.From, b.To)}, "
                               + (b.Planned ? "planned" : b.Step.IsDone ? "done" : "under way") + (clashing.Contains(b) ? ", overlaps another booking" : "");
                     h.Open("div", cls, Position(b.From, b.To, first, last), ("title", tip)).Close("div");
-                    TodayLine(h, today, first, last);
+                    TodayLine(h, view.Today, first, last);
                     h.Close("div").Close("div");
                 }
 
                 continue;
             }
 
-            h.Element("h3", "section", Counted(name, mine.Count));
+            h.Element(view.Section, "section", Counted(name, mine.Count));
             if (mine.Count == 0)
             {
                 h.Element("p", "empty", "Nothing booked.");
@@ -527,20 +567,20 @@ public static class DashboardHtml
             }
 
             h.Open("table", "list");
-            foreach (var b in mine.Take(rows))
+            foreach (var b in mine.Take(view.Rows))
             {
                 h.Open("tr").Open("td", "cell");
-                ItemLink(h, b.Item, links);
+                ItemLink(h, b.Item, view.Links);
                 h.Close("td").Element("td", "cell lab", b.Item.Lab).Element("td", "cell", Range(b.From, b.To))
                     .Element("td", b.Planned ? "cell lab" : "cell", b.Planned ? "planned" : b.Step.IsDone ? "done" : "under way")
                     .Close("tr");
             }
 
             h.Close("table");
-            More(h, mine.Count - rows);
+            More(h, mine.Count - view.Rows);
         }
 
-        if (links == Links.App)
+        if (app)
         {
             h.Close("div");
             h.Element("p", "legend", "Each line is an experiment's data acquisition. Solid: recorded (gray once done). Dashed: planned. "
@@ -557,17 +597,30 @@ public static class DashboardHtml
             h.Open("a", "item", null, ("href", OpenPrefix + Uri.EscapeDataString(item.Name)), ("title", item.Title ?? item.Name))
                 .Text(item.Name).Close("a");
         }
-        else if (item.Wiki is { } wiki && wiki.Folder.StartsWith('/'))
+        else if (WikiPath(item.Wiki) is { } page)
         {
             // The project's own page on Panorama, which collaborators may read too.
-            var page = wiki.PageName == "default" ? $"{wiki.Folder.TrimEnd('/')}/project-begin.view"
-                : $"{wiki.Folder.TrimEnd('/')}/wiki-page.view?name={Uri.EscapeDataString(wiki.PageName)}";
             h.Open("a", "item", null, ("href", page)).Text(item.Name).Close("a");
         }
         else
         {
             h.Element("span", "item-plain", item.Name);
         }
+    }
+
+    /// <summary>
+    /// A project's wiki page on the same Panorama server, as the wiki publisher addresses it: the
+    /// folder made one path from the root (so "//elsewhere" stays on Panorama) with each part
+    /// encoded. Null without a folder.
+    /// </summary>
+    internal static string? WikiPath(WikiLocation? wiki)
+    {
+        if (wiki is null || string.IsNullOrWhiteSpace(wiki.Folder.Trim().Trim('/')))
+        {
+            return null;
+        }
+
+        return PanoramaPaths.Encode(PanoramaPaths.AsFolder(wiki.Folder)) + "wiki-page.view?name=" + Uri.EscapeDataString(wiki.PageName);
     }
 
     private static void More(Html h, int more)

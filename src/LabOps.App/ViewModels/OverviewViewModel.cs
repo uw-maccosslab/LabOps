@@ -77,6 +77,9 @@ public sealed partial class OverviewViewModel : ObservableObject
         _list = list;
         var person = Person?.Value;
         var lab = Lab?.Value;
+        // Refilling the lists makes the bound boxes set Person and Lab to null on their own; those
+        // are not choices, and the page is drawn once, at the end.
+        _updating = true;
         People.Clear();
         People.Add(new OverviewChoice(null, "Everyone"));
         foreach (var p in list.People.OrderBy(p => p.DisplayName, StringComparer.CurrentCultureIgnoreCase))
@@ -96,14 +99,13 @@ public sealed partial class OverviewViewModel : ObservableObject
             person = People.FirstOrDefault(c => string.Equals(c.Value, me, StringComparison.OrdinalIgnoreCase))?.Value;
         }
 
-        _updating = true;
         Person = People.FirstOrDefault(c => string.Equals(c.Value, person, StringComparison.OrdinalIgnoreCase)) ?? People[0];
         Lab = Labs.FirstOrDefault(c => string.Equals(c.Value, lab, StringComparison.OrdinalIgnoreCase)) ?? Labs[0];
         _updating = false;
         Render();
     }
 
-    // Set while Update refills the lists, so the choices it restores are not taken as the person's.
+    // Set while Update refills the lists and restores the choices, which are not the person's.
     private bool _updating;
 
     partial void OnViewChanged(DashboardView value) => Render();

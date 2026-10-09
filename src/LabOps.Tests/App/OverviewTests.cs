@@ -42,6 +42,35 @@ public sealed class OverviewTests
     }
 
     [Fact]
+    public void Refilling_the_lists_is_not_taken_as_a_choice_and_draws_the_page_once()
+    {
+        var overview = Overview();
+        // What a ComboBox bound to Person and Lab does when its items are cleared.
+        overview.People.CollectionChanged += (_, e) =>
+        {
+            if (e.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Reset)
+            {
+                overview.Person = null;
+            }
+        };
+        overview.Labs.CollectionChanged += (_, e) =>
+        {
+            if (e.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Reset)
+            {
+                overview.Lab = null;
+            }
+        };
+        var drawn = 0;
+        overview.PropertyChanged += (_, e) => drawn += e.PropertyName == nameof(OverviewViewModel.Html) ? 1 : 0;
+
+        overview.Update(DashboardSample.List(), null);   // not signed in yet: everyone's work
+        overview.Update(DashboardSample.List(), "kchen"); // signed in since
+
+        overview.Person!.Value.ShouldBe("kchen", "nobody chose Everyone; the lists were only refilled");
+        drawn.ShouldBe(2);
+    }
+
+    [Fact]
     public void The_calendar_moves_by_month()
     {
         var overview = Overview();
