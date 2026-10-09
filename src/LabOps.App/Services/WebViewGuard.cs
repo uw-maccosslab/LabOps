@@ -35,6 +35,15 @@ internal static class WebViewGuard
                 args.Response = environment.CreateWebResourceResponse(null, 403, "Blocked", "");
             }
         };
+        // NavigationStarting (each view's) sees only the page itself; a frame's navigation comes
+        // here. The pages have no frames of their own, so a frame in a page's text loads nothing.
+        core.FrameNavigationStarting += (_, args) =>
+        {
+            if (!IsFrameAllowed(args.Uri))
+            {
+                args.Cancel = true;
+            }
+        };
         core.NewWindowRequested += (_, args) =>
         {
             args.Handled = true;
@@ -46,12 +55,17 @@ internal static class WebViewGuard
     }
 
     /// <summary>
-    /// What a page may not load: anything from the web, and any file other than the page itself
-    /// (figures are inside the page). Following a link is a navigation, which each view handles.
+    /// What a page may not load: anything from the web, documents included (a frame's source is a
+    /// document request too), and any file but a document, which is the page the app wrote (its
+    /// figures are inside it). Following a link is a navigation, which each view handles.
     /// </summary>
     internal static bool IsBlocked(string uri, CoreWebView2WebResourceContext context) =>
-        context != CoreWebView2WebResourceContext.Document
-        && !uri.StartsWith("data:", StringComparison.Ordinal) && !uri.StartsWith("about:", StringComparison.Ordinal);
+        !uri.StartsWith("data:", StringComparison.Ordinal) && !uri.StartsWith("about:", StringComparison.Ordinal)
+        && !(context == CoreWebView2WebResourceContext.Document && uri.StartsWith("file:", StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>A frame may show only an empty or inline document, never the web or another file.</summary>
+    internal static bool IsFrameAllowed(string uri) =>
+        uri.StartsWith("about:", StringComparison.Ordinal) || uri.StartsWith("data:", StringComparison.Ordinal);
 
     /// <summary>Whether a navigation is to the page itself (a file the app wrote, or a string it showed).</summary>
     internal static bool IsThePage(string uri) =>

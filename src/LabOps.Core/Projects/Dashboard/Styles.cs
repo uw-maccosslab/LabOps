@@ -79,6 +79,11 @@ internal static class Styles
             sheet.Append('.').Append(cls).Append('{').Append(css).Append('}');
         }
 
+        // The app's page only (Panorama's has no bars): a bar reached with the keyboard is outlined
+        // and shows its label under it, which a mouse gets from the tooltip.
+        sheet.Append("a[aria-label]:focus{outline:2px solid #f59e0b;outline-offset:1px;z-index:3}")
+            .Append("a[aria-label]:focus::after{content:attr(aria-label);position:absolute;left:0;top:14px;white-space:nowrap;")
+            .Append("background:#1f2933;color:#ffffff;font-size:11px;padding:2px 6px;border-radius:3px;z-index:3}");
         return sheet.ToString();
     }
 

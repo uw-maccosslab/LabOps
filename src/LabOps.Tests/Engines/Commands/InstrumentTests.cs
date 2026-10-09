@@ -70,10 +70,11 @@ public sealed class InstrumentTests
     }
 
     [Fact]
-    public void An_instrument_can_be_listed_by_name_alone()
+    public void An_instrument_can_be_listed_by_name_alone_and_once_whatever_its_capitals()
     {
         using var repo = TestRepo.Create();
-        WriteInstruments(repo, "instruments: [Orbitrap Astral, {name: Stellar}, Orbitrap Astral]\n");
+        // Names are matched ignoring case, so stellar is Stellar again: one instrument, as first spelled.
+        WriteInstruments(repo, "instruments: [Orbitrap Astral, {name: Stellar}, Orbitrap Astral, stellar]\n");
 
         repo.Ok("list")["instruments"]!.AsArray().Select(i => i!.GetValue<string>()).ShouldBe(["Orbitrap Astral", "Stellar"]);
     }

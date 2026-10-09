@@ -147,6 +147,27 @@ public sealed partial class DashboardReviewTests
     }
 
     [Fact]
+    public void A_bar_is_a_labeled_link_the_keyboard_reaches_and_shows_its_label_when_focused()
+    {
+        var timeline = Page(DashboardView.Timeline);
+        var instruments = Page(DashboardView.Instruments);
+
+        // A link (the keyboard reaches it, and it shows the item), with its description as its name.
+        timeline.ShouldContain("href=\"https://labops.invalid/open/2026-09-BioTRACK-DIA\" "
+                               + "title=\"2026-09-BioTRACK-DIA, Signal processing: Sep 29 to Oct 9, late\" "
+                               + "aria-label=\"2026-09-BioTRACK-DIA, Signal processing: Sep 29 to Oct 9, late\"", Case.Sensitive);
+        instruments.ShouldContain("aria-label=\"2026-10-Otter-DIA (ClearwaterZoo-Cole): Oct 3 to Oct 11, under way, overlaps another booking\"",
+            Case.Sensitive);
+        foreach (var page in (string[])[timeline, instruments])
+        {
+            page.ShouldNotContain("<div class=\"bar", Case.Sensitive);
+            page.ShouldContain("class=\"today\"", Case.Sensitive);
+            Regex.Matches(page, "<div class=\"today\"[^>]*aria-hidden=\"true\"").Count.ShouldBe(Regex.Matches(page, "class=\"today\"").Count);
+            page.ShouldContain("a[aria-label]:focus::after{content:attr(aria-label)", Case.Sensitive);
+        }
+    }
+
+    [Fact]
     public void Soon_is_seven_days_counting_today()
     {
         var steps = new[]

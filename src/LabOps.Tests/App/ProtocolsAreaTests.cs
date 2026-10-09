@@ -270,6 +270,18 @@ public sealed class ProtocolsAreaTests
     [InlineData("file:///C:/Users/someone/.ssh/id_ed25519", CoreWebView2WebResourceContext.Image, true)]
     [InlineData("data:image/png;base64,iVBORw0KGgo=", CoreWebView2WebResourceContext.Image, false)]
     [InlineData("file:///C:/Users/someone/AppData/Local/LabOps/protocols/s-trap-v1.html", CoreWebView2WebResourceContext.Document, false)]
+    [InlineData("about:blank", CoreWebView2WebResourceContext.Document, false)]
+    // A frame's source is a document request: from the web, it is blocked like anything else.
+    [InlineData("https://example.org/collect?data=x", CoreWebView2WebResourceContext.Document, true)]
+    [InlineData("http://example.org/", CoreWebView2WebResourceContext.Document, true)]
     public void The_protocol_page_loads_nothing_but_itself_and_its_figures(string uri, CoreWebView2WebResourceContext context, bool blocked) =>
         LabOps.App.Services.WebViewGuard.IsBlocked(uri, context).ShouldBe(blocked);
+
+    [Theory]
+    [InlineData("about:blank", true)]
+    [InlineData("data:text/html,<p>x</p>", true)]
+    [InlineData("https://example.org/", false)]
+    [InlineData("file:///C:/Users/someone/.ssh/id_ed25519", false)]
+    public void A_frame_in_a_page_shows_nothing_from_the_web_or_another_file(string uri, bool allowed) =>
+        LabOps.App.Services.WebViewGuard.IsFrameAllowed(uri).ShouldBe(allowed);
 }

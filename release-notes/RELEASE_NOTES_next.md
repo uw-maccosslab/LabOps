@@ -18,6 +18,16 @@ the GitHub Release description and fails if it is missing.
 
 ## Bug Fixes
 
+- **A page shown in LabOps loaded nothing from the web, frames included.** The protocol preview and
+  the Overview already ran no scripts and blocked images and scripts from the web, but a frame in a
+  page could still have loaded a web address. Frames now show nothing but an empty or inline page.
+- **The timeline and the instrument schedule could be used without a mouse.** Each bar could be
+  reached with Tab, said its item, step and dates to a screen reader, showed them under it when
+  focused, and showed its item in the list when clicked.
+- **An instrument listed twice with different capitals counted once.** `config/instruments.yaml`
+  with both "Stellar" and "stellar" gave one instrument, as first spelled, matching how
+  experiments' instruments were compared.
+
 ## Performance
 
 ## Breaking Changes

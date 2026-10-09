@@ -152,7 +152,9 @@ public sealed class ProjectRepository
             List<object?> list => list,
             _ => [],
         };
-        return _instruments = [.. entries.Select(e => Values.Text(e is PyDict d ? d["name"] : e)).OfType<string>().Distinct(StringComparer.Ordinal)];
+        // Distinct as they are matched, ignoring case, keeping the first spelling.
+        return _instruments = [.. entries.Select(e => Values.Text(e is PyDict d ? d["name"] : e)).OfType<string>()
+            .Distinct(StringComparer.OrdinalIgnoreCase)];
     }
 
     private readonly List<string> _configProblems = [];

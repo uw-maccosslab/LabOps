@@ -388,8 +388,8 @@ public static class DashboardHtml
                     var late = item.IsLate(span.Step, today);
                     var cls = span.Planned ? (late ? "bar-planned-late" : "bar-planned")
                         : span.Step.IsDone || span.Step.IsSkipped ? "bar-done" : late ? "bar-late" : "bar";
-                    var tip = $"{span.Step.DisplayLabel}: {Range(span.From, span.To)}{(span.Planned ? " (planned)" : "")}{(late ? ", late" : "")}";
-                    h.Open("div", cls, Position(span.From, span.To, first, last), ("title", tip)).Close("div");
+                    var tip = $"{item.Name}, {span.Step.DisplayLabel}: {Range(span.From, span.To)}{(span.Planned ? " (planned)" : "")}{(late ? ", late" : "")}";
+                    Bar(h, item, cls, Position(span.From, span.To, first, last), tip);
                 }
 
                 TodayLine(h, today, first, last);
@@ -399,7 +399,7 @@ public static class DashboardHtml
 
         h.Close("div");
         h.Element("p", "legend", "Solid: what happened (gray once done). Dashed: what is planned. Red: late. The line is today. "
-                                 + "Point at a bar for its step and dates.");
+                                 + "Point at a bar, or Tab to it, for its step and dates; click it to see the item.");
     }
 
     private static void Weeks(Html h, DateOnly first, DateOnly last)
@@ -417,9 +417,19 @@ public static class DashboardHtml
     {
         if (today >= first && today <= last)
         {
-            h.Open("div", "today", $"left:{Percent(today.DayNumber - first.DayNumber + 0.5, last.DayNumber - first.DayNumber + 1)}").Close("div");
+            h.Open("div", "today", $"left:{Percent(today.DayNumber - first.DayNumber + 0.5, last.DayNumber - first.DayNumber + 1)}",
+                ("aria-hidden", "true")).Close("div");
         }
     }
+
+    /// <summary>
+    /// A bar on the timeline or the instrument schedule: a link to its project or experiment, so
+    /// the keyboard reaches it and a click shows the item, labeled with what it is and when, so a
+    /// screen reader reads it. A focused bar also shows its label (the stylesheet's focus rule),
+    /// since a tooltip appears only for the mouse.
+    /// </summary>
+    private static void Bar(Html h, DashboardItem item, string cls, string position, string label) =>
+        h.Open("a", cls, position, ("href", OpenPrefix + Uri.EscapeDataString(item.Name)), ("title", label), ("aria-label", label)).Close("a");
 
     private static string Position(DateOnly from, DateOnly to, DateOnly first, DateOnly last, int? widthDays = null)
     {
@@ -551,7 +561,7 @@ public static class DashboardHtml
                     var cls = clashing.Contains(b) ? "bar-clash" : b.Planned ? "bar-planned" : b.Step.IsDone ? "bar-done" : "bar";
                     var tip = $"{b.Item.Name} ({b.Item.Lab}): {Range(b.From, b.To)}, "
                               + (b.Planned ? "planned" : b.Step.IsDone ? "done" : "under way") + (clashing.Contains(b) ? ", overlaps another booking" : "");
-                    h.Open("div", cls, Position(b.From, b.To, first, last), ("title", tip)).Close("div");
+                    Bar(h, b.Item, cls, Position(b.From, b.To, first, last), tip);
                     TodayLine(h, view.Today, first, last);
                     h.Close("div").Close("div");
                 }
