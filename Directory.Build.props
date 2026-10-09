@@ -12,7 +12,7 @@
     v<version> disagrees with this property. Bump it here, commit, then tag.
   -->
   <PropertyGroup>
-    <Version>26.12.0</Version>
+    <Version>26.13.0</Version>
     <Product>LabOps</Product>
     <Company>MacCoss Lab, University of Washington</Company>
     <Authors>MacCoss Lab, University of Washington</Authors>
