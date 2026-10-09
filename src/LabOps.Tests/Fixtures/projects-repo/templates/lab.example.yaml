@@ -1,0 +1,26 @@
+# A lab: one folder per lab we work with, named like the quote groups (Institution-PI, for
+# example ClearwaterZoo-Cole), and UW-MacCoss for the lab's own work. Its projects live in
+# folders beside this file. Edit by hand or ask Claude; then run
+# `labops projects check`.
+
+lab: Institution-PI
+title: Short description of the lab or collaboration
+pi: First Last, Ph.D.
+institution: Full institution name
+status: active            # active | on_hold | closed
+lab_contact: maccoss      # GitHub login of the MacCoss lab's lead (config/people.yaml)
+
+# People to contact at the lab (not study subjects).
+contacts: []
+#  - name: First Last
+#    email: name@example.org
+
+# The collab-* repository where this lab's analyses live, if there is one.
+analysis_repo: null       # for example uw-maccosslab/collab-clearwater-mink
+
+# LabKey ELN notebooks for the collaboration as a whole (projects can list their own).
+notebooks: []
+#  - id: ELN-4485-20230314-179
+#    url: https://panoramaweb.org/MacCoss/...
+
+notes: []

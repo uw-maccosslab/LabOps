@@ -1,0 +1,58 @@
+# A project: one body of work with one set of samples, for example MNRF-BioTRACK. The samples'
+# steps (received to prep) are here, with the deidentified sample table in metadata/ and the
+# Octopus plate layout in layout/. Each experiment (a measurement and analysis of the samples,
+# for example DIA on the Orbitrap Astral, then PRM on the Stellar) is a folder beside this file.
+# The folder name is the project's name: a letter first, then letters, digits and hyphens.
+
+project: Name-Of-Project
+title: Short description of the project
+status: active            # active | on_hold | closed
+lab_contact: maccoss      # GitHub login (config/people.yaml)
+series: null              # optional tag grouping related projects, for example dog-aging
+
+# How the work is paid for. Quote numbers are recorded as text only; prices stay in the quotes
+# repository, which not everyone can read. An experiment can say otherwise.
+funding:
+  type: internal          # quote | grant | internal
+  quotes: []              # for example MacCoss-2026-NWU-SC
+  grant: null             # for example Midwest Neuro Research Foundation
+
+# The samples. human: true for samples from people (recorded; the identifier check is the same
+# for every study, and collection dates and ages are fine).
+human: false
+species: null
+sample_type: null         # for example plasma, CSF, tissue
+expected_samples: null    # study samples, not counting QC
+
+notebooks: []
+#  - id: ELN-4485-20230314-179
+#    url: https://panoramaweb.org/MacCoss/...
+
+# Protocols from LabOps-Protocols, each at the version used and for its step
+# (labops projects link <item> protocol <id> --version N --step STEP).
+protocols: []
+#  - {id: s-trap-micro-digestion, version: 3, title: S-Trap micro digestion, step: sample_prep}
+
+# Where the project's analyses live, if not per experiment.
+analysis:
+  repo: null              # for example uw-maccosslab/collab-mnrf-biotrack
+  folder: null
+
+# The samples' timeline, one step per line, in order. A step has an id (what commands call it)
+# and a kind: samples_received, metadata_organized, plate_layout, sample_prep, assay_development,
+# data_acquisition, data_deposited, signal_processing, data_analysis, results_returned, or other
+# (which needs a label). It may have a label (how it reads), a status (pending | in_progress |
+# done | skipped), assigned (the GitHub login of who does it), started and finished dates, by
+# (who recorded it) and a note. Steps repeat and go anywhere, for example a second shipment: add
+# them with `labops projects add-step`, or ask Claude. Assign them with `labops projects assign`.
+steps:
+  - {id: samples_received, kind: samples_received, status: pending}
+  - {id: metadata_organized, kind: metadata_organized, status: pending}
+  - {id: plate_layout, kind: plate_layout, status: pending}
+  - {id: sample_prep, kind: sample_prep, status: pending}
+
+notes: []
+
+# The project's page on Panorama, which LabOps keeps up to date (labops projects link <project> wiki):
+# the folder, usually the one above the experiments' folders, and the page, default for its main page.
+wiki: null                # for example {folder: /MacCoss/Collaborations/MNRF/BioTRACK, page: default}

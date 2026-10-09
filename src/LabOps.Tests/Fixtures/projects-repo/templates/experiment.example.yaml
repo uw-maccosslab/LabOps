@@ -1,0 +1,52 @@
+# An experiment: one measurement and analysis of its project's samples, for example DIA on the
+# Orbitrap Astral, or PRM on the Stellar after assay development. The folder name is its ID,
+# YYYY-MM-Topic with the month the work starts, unique across the repository. Edit by hand or ask
+# Claude; step updates are easiest with `labops projects stage` or the LabOps app.
+
+experiment: YYYY-MM-Topic
+title: Short description of the experiment
+status: active            # active | on_hold | closed
+lab_contact: maccoss      # GitHub login (config/people.yaml)
+instrument: null          # for example Orbitrap Astral, Stellar
+
+# Only when this experiment is paid for differently from its project; leave type null otherwise.
+funding:
+  type: null              # quote | grant | internal, or null for the project's
+  quotes: []
+  grant: null
+
+notebooks: []
+#  - id: ELN-4485-20230314-179
+#    url: https://panoramaweb.org/MacCoss/...
+
+# Panorama folders: raw data, and any results shared there.
+panorama: []
+#  - folder: /MacCoss/maccoss/...
+#    kind: raw            # raw | results | qc (the process control runs)
+
+# Protocols from LabOps-Protocols, each at the version used and for its step
+# (labops projects link <item> protocol <id> --version N --step STEP).
+protocols: []
+#  - {id: s-trap-micro-digestion, version: 3, title: S-Trap micro digestion, step: sample_prep}
+
+# Where signal processing and analysis live.
+analysis:
+  repo: null              # for example uw-maccosslab/collab-mnrf-biotrack
+  folder: null            # for example 2026-09-BioTRACK-DIA
+
+# The timeline, one step per line, in order. A step has an id (what commands call it) and a kind:
+# samples_received, metadata_organized, plate_layout, sample_prep, assay_development,
+# data_acquisition, data_deposited, signal_processing, data_analysis, results_returned, or other
+# (which needs a label). It may have a label (how it reads), a status (pending | in_progress |
+# done | skipped), assigned (the GitHub login of who does it), started and finished dates, by
+# (who recorded it) and a note. Steps repeat and go anywhere, for example unblinded metadata or
+# assay development before the acquisition: add them with `labops projects add-step`, or ask Claude.
+# Assign them with `labops projects assign`.
+steps:
+  - {id: data_acquisition, kind: data_acquisition, status: pending}
+  - {id: data_deposited, kind: data_deposited, status: pending}
+  - {id: signal_processing, kind: signal_processing, status: pending}
+  - {id: data_analysis, kind: data_analysis, status: pending}
+  - {id: results_returned, kind: results_returned, status: pending}
+
+notes: []

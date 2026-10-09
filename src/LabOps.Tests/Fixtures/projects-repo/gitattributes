@@ -1,0 +1,8 @@
+# Text is stored and checked out with LF on every OS, so files written on Windows or on a Linux
+# runner are identical and syncing never shows line-ending changes.
+* text=auto eol=lf
+
+*.xlsx binary
+*.xls binary
+*.pdf binary
+*.png binary

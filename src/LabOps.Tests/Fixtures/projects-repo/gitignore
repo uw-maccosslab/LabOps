@@ -1,0 +1,5 @@
+# Originals as received from collaborators. Never committed: they may hold identifiers. Only
+# deidentified CSV conversions go under projects/*/*/metadata/received/.
+inbox/
+~$*
+.DS_Store

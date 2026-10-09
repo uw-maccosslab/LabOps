@@ -1,0 +1,11 @@
+# People who work on lab projects. Stage updates record who did them by GitHub login, and
+# `labops projects check` warns about a login not listed here. Add yourself when you start.
+#
+#   - login: GitHub login
+#     name: Full name
+#     role: for example PI, staff scientist, research scientist, graduate student
+
+people:
+  - login: maccoss
+    name: Michael MacCoss
+    role: PI

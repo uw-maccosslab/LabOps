@@ -1,0 +1,11 @@
+search name, age, sex, treatment, batch
+search1,23,F,T,1
+search2,33,M,T,2
+search3,34,F,T,1
+search4,21,M,T,2
+search5,33,F,T,1
+search6,21,M,F,2
+search7,55,F,F,1
+search8,44,M,F,2
+search9,23,F,F,1
+search10,67,M,F,2
