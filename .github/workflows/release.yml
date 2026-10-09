@@ -127,6 +127,17 @@ jobs:
           -p:PublishReadyToRun=true
           -o artifacts/publish
 
+      # 26.10.0 and 26.11.0 shipped with the labops tool's dependency manifest in place of the
+      # app's, and did not start. The app's must be there, under its own name, naming its libraries.
+      - name: Check the app's dependency manifest
+        shell: pwsh
+        run: |
+          $manifests = @(Get-ChildItem artifacts/publish -Filter *.deps.json)
+          if ($manifests.Count -ne 1 -or $manifests[0].Name -cne 'LabOps.deps.json') { throw "Expected only LabOps.deps.json, found: $($manifests.Name -join ', ')" }
+          $text = Get-Content $manifests[0].FullName -Raw
+          if ($text -notmatch '"LabOps/' -or $text -notmatch '"Serilog/' -or $text -cmatch '"labops/') { throw "LabOps.deps.json is not the app's own" }
+          if (-not (Test-Path artifacts/publish/tools/labops.exe)) { throw "tools/labops.exe is missing" }
+
       - name: Install vpk
         run: dotnet tool install -g vpk
 

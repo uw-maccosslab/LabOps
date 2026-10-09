@@ -18,6 +18,10 @@ the GitHub Release description and fails if it is missing.
 
 ## Bug Fixes
 
+- **LabOps started again.** LabOps 26.10.0 and 26.11.0 could close straight away at startup ("Could
+  not load file or assembly 'Serilog'"): the build had put the labops tool's list of libraries in
+  place of the app's. The release now checks the app's own list before publishing. A copy that does
+  not start cannot update itself; download **LabOps Setup** from this release's page and run it.
 - **A page shown in LabOps loaded nothing from the web, frames included.** The protocol preview and
   the Overview already ran no scripts and blocked images and scripts from the web, but a frame in a
   page could still have loaded a web address. Frames now show nothing but an empty or inline page.

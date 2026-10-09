@@ -61,17 +61,18 @@
     <None Include="tools\**\*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
-  <ItemGroup>
-    <!--
-      The labops tool, which Claude's skills and the pre-commit hook run, is in tools\ too, so
-      Claude sessions find it first on their PATH. release.yml publishes it compiled ahead of time
-      into tools\; a development build copies the tool's own build there (below). It is built
-      first for that, and nothing of it is referenced.
-    -->
-    <ProjectReference Include="..\LabOps.Cli\LabOps.Cli.csproj" ReferenceOutputAssembly="false" />
-  </ItemGroup>
-
+  <!--
+    The labops tool, which Claude's skills and the pre-commit hook run, is in tools\ too, so Claude
+    sessions find it first on their PATH. release.yml publishes it compiled ahead of time into
+    tools\; a development build builds the tool and copies its build there (below).
+    It is deliberately not a ProjectReference, not even with ReferenceOutputAssembly="false": the
+    SDK copies a referenced program's labops.deps.json and runtimeconfig into this folder, where
+    Windows, ignoring case, takes it for LabOps.deps.json. Whichever was written last won; when it
+    was labops's, the app could not find its own libraries and did not start (26.10.0, 26.11.0).
+  -->
   <Target Name="CopyLabopsTool" AfterTargets="Build" Condition="!Exists('tools\labops.exe')">
+    <MSBuild Projects="..\LabOps.Cli\LabOps.Cli.csproj" Targets="Build" Properties="Configuration=$(Configuration)"
+             RemoveProperties="RuntimeIdentifier;SelfContained;PublishReadyToRun;OutDir;OutputPath" />
     <ItemGroup>
       <LabopsToolFile Include="..\LabOps.Cli\bin\$(Configuration)\net10.0\**\*" />
     </ItemGroup>
