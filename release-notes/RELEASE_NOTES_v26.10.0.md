@@ -14,6 +14,8 @@ ran three to seven times faster.
   - Claude's skills and the pre-commit hook could run the same engine as the **labops** tool
     (`labops projects stage ...`, with the commands and options of `project.py`), which LabOps kept
     in its tools folder. Claude could run it without asking.
+  - The engine's messages, the comments it wrote into records, and the heading of the README's
+    project index named `labops projects` commands rather than `project.py`.
   - `LABOPS_PROJECT_ENGINE=python` ran `scripts/project.py` instead, for this release only, in case
     the new engine missed something.
 

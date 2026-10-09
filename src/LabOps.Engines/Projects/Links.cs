@@ -15,7 +15,7 @@ public static partial class Links
     public const string PanoramaHost = "panoramaweb.org";
 
     public const string ProtocolComment = "Protocols from LabOps-Protocols, each at the version used and for its step "
-                                          + "(project.py link <item> protocol <id> --version N --step STEP).";
+                                          + "(labops projects link <item> protocol <id> --version N --step STEP).";
 
     // A notebook ID ends in the notebook's site-wide row ID (ELN-{user}-{date}-{row}, ELN-{date}-{row}
     // or ELN-{row}), which is also where it opens.

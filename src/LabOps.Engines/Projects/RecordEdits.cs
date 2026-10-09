@@ -136,6 +136,6 @@ public static class RecordEdits
         }
 
         return Py.RStrip(raw, "\n") + "\n\n# The project's page on Panorama, which LabOps keeps up to date "
-            + "(project.py link <project> wiki).\n" + line + "\n";
+            + "(labops projects link <project> wiki).\n" + line + "\n";
     }
 }

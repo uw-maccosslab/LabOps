@@ -89,7 +89,7 @@ public static class FileChecks
         if (!AllowedInProjects.Contains(Suffix(name)))
         {
             return [Error(name, "only CSV, YAML, JSON and Markdown files are committed here; convert a sheet to CSV "
-                                + "(project.py sheet) and keep originals such as spreadsheets and PDFs in inbox/")];
+                                + "(labops projects sheet) and keep originals such as spreadsheets and PDFs in inbox/")];
         }
 
         string text;

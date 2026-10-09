@@ -47,7 +47,8 @@ public sealed class YamlEditTests
                 actual = $"<error: {ex.Message}>";
             }
 
-            var expected = c.TryGetProperty("result", out var r) ? r.GetString()! : $"<error: {c.GetProperty("message").GetString()}>";
+            // In the C# engine's words: a record comment names the labops command, not project.py's.
+            var expected = Parity.InOurWords(c.TryGetProperty("result", out var r) ? r.GetString()! : $"<error: {c.GetProperty("message").GetString()}>");
             mismatches.Check(actual == expected,
                 () => $"{name} {args}\n  python: {JsonSerializer.Serialize(expected)}\n  c#:     {JsonSerializer.Serialize(actual)}");
         }
