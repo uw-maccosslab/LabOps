@@ -53,28 +53,10 @@ public partial class ProtocolsView : UserControl
         _started = true;
         try
         {
-            var paths = App.Services.GetRequiredService<AppPaths>();
-            var environment = await CoreWebView2Environment.CreateAsync(userDataFolder: Path.Combine(paths.Root, "webview2"));
-            await Preview.EnsureCoreWebView2Async(environment);
-            Preview.CoreWebView2.Settings.AreDevToolsEnabled = false;
-            Preview.CoreWebView2.Settings.IsStatusBarEnabled = false;
             // The page is the engine's, with its figures inside it: it needs no scripts and nothing
             // from the web, so a protocol's text can neither run code here nor send anything out.
-            Preview.CoreWebView2.Settings.IsScriptEnabled = false;
-            Preview.CoreWebView2.AddWebResourceRequestedFilter("*", CoreWebView2WebResourceContext.All);
-            Preview.CoreWebView2.WebResourceRequested += (_, args) =>
-            {
-                if (IsBlocked(args.Request.Uri, args.ResourceContext))
-                {
-                    args.Response = environment.CreateWebResourceResponse(null, 403, "Blocked", "");
-                }
-            };
+            await WebViewGuard.SecureAsync(Preview, App.Services.GetRequiredService<AppPaths>());
             Preview.CoreWebView2.NavigationStarting += OnNavigating;
-            Preview.CoreWebView2.NewWindowRequested += (_, args) =>
-            {
-                args.Handled = true;
-                OpenOutside(args.Uri);
-            };
             _ready = true;
             ShowPage();
         }
@@ -115,30 +97,12 @@ public partial class ProtocolsView : UserControl
     /// <summary>The page itself loads here; its links (a supplier's catalog page) open in the browser.</summary>
     private void OnNavigating(object? sender, CoreWebView2NavigationStartingEventArgs e)
     {
-        if (e.Uri.StartsWith("file:", StringComparison.OrdinalIgnoreCase) || e.Uri.StartsWith("data:", StringComparison.Ordinal)
-            || e.Uri.StartsWith("about:", StringComparison.Ordinal))
+        if (WebViewGuard.IsThePage(e.Uri))
         {
             return;
         }
 
         e.Cancel = true;
-        OpenOutside(e.Uri);
-    }
-
-    /// <summary>
-    /// What the page may not load: anything from the web, and any file other than the page itself
-    /// (the engine puts its figures inside the page). Following a link is a navigation, handled
-    /// by <see cref="OnNavigating"/>.
-    /// </summary>
-    internal static bool IsBlocked(string uri, CoreWebView2WebResourceContext context) =>
-        context != CoreWebView2WebResourceContext.Document
-        && !uri.StartsWith("data:", StringComparison.Ordinal) && !uri.StartsWith("about:", StringComparison.Ordinal);
-
-    private static void OpenOutside(string uri)
-    {
-        if (uri.StartsWith("https://", StringComparison.OrdinalIgnoreCase) || uri.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase))
-        {
-            Shell.Open(uri);
-        }
+        WebViewGuard.OpenOutside(e.Uri);
     }
 }

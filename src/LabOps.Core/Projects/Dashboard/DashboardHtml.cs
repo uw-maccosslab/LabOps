@@ -16,8 +16,12 @@ public sealed record DashboardRequest(DashboardView View, DateOnly Today, Dashbo
 /// </summary>
 public static class DashboardHtml
 {
-    /// <summary>The links the app intercepts: #open:NAME selects that project or experiment in the list.</summary>
-    public const string OpenPrefix = "#open:";
+    /// <summary>
+    /// The links the app intercepts: OpenPrefix + NAME selects that project or experiment in the list.
+    /// A real navigation (a fragment would not be one), to a name under the reserved .invalid domain,
+    /// so even a link the app failed to catch could reach nothing.
+    /// </summary>
+    public const string OpenPrefix = "https://labops.invalid/open/";
 
     private static readonly CultureInfo English = CultureInfo.GetCultureInfo("en-US");
 

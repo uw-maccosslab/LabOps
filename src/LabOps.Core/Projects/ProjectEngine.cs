@@ -119,6 +119,40 @@ public sealed class ProjectEngine : IPreCommitCheck
         using var doc = await RunAsync(args, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Plans steps: when they should start and finish. Both dates are written as given, so a date
+    /// left out (null) is removed; with neither, the plan is cleared.
+    /// </summary>
+    /// <param name="item">The project or experiment, by name.</param>
+    /// <param name="stages">The steps' ids.</param>
+    public async Task PlanAsync(string item, IReadOnlyList<string> stages, DateOnly? start, DateOnly? finish,
+        CancellationToken cancellationToken = default)
+    {
+        // plan keeps a date it is not given, so clear first and then set what there is.
+        using (await RunAsync(["plan", item, .. stages, "--clear"], cancellationToken).ConfigureAwait(false))
+        {
+        }
+
+        if (start is null && finish is null)
+        {
+            return;
+        }
+
+        var args = new List<string> { "plan", item };
+        args.AddRange(stages);
+        if (start is { } s)
+        {
+            args.AddRange(["--start", s.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)]);
+        }
+
+        if (finish is { } f)
+        {
+            args.AddRange(["--finish", f.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)]);
+        }
+
+        using var doc = await RunAsync(args, cancellationToken).ConfigureAwait(false);
+    }
+
     /// <summary>Records an experiment's Panorama folder; any Panorama address is kept as the folder path.</summary>
     /// <param name="experiment">The experiment, by name.</param>
     /// <param name="folder">The folder path, or any address for it copied from the browser.</param>

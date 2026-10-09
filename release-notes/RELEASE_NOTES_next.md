@@ -6,6 +6,26 @@ the GitHub Release description and fails if it is missing.
 
 ## New Features
 
+- **Projects had an Overview.** A **List** | **Overview** switch at the top of the Projects area
+  showed the open work five ways:
+  - **Needs attention**: late steps, steps due or starting in the next 7 days, and records with
+    errors.
+  - **Board**: each open project and experiment at its current step, in columns from Samples to
+    Results, late ones first and marked red.
+  - **Timeline**: twelve weeks of each item's steps, what happened solid and what is planned
+    dashed, late steps red, with a line for today.
+  - **Calendar**: a month of steps started, finished, planned to start and due, three a day with a
+    count of the rest; the arrows changed the month.
+  - **Instruments**: each instrument's data acquisitions on the same weeks, with overlapping
+    bookings listed and drawn red.
+
+  **Whose** showed one person's work (steps assigned to them, and projects they are the lab
+  contact for) and **Lab** one lab's. The overview opened on your own work when you had some.
+  Clicking a project or experiment showed it in the list. The page ran no scripts and loaded
+  nothing from the web.
+- **Steps had a Plan button.** It set when a step should start and be finished (either date could
+  be left empty, and **Remove the plan** removed both). The step then showed "Planned Oct 12 to
+  Oct 20", in red with "late" once a date had passed and the step was not done.
 - **Steps could be planned.** `labops projects plan <item> <step>... --start DATE --finish DATE`
   recorded when steps should start and finish (a date not given kept the one recorded, and `--clear`
   removed the plan), written on each step's line as `planned_start` and `planned_finish`. `check`

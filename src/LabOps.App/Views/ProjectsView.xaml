@@ -1,8 +1,56 @@
 <UserControl x:Class="LabOps.App.Views.ProjectsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:app="clr-namespace:LabOps.App">
+             xmlns:app="clr-namespace:LabOps.App"
+             xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf">
     <UserControl.Resources>
+        <!-- A pill: the List | Overview switch, and the overview's views -->
+        <Style x:Key="Pill" TargetType="ToggleButton">
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Chrome" Background="Transparent" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                                CornerRadius="12" Padding="12,3" Margin="0,0,6,0">
+                            <ContentPresenter HorizontalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Chrome" Property="Background" Value="{StaticResource AccentBrush}" />
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                <Setter Property="Foreground" Value="White" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="{StaticResource AccentHoverBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="PillRadio" TargetType="RadioButton" BasedOn="{StaticResource Pill}" />
+        <Style x:Key="ViewTab" TargetType="ListBoxItem">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Chrome" Background="Transparent" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                                CornerRadius="12" Padding="12,3" Margin="0,0,6,0">
+                            <ContentPresenter x:Name="Text" HorizontalAlignment="Center" TextElement.Foreground="{StaticResource TextBrush}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Chrome" Property="Background" Value="{StaticResource AccentLightBrush}" />
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                <Setter TargetName="Text" Property="TextElement.Foreground" Value="{StaticResource AccentBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- A link (a button) or, without a URL, plain text -->
         <DataTemplate x:Key="LinkTemplate">
             <StackPanel Orientation="Horizontal" Margin="0,0,0,3">
@@ -81,6 +129,10 @@
                                     Command="{Binding DataContext.AssignCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                     Visibility="{Binding CanAssign, Converter={StaticResource BoolToVisibility}}"
                                     ToolTip="Choose who does this step." />
+                            <Button Content="Plan" CommandParameter="{Binding}"
+                                    Command="{Binding DataContext.PlanCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    Visibility="{Binding CanPlan, Converter={StaticResource BoolToVisibility}}"
+                                    ToolTip="When this step should start and be finished. The overview shows the plan, and the step as late once it has passed." />
                             <Button Content="Remove" CommandParameter="{Binding}"
                                     Command="{Binding DataContext.RemoveStepCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                     Visibility="{Binding CanRemove, Converter={StaticResource BoolToVisibility}}"
@@ -102,6 +154,18 @@
                             <TextBlock Text="{Binding StatusText}" Style="{StaticResource Muted}" />
                             <TextBlock Text="{Binding AssignedText}" Style="{StaticResource Muted}"
                                        Visibility="{Binding AssignedText, Converter={StaticResource NullToVisibility}}" />
+                            <TextBlock Text="{Binding PlannedText}" Visibility="{Binding PlannedText, Converter={StaticResource NullToVisibility}}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource Muted}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsLate}" Value="True">
+                                                <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+                                                <Setter Property="FontWeight" Value="SemiBold" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
                             <TextBlock Text="{Binding Note}" Style="{StaticResource Muted}" FontStyle="Italic" TextWrapping="Wrap"
                                        Visibility="{Binding Note, Converter={StaticResource NullToVisibility}}" />
                         </StackPanel>
@@ -123,7 +187,16 @@
             <TextBlock Text="{Binding Banner}" TextWrapping="Wrap" />
         </Border>
 
+        <!-- The list of projects, or the overview of everyone's work -->
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="10,10,10,0">
+            <RadioButton Content="List" GroupName="ProjectsMode" Style="{StaticResource PillRadio}" IsChecked="{Binding ShowList}"
+                         ToolTip="Every project, to search and open one." />
+            <RadioButton Content="Overview" GroupName="ProjectsMode" Style="{StaticResource PillRadio}" IsChecked="{Binding ShowOverview}"
+                         ToolTip="What needs attention, the board, the timeline, the calendar and the instruments, for everyone or one person." />
+        </StackPanel>
+
         <Grid>
+        <Grid Visibility="{Binding ShowList, Converter={StaticResource BoolToVisibility}}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="680" MinWidth="340" />
                 <ColumnDefinition Width="5" />
@@ -211,6 +284,42 @@
                     </StackPanel>
                 </ScrollViewer>
             </Grid>
+        </Grid>
+
+        <!-- The overview: a page drawn from the loaded projects, with no scripts -->
+        <DockPanel DataContext="{Binding Overview}" Margin="10"
+                   Visibility="{Binding DataContext.ShowOverview, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisibility}}">
+            <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                <ListBox ItemsSource="{Binding Tabs}" SelectedValue="{Binding View}" SelectedValuePath="View" DisplayMemberPath="Label"
+                         ItemContainerStyle="{StaticResource ViewTab}" BorderThickness="0" Background="Transparent" VerticalAlignment="Center"
+                         AutomationProperties.Name="Overview view">
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                </ListBox>
+                <TextBlock Text="Whose" VerticalAlignment="Center" Margin="12,0,6,0" Style="{StaticResource Muted}" />
+                <ComboBox ItemsSource="{Binding People}" SelectedItem="{Binding Person}" DisplayMemberPath="Label" Width="170"
+                          AutomationProperties.Name="Whose work" ToolTip="Work assigned to them, or on projects they are the lab contact for." />
+                <TextBlock Text="Lab" VerticalAlignment="Center" Margin="12,0,6,0" Style="{StaticResource Muted}" />
+                <ComboBox ItemsSource="{Binding Labs}" SelectedItem="{Binding Lab}" DisplayMemberPath="Label" Width="170"
+                          AutomationProperties.Name="Lab" />
+                <StackPanel Orientation="Horizontal" Margin="12,0,0,0" Visibility="{Binding IsCalendar, Converter={StaticResource BoolToVisibility}}">
+                    <Button Content="&#x2039;" Command="{Binding PreviousMonthCommand}" Padding="8,2" AutomationProperties.Name="Previous month" />
+                    <TextBlock Text="{Binding MonthText}" VerticalAlignment="Center" Margin="4,0" MinWidth="110" TextAlignment="Center" />
+                    <Button Content="&#x203A;" Command="{Binding NextMonthCommand}" Padding="8,2" AutomationProperties.Name="Next month" />
+                    <Button Content="This month" Command="{Binding ThisMonthCommand}" Margin="6,0,0,0" />
+                </StackPanel>
+            </WrapPanel>
+            <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                <Grid>
+                    <wv2:WebView2 x:Name="OverviewPage" DefaultBackgroundColor="White" />
+                    <TextBlock x:Name="NoOverview" Visibility="Collapsed" Margin="12" TextWrapping="Wrap" Style="{StaticResource Muted}"
+                               Text="The overview cannot be shown because the WebView2 runtime is missing. The list of projects still works." />
+                </Grid>
+            </Border>
+        </DockPanel>
         </Grid>
     </DockPanel>
 </UserControl>

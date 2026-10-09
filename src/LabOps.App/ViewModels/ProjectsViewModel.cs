@@ -60,6 +60,21 @@ public sealed partial class ProjectsViewModel : ObservableObject
         Chat = chat;
         Query = "";
         _work.PropertyChanged += OnWorkChanged;
+        Overview.OpenRequested += ShowItem;
+    }
+
+    /// <summary>The overview: board, timeline, calendar, instruments, and what needs attention.</summary>
+    public OverviewViewModel Overview { get; } = new();
+
+    /// <summary>Whether the area shows the overview rather than the list of projects.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowList))]
+    public partial bool ShowOverview { get; set; }
+
+    public bool ShowList
+    {
+        get => !ShowOverview;
+        set => ShowOverview = !value;
     }
 
     /// <summary>Someone opened a protocol a step followed: show it, at that version, in the Protocols area.</summary>
@@ -169,6 +184,7 @@ public sealed partial class ProjectsViewModel : ObservableObject
 
             var modified = await ItemHistory.LastModifiedAsync(repository).ConfigureAwait(true);
             _people = list.People;
+            Overview.Update(list, _workspace.User?.Login);
             _all = [.. list.Labs.SelectMany(lab => lab.Projects.Select(p =>
                 new ProjectRow(lab, p, modified.TryGetValue(p.Folder, out var t) ? t : null, p.Assigned is { } a ? NameOf(a) : "")))];
             _allHasClosed = includeClosed || list.ClosedHidden == 0;
@@ -209,6 +225,28 @@ public sealed partial class ProjectsViewModel : ObservableObject
     }
 
     partial void OnQueryChanged(string value) => ApplyFilter();
+
+    /// <summary>
+    /// Shows a project, or the project an experiment belongs to, in the list: what a click on the
+    /// overview does. A search or a hidden closed project does not keep it out of view.
+    /// </summary>
+    public void ShowItem(string name)
+    {
+        var row = _all.FirstOrDefault(r => r.Name == name || r.Project.Experiments.Any(e => e.Experiment == name));
+        ShowOverview = false;
+        if (row is null)
+        {
+            return;
+        }
+
+        if (!Projects.Contains(row))
+        {
+            Query = "";
+            ShowClosed = ShowClosed || row.IsClosed;
+        }
+
+        Selected = Projects.FirstOrDefault(r => r.Name == row.Name);
+    }
 
     partial void OnShowClosedChanged(bool value)
     {
@@ -552,6 +590,38 @@ public sealed partial class ProjectsViewModel : ObservableObject
                 : $"{section.Item}: {what} assigned to {answer.Login}").ConfigureAwait(true);
         }).ConfigureAwait(true);
         await ReloadAsync(project).ConfigureAwait(true);
+    }
+
+    /// <summary>Plans a step: when it should start and be finished, which the overview shows.</summary>
+    [RelayCommand(CanExecute = nameof(CanUpdateStage))]
+    private async Task PlanAsync(StageRowViewModel row)
+    {
+        var project = Selected!.Name;
+        var section = row.Section;
+        var answer = PlanWindow.Ask(Application.Current.MainWindow, $"Plan {row.Label}: {Where(section)}",
+            StageEntry.Date(row.Entry.PlannedStart), StageEntry.Date(row.Entry.PlannedFinish));
+        if (answer is null)
+        {
+            return;
+        }
+
+        var label = row.Label.ToLowerInvariant();
+        var what = (answer.Start, answer.Finish) switch
+        {
+            (null, null) => $"{section.Item}: {label} plan removed",
+            ({ } s, { } f) => $"{section.Item}: {label} planned {Iso(s)} to {Iso(f)}",
+            ({ } s, null) => $"{section.Item}: {label} planned to start {Iso(s)}",
+            (null, { } f) => $"{section.Item}: {label} planned to finish {Iso(f)}",
+        };
+        await _work.RunAsync("Planning...", async () =>
+        {
+            await PullFirstAsync().ConfigureAwait(true);
+            await _engine.PlanAsync(section.Item, [row.Stage], answer.Start, answer.Finish).ConfigureAwait(true);
+            await SaveAsync([section.Folder], what).ConfigureAwait(true);
+        }).ConfigureAwait(true);
+        await ReloadAsync(project).ConfigureAwait(true);
+
+        static string Iso(DateOnly d) => d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
     }
 
     /// <summary>
@@ -933,7 +1003,7 @@ public sealed partial class ProjectsViewModel : ObservableObject
         foreach (var command in new IRelayCommand[]
                  {
                      NewProjectCommand, NewExperimentCommand, AskClaudeCommand, StartStageCommand, FinishStageCommand,
-                     SkipStageCommand, ReopenStageCommand, AssignCommand, AddStepCommand, RemoveStepCommand,
+                     SkipStageCommand, ReopenStageCommand, AssignCommand, PlanCommand, AddStepCommand, RemoveStepCommand,
                      AddLinkCommand, RemoveLinkCommand, AddProtocolCommand, OrganizeMetadataCommand,
                      OpenInOctopusCommand, ImportLayoutCommand, OpenFolderCommand, OpenOnGitHubCommand, ViewSamplesCommand, ViewWikiCommand,
                  })

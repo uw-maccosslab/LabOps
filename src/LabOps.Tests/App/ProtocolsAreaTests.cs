@@ -271,5 +271,5 @@ public sealed class ProtocolsAreaTests
     [InlineData("data:image/png;base64,iVBORw0KGgo=", CoreWebView2WebResourceContext.Image, false)]
     [InlineData("file:///C:/Users/someone/AppData/Local/LabOps/protocols/s-trap-v1.html", CoreWebView2WebResourceContext.Document, false)]
     public void The_protocol_page_loads_nothing_but_itself_and_its_figures(string uri, CoreWebView2WebResourceContext context, bool blocked) =>
-        ProtocolsView.IsBlocked(uri, context).ShouldBe(blocked);
+        LabOps.App.Services.WebViewGuard.IsBlocked(uri, context).ShouldBe(blocked);
 }

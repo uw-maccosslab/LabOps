@@ -266,6 +266,35 @@ public sealed class StageRowViewModel(TimelineSection section, StageEntry entry,
     /// <summary>Work still to do can be given to someone.</summary>
     public bool CanAssign => Entry.IsPending || Entry.IsInProgress;
 
+    /// <summary>Work still to do can be planned.</summary>
+    public bool CanPlan => Entry.IsPending || Entry.IsInProgress;
+
+    /// <summary>Today in Seattle, for whether the plan has slipped.</summary>
+    internal Func<DateOnly> Today { get; init; } = LabOps.Engines.Projects.ProjectRepository.LabToday;
+
+    /// <summary>"Planned Oct 12 to Oct 20", "Planned to start Oct 12", "Due Oct 20"; null without a plan.</summary>
+    public string? PlannedText
+    {
+        get
+        {
+            var start = StageEntry.Date(Entry.PlannedStart);
+            var finish = StageEntry.Date(Entry.PlannedFinish);
+            var text = (start, finish) switch
+            {
+                ({ } s, { } f) => $"Planned {Short(s)} to {Short(f)}",
+                ({ } s, null) => $"Planned to start {Short(s)}",
+                (null, { } f) => $"Due {Short(f)}",
+                _ => null,
+            };
+            return text is not null && IsLate ? $"{text}: late" : text;
+
+            static string Short(DateOnly d) => d.ToString("MMM d", CultureInfo.GetCultureInfo("en-US"));
+        }
+    }
+
+    /// <summary>Its planned finish (or, not yet started, its planned start) has passed.</summary>
+    public bool IsLate => Entry.IsLate(Today());
+
     /// <summary>Only a step with nothing recorded can go; anything else is skipped instead.</summary>
     public bool CanRemove => Entry.IsPending && Entry.Started is null && Entry.Finished is null && Entry.By is null
         && string.IsNullOrWhiteSpace(Entry.Note) && Section.Stages.Count > 1;
