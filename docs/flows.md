@@ -22,7 +22,7 @@ sequenceDiagram
     actor You
     participant App as LabOps
     participant Git as git, in the clone
-    participant Engine as project.py
+    participant Engine as project engine (labops)
     participant GitHub
     participant Actions as GitHub Actions
 
@@ -30,7 +30,7 @@ sequenceDiagram
     opt not synced with GitHub in the last minute
         App->>Git: fetch, rebase --autostash origin/main
     end
-    App->>Engine: uv run --frozen python scripts/project.py --json stage MNRF-BioTRACK plate_layout done ...
+    App->>Engine: stage MNRF-BioTRACK plate_layout done ... (in-process)
     Engine-->>App: JSON: the project, its steps and any warnings
     App->>Git: add -A projects/UW-MacCoss/MNRF-BioTRACK
     App->>Engine: check --staged (LabOps-Projects only)
@@ -155,7 +155,7 @@ sequenceDiagram
     actor You
     participant App as LabOps
     participant Inbox as inbox/MNRF-BioTRACK/<br/>ignored by git
-    participant Engine as project.py
+    participant Engine as project engine (labops)
     participant Claude as Claude Code
     participant Octopus as Octopus, in the browser
 
@@ -192,7 +192,7 @@ sequenceDiagram
     participant App as LabOps
     participant Creds as Credential Manager
     participant Panorama as panoramaweb.org
-    participant Engine as project.py
+    participant Engine as project engine (labops)
 
     You->>App: Add raw data folder, Browse...
     App->>Creds: PanoramaBridge:https://panoramaweb.org, then LabOps:https://panoramaweb.org
@@ -234,7 +234,7 @@ sequenceDiagram
     participant Inbox as inbox/<id>/<br/>ignored by git
     participant Engine as protocol.py
     participant Claude as Claude Code
-    participant Projects as project.py
+    participant Projects as project engine (labops)
 
     You->>App: New protocol: title, category, and the original (Word, PDF, LaTeX, ...)
     App->>Engine: import (extracts the text and figures)
@@ -291,7 +291,7 @@ collaborators of that collaboration included; a lab member decides who that is, 
 sequenceDiagram
     actor You
     participant App as LabOps
-    participant Engine as project.py
+    participant Engine as project engine (labops)
     participant Claude as Claude Code
     participant Panorama as panoramaweb.org
 

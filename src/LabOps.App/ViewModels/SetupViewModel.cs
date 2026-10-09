@@ -158,10 +158,6 @@ public sealed partial class SetupViewModel : ObservableObject
                     }
 
                     break;
-                case SetupStep.ProjectsEngine:
-                    Status = "Preparing the project engine. The first time downloads Python, which takes a minute or two...";
-                    await _projectEngine.EnsureEnvironmentAsync().ConfigureAwait(true);
-                    break;
                 case SetupStep.ProtocolsEngine:
                     Status = "Preparing the protocol engine. The first time downloads its packages, which takes a minute...";
                     await _protocolEngine.EnsureEnvironmentAsync().ConfigureAwait(true);

@@ -290,9 +290,7 @@ public sealed class WikiTests
                 store.Entries["PanoramaBridge:https://panoramaweb.org"] = new StoredCredential("apikey", "k");
             }
 
-            Directory.CreateDirectory(Path.Combine(_dir.Path, "tools"));
-            File.WriteAllText(Path.Combine(_dir.Path, "tools", "uv.exe"), "");
-            var engine = new ProjectEngine(new Runner(this, hash), new ToolLocator(_dir.Path)) { RepositoryPath = _dir.Path, UsePython = true };
+            var engine = new ProjectEngine { RepositoryPath = _dir.Path, Commands = (_, args) => Answer(args, hash) };
             Wiki = new WikiPublisher(new PanoramaSignIn(store, Server), engine, new WorkTracker(NullLogger<WorkTracker>.Instance),
                 new AppPaths(_dir.Path), NullLogger<WikiPublisher>.Instance) { Handler = Handler };
         }
@@ -326,27 +324,20 @@ public sealed class WikiTests
 
         public void Dispose() => _dir.Dispose();
 
-        private sealed class Runner(Publisher owner, string hash) : IProcessRunner
+        /// <summary>What the engine's wiki command answers, keeping the --documents JSON it was given.</summary>
+        private string Answer(IReadOnlyList<string> args, string hash)
         {
-            public Task<ProcessResult> RunAsync(
-                string fileName, IEnumerable<string> arguments, string? workingDirectory = null,
-                IReadOnlyDictionary<string, string?>? environment = null, TimeSpan? timeout = null,
-                CancellationToken cancellationToken = default)
+            var documents = args.ToList().IndexOf("--documents");
+            if (documents >= 0)
             {
-                var args = arguments.ToList();
-                var documents = args.IndexOf("--documents");
-                if (documents >= 0)
-                {
-                    owner.Documents = File.ReadAllText(args[documents + 1]);
-                }
-
-                var json = JsonSerializer.Serialize(new
-                {
-                    ok = true, project = "MNRF-BioTRACK", folder = "/MacCoss/Collaborations/MNRF/BioTRACK", page = "default",
-                    title = "MNRF BioTRACK", html = owner.Html, written = true, written_hash = hash,
-                });
-                return Task.FromResult(new ProcessResult(0, json, ""));
+                Documents = File.ReadAllText(args[documents + 1]);
             }
+
+            return JsonSerializer.Serialize(new
+            {
+                ok = true, project = "MNRF-BioTRACK", folder = "/MacCoss/Collaborations/MNRF/BioTRACK", page = "default",
+                title = "MNRF BioTRACK", html = Html, written = true, written_hash = hash,
+            });
         }
     }
 

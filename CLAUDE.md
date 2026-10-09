@@ -34,7 +34,8 @@ text alike.
   `ProjectsCommandLine`); Claude's skills, the pre-commit hook and GitHub Actions run the same
   command lines as the `labops` tool (`labops projects stage ...`), which the app ships in its
   `tools\` folder. Records it writes must stay byte for byte what `project.py` wrote (see the
-  engine tests below). `LABOPS_PROJECT_ENGINE=python` runs `project.py` instead, for one release.
+  engine tests below). LabOps-Projects no longer has `project.py` (its CI builds `labops` from the
+  LabOps tag its `min_app_version` names).
 - **The app never computes a price.** It runs `uv run --frozen python scripts/<engine>.py --json ...`
   for quotes and protocols (`QuoteEngine`, `ProtocolEngine`) and shows what comes back.
 - **One `Repository` per clone.** `RepositoryProfile` holds what differs (GitHub name, engine,
@@ -66,7 +67,7 @@ release-notes/               one file per version; becomes the GitHub Release bo
 src/LabOps.Core/     all logic, no UI types                     net10.0
   Claude/                    stream-json session, parser, in-app MCP server (AppTools), PermissionMemory
   Engines/                   what both engines share: uv run, JSON answers, EngineException
-  Projects/                  ProjectEngine (project.py), lab, project and experiment models
+  Projects/                  ProjectEngine (runs LabOps.Engines in-process), lab, project and experiment models
   Protocols/                 ProtocolEngine (protocol.py), protocol models
   Panorama/                  read-only Panorama client, sign-in (PanoramaBridge's, then ours)
   Quotes/                    QuoteEngine (quote.py), RepoConfig, QuoteSearch
@@ -93,7 +94,8 @@ dotnet test --project src/LabOps.Tests/LabOps.Tests.csproj
 ```
 
 - `SERVICES_QUOTES_REPO=<clone of LabOps-Quotes>` also runs the real quote engine in a test,
-  `LAB_PROJECTS_REPO=<clone of LabOps-Projects>` the real project engine, and
+  `LAB_PROJECTS_REPO=<clone of LabOps-Projects>` the engine on its real records (and, at a
+  commit that still has `scripts/project.py`, such as 7bb1432, the parity tests), and
   `LAB_PROTOCOLS_REPO=<clone of LabOps-Protocols>` the real protocol engine.
 - **The projects engine is tested against the Python one it replaced.**
   - `Fixtures/engine-golden/*.json` hold what `project.py` did: about 10,000 YAML scalars as
@@ -105,8 +107,10 @@ dotnet test --project src/LabOps.Tests/LabOps.Tests.csproj
     engines on the real clone, on a repository of edge cases, on generated workbooks, on staged
     commits, and through a 90-command write scenario, comparing JSON, text, exit codes and every
     file byte for byte.
-  - LabOps-Projects' own pytest suite runs against the tool:
-    `PROJECT_ENGINE_CMD="<path>/labops.exe projects" uv run pytest -q` in that clone.
+  - `Engines/Commands` holds LabOps-Projects' command tests, moved here from its pytest suite when
+    `project.py` was removed: `TestRepo` makes a scratch repository from `Fixtures/projects-repo`
+    (the templates with made-up examples) and runs `labops projects` in-process
+    (`LabopsCommandLine.Run`), as the tool does.
   - Where the C# engine deliberately differs (Python crashed, or a line edit was wrong),
     `Engines/EngineFixTests` and `YamlEditTests` say so; anything else that differs is a bug.
 - `Fixtures/project-*.json` were recorded from the real `project.py`; they test the app's reading

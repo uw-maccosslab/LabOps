@@ -11,3 +11,8 @@ the GitHub Release description and fails if it is missing.
 ## Performance
 
 ## Breaking Changes
+
+- **`LABOPS_PROJECT_ENGINE=python` was removed.** LabOps-Projects dropped `scripts/project.py` once
+  LabOps 26.10.0 built the engine in, so the setting had nothing left to run. Setup's **Project
+  engine** step always says the engine is built in, and Claude is no longer allowed to run
+  `project.py` in the projects repository, only `labops projects`.

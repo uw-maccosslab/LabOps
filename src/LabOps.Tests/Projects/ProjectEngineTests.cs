@@ -1,15 +1,14 @@
 using System.Text.Json;
 using LabOps.Core.Engines;
-using LabOps.Core.Processes;
 using LabOps.Core.Projects;
 using LabOps.Tests.TestSupport;
 
 namespace LabOps.Tests.Projects;
 
 /// <summary>
-/// The JSON contract with project.py. The fixtures were recorded from the real engine (see
-/// LabOps-Projects); when project.py changes what it prints, re-record them and these tests show
-/// what the app would misread.
+/// The JSON contract with the project engine. The fixtures were recorded from project.py, which
+/// the C# engine answers the same way; when the engine changes what it prints, re-record them and
+/// these tests show what the app would misread.
 /// </summary>
 public sealed class ProjectEngineTests
 {
@@ -18,7 +17,7 @@ public sealed class ProjectEngineTests
     [Fact]
     public void Real_list_output_is_read_into_labs_projects_and_experiments()
     {
-        using var doc = ProjectEngine.Parse(new ProcessResult(0, Fixture("project-list.json"), ""));
+        using var doc = ProjectEngine.Answer(Fixture("project-list.json"));
         var list = ProjectEngine.ReadList(doc.RootElement);
 
         list.Problems.ShouldBeEmpty();
@@ -84,7 +83,7 @@ public sealed class ProjectEngineTests
     [Fact]
     public void A_repository_from_before_labs_asks_for_a_sync_instead_of_showing_nothing()
     {
-        using var doc = ProjectEngine.Parse(new ProcessResult(0, """{"ok": true, "projects": [], "problems": []}""", ""));
+        using var doc = ProjectEngine.Answer("""{"ok": true, "projects": [], "problems": []}""");
 
         Should.Throw<EngineException>(() => ProjectEngine.ReadList(doc.RootElement)).Message.ShouldContain("older than this app");
     }
@@ -92,7 +91,7 @@ public sealed class ProjectEngineTests
     [Fact]
     public void A_refused_check_returns_its_problems_instead_of_throwing()
     {
-        using var doc = ProjectEngine.Parse(new ProcessResult(1, Fixture("project-check-staged.json"), ""), allowNotOk: true);
+        using var doc = ProjectEngine.Answer(Fixture("project-check-staged.json"), allowNotOk: true);
         var problems = doc.RootElement.GetProperty("problems").Deserialize<List<ProjectIssue>>(EngineJson.Options)!;
 
         problems.Single().IsError.ShouldBeTrue();
@@ -103,7 +102,7 @@ public sealed class ProjectEngineTests
     public void A_scan_lists_columns_and_findings_without_values()
     {
         var json = Fixture("project-scan.json");
-        using var doc = ProjectEngine.Parse(new ProcessResult(0, json, ""));
+        using var doc = ProjectEngine.Answer(json);
         var scan = doc.RootElement.Deserialize<ScanResult>(EngineJson.Options)!;
 
         scan.Errors.ShouldBe(1);
@@ -117,18 +116,18 @@ public sealed class ProjectEngineTests
     [Fact]
     public void An_engine_error_becomes_a_message_for_the_user()
     {
-        var ex = Should.Throw<EngineException>(() => ProjectEngine.Parse(new ProcessResult(1,
-            """{"ok": false, "error": "sample prep has started on the current layout"}""", "")));
+        var ex = Should.Throw<EngineException>(() => ProjectEngine.Answer(
+            """{"ok": false, "error": "sample prep has started on the current layout"}"""));
 
         ex.Message.ShouldBe("sample prep has started on the current layout");
     }
 
     [Fact]
-    public void Output_that_is_not_json_reports_what_went_wrong()
+    public void An_answer_that_is_not_json_reports_what_went_wrong()
     {
-        var ex = Should.Throw<EngineException>(() => ProjectEngine.Parse(new ProcessResult(2, "", "error: Failed to download Python")));
+        var ex = Should.Throw<EngineException>(() => ProjectEngine.Answer("not json"));
 
-        ex.Message.ShouldBe("The project engine could not run: error: Failed to download Python");
+        ex.Message.ShouldStartWith("The project engine gave an answer LabOps could not read");
     }
 
     private const string ActiveList = """{"ok": true, "labs": [], "people": [], "closed_hidden": 12, "problems": []}""";
@@ -137,37 +136,14 @@ public sealed class ProjectEngineTests
     [Fact]
     public async Task The_list_leaves_out_closed_projects_unless_asked_for_them()
     {
-        using var engine = new FakeEngine(_ => new ProcessResult(0, ActiveList, ""));
+        using var engine = new FakeEngine(_ => ActiveList);
 
         (await engine.Engine.ListAsync()).ClosedHidden.ShouldBe(12);
-        engine.Calls.Single().ShouldEndWith("--json list --active");
+        engine.Calls.Single().ShouldBe("list --active");
 
-        engine.Respond = _ => new ProcessResult(0, FullList, "");
+        engine.Respond = _ => FullList;
         (await engine.Engine.ListAsync(includeClosed: true)).ClosedHidden.ShouldBe(0);
-        engine.Calls[1].ShouldEndWith("--json list");
-    }
-
-    [Fact]
-    public async Task An_engine_without_list_active_lists_everything_instead()
-    {
-        // What argparse prints for an option a 26.2.0 engine does not have.
-        using var engine = new FakeEngine(args => args.EndsWith("--active", StringComparison.Ordinal)
-            ? new ProcessResult(2, "", "usage: project.py [-h] [--json] [--version] ...\nproject.py: error: unrecognized arguments: --active")
-            : new ProcessResult(0, """{"ok": true, "labs": [], "people": [], "problems": []}""", ""));
-
-        var list = await engine.Engine.ListAsync();
-
-        list.ClosedHidden.ShouldBe(0);
-        engine.Calls.Select(c => c[c.IndexOf("list", StringComparison.Ordinal)..]).ShouldBe(["list --active", "list"]);
-    }
-
-    [Fact]
-    public async Task Other_engine_errors_are_not_retried()
-    {
-        using var engine = new FakeEngine(_ => new ProcessResult(2, "", "error: Failed to download Python"));
-
-        (await Should.ThrowAsync<EngineException>(() => engine.Engine.ListAsync())).Message.ShouldContain("Failed to download Python");
-        engine.Calls.Count.ShouldBe(1);
+        engine.Calls[1].ShouldBe("list");
     }
 
     /// <summary>
@@ -192,7 +168,7 @@ public sealed class ProjectEngineTests
             + "steps:\n  - {id: samples_received, kind: samples_received, status: pending}\n  - {id: sample_prep, kind: sample_prep, status: pending}\n");
         Write("projects/Lab-A/Proj/2026-10-Proj-DIA/experiment.yaml",
             "experiment: 2026-10-Proj-DIA\ntitle: DIA\nstatus: active\npanorama: []\nsteps:\n  - {id: data_acquisition, kind: data_acquisition, status: pending}\n");
-        var engine = new ProjectEngine(new ProcessRunner(new ToolLocator(dir.Path)), new ToolLocator(dir.Path)) { RepositoryPath = dir.Path };
+        var engine = new ProjectEngine { RepositoryPath = dir.Path };
 
         await engine.StageAsync("Proj", "samples_received", StageAction.Done, new DateOnly(2026, 10, 1), "maccoss", "92 tubes: on dry ice");
         await engine.AssignAsync("Proj", ["sample_prep"], "maccoss");
@@ -215,34 +191,31 @@ public sealed class ProjectEngineTests
             .Message.ShouldBe("step samples_received has been started or has a record; skip it instead of removing it");
     }
 
-    /// <summary>A ProjectEngine whose process runner answers from a function and records each command.</summary>
-    private sealed class FakeEngine : IProcessRunner, IDisposable
+    /// <summary>A ProjectEngine whose commands are answered by a function, recording each command line.</summary>
+    private sealed class FakeEngine : IDisposable
     {
         private readonly string _folder = Directory.CreateTempSubdirectory("labops-engine-").FullName;
 
-        public FakeEngine(Func<string, ProcessResult> respond)
+        public FakeEngine(Func<string, string> respond)
         {
             Respond = respond;
-            Directory.CreateDirectory(Path.Combine(_folder, "tools"));
-            File.WriteAllText(Path.Combine(_folder, "tools", "uv.exe"), "");
-            Engine = new ProjectEngine(this, new ToolLocator(_folder)) { RepositoryPath = _folder, UsePython = true };
+            Engine = new ProjectEngine
+            {
+                RepositoryPath = _folder,
+                Commands = (_, args) =>
+                {
+                    var line = string.Join(' ', args);
+                    Calls.Add(line);
+                    return Respond(line);
+                },
+            };
         }
 
         public ProjectEngine Engine { get; }
 
-        public Func<string, ProcessResult> Respond { get; set; }
+        public Func<string, string> Respond { get; set; }
 
         public List<string> Calls { get; } = [];
-
-        public Task<ProcessResult> RunAsync(
-            string fileName, IEnumerable<string> arguments, string? workingDirectory = null,
-            IReadOnlyDictionary<string, string?>? environment = null, TimeSpan? timeout = null,
-            CancellationToken cancellationToken = default)
-        {
-            var args = string.Join(' ', arguments);
-            Calls.Add(args);
-            return Task.FromResult(Respond(args));
-        }
 
         public void Dispose() => Directory.Delete(_folder, recursive: true);
     }
@@ -260,36 +233,12 @@ public sealed class ProjectEngineTests
             Assert.Skip("Set LAB_PROJECTS_REPO to a clone of LabOps-Projects to run this.");
         }
 
-        var tools = new ToolLocator();
-        var engine = new ProjectEngine(new ProcessRunner(tools), tools) { RepositoryPath = repo };
-        engine.UsePython.ShouldBeFalse();
+        var engine = new ProjectEngine { RepositoryPath = repo };
         var list = await engine.ListAsync();
 
         list.Labs.ShouldNotBeEmpty();
         list.Problems.ShouldNotContain(p => p.IsError);
         (await engine.CheckStagedAsync(CancellationToken.None)).ShouldNotContain(p => p.IsError);
         (await engine.WikiAsync(list.Labs.SelectMany(l => l.Projects).First().Project)).Html.ShouldContain("labops-wiki");
-    }
-
-    /// <summary>The LABOPS_PROJECT_ENGINE=python fallback: project.py through uv, on a real clone. Opt-in like the test above.</summary>
-    [Fact]
-    public async Task The_python_fallback_lists_the_same_projects()
-    {
-        var repo = Environment.GetEnvironmentVariable("LAB_PROJECTS_REPO");
-        if (string.IsNullOrWhiteSpace(repo))
-        {
-            Assert.Skip("Set LAB_PROJECTS_REPO to a clone of LabOps-Projects to run this.");
-        }
-
-        var tools = new ToolLocator();
-        if (tools.Find(Tool.Uv) is null)
-        {
-            Assert.Skip("uv is not installed.");
-        }
-
-        var python = await new ProjectEngine(new ProcessRunner(tools), tools) { RepositoryPath = repo, UsePython = true }.ListAsync();
-        var csharp = await new ProjectEngine(new ProcessRunner(tools), tools) { RepositoryPath = repo }.ListAsync();
-        System.Text.Json.JsonSerializer.Serialize(csharp.Labs).ShouldBe(System.Text.Json.JsonSerializer.Serialize(python.Labs));
-        csharp.People.ShouldBe(python.People);
     }
 }

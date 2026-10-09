@@ -164,7 +164,7 @@ flowchart LR
   holds the ones that are open.
 - **The quotes' and protocols' engines are separate programs.** `QuoteEngine` and `ProtocolEngine`
   run `uv run --frozen python scripts/<engine>.py --json <command>` in the clone and read the JSON
-  it prints. `ProjectEngine` builds the same command lines `project.py` took and runs them
+  it prints. `ProjectEngine` builds the command lines `labops projects` takes and runs them
   in-process (`ProjectsCommandLine` in `LabOps.Engines`), getting the same JSON back; the `labops`
   tool runs those command lines for Claude, the hook and CI. The table below lists what each button
   runs, as the command line Claude would type.

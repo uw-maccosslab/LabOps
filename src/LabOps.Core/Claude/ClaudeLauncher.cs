@@ -48,10 +48,10 @@ public sealed class ClaudeLauncher
     public static IReadOnlyList<string> AllowedTools(RepositoryProfile profile) =>
     [
         .. CommonTools,
-        $"Bash(uv run python {profile.EngineScript}:*)",
-        $"Bash(python {profile.EngineScript}:*)",
-        // The projects engine is the labops tool now (in the app's tools folder, first on the PATH).
-        .. profile.Kind == RepositoryKind.Projects ? (string[])["Bash(labops projects:*)", "Bash(labops --version)"] : [],
+        // The projects engine is the labops tool (in the app's tools folder, first on the PATH).
+        .. profile.EngineScript is { } script
+            ? (string[])[$"Bash(uv run python {script}:*)", $"Bash(python {script}:*)"]
+            : ["Bash(labops projects:*)", "Bash(labops --version)"],
     ];
 
     public ClaudeSessionOptions CreateOptions(

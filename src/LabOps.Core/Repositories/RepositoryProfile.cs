@@ -22,10 +22,10 @@ public sealed class RepositoryProfile
 {
     private RepositoryProfile(
         RepositoryKind kind, string id, string gitHubName, string displayName, string defaultFolderName,
-        string engineScript, string rootFolder, int itemDepth, IReadOnlyList<string> generatedFileNames, bool checksCommits,
+        string? engineScript, string rootFolder, int itemDepth, IReadOnlyList<string> generatedFileNames, bool checksCommits,
         IReadOnlyList<string> formerGitHubNames, string? cloneMarker = null)
     {
-        CloneMarker = cloneMarker ?? engineScript;
+        CloneMarker = cloneMarker ?? engineScript ?? throw new ArgumentNullException(nameof(cloneMarker));
         Kind = kind;
         Id = id;
         GitHubName = gitHubName;
@@ -42,7 +42,7 @@ public sealed class RepositoryProfile
     /// <summary>uw-maccosslab/LabOps-Projects: labs, their projects and experiments, open to the whole lab.</summary>
     public static RepositoryProfile Projects { get; } = new(
         RepositoryKind.Projects, "projects", "uw-maccosslab/LabOps-Projects", "lab projects", "LabOps-Projects",
-        "scripts/project.py", "projects", itemDepth: 3, generatedFileNames: [], checksCommits: true,
+        engineScript: null, "projects", itemDepth: 3, generatedFileNames: [], checksCommits: true,
         formerGitHubNames: ["uw-maccosslab/lab-projects"], cloneMarker: "templates/project.example.yaml");
 
     /// <summary>uw-maccosslab/LabOps-Quotes: Proteomics Services quotes, for the people who prepare them.</summary>
@@ -82,8 +82,8 @@ public sealed class RepositoryProfile
     /// <summary>Folder name for a new clone.</summary>
     public string DefaultFolderName { get; }
 
-    /// <summary>The engine, relative to the repository root (the projects engine is now in the app; its script remains for the fallback).</summary>
-    public string EngineScript { get; }
+    /// <summary>The engine, relative to the repository root; null for the projects, whose engine is built into the app.</summary>
+    public string? EngineScript { get; }
 
     /// <summary>
     /// A file only a clone of this repository has, relative to its root: the engine script, or for

@@ -123,7 +123,8 @@ public sealed class ClaudeSessionTests
         quotes.ShouldNotContain("Bash(uv run python scripts/project.py:*)");
 
         var projects = ClaudeLauncher.AllowedTools(RepositoryProfile.Projects);
-        projects.ShouldContain("Bash(uv run python scripts/project.py:*)");
+        projects.ShouldContain("Bash(labops projects:*)");
+        projects.ShouldNotContain(t => t.Contains("project.py", StringComparison.Ordinal));
         projects.ShouldNotContain("Bash(uv run python scripts/quote.py:*)");
     }
 

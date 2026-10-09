@@ -120,10 +120,8 @@ public sealed class SetupService
             projects ? projectsPath! : "A copy of the lab's projects on this computer. Download one, or point to a copy you already have.",
             signedIn ? "Download the projects" : null,
             git is null ? null : projects ? "Use a different copy" : "Use a copy I already have"));
-        // The projects engine is built into LabOps; only the project.py fallback needs Python.
-        items.Add(ProjectEngine.PythonRequested
-            ? EngineItem(SetupStep.ProjectsEngine, "Project engine", "project.py", projects ? projectsPath : null)
-            : new(SetupStep.ProjectsEngine, "Project engine", true, "Built into LabOps.", null));
+        // The projects engine is built into LabOps: nothing to install or prepare.
+        items.Add(new(SetupStep.ProjectsEngine, "Project engine", true, "Built into LabOps.", null));
 
         // The protocols are for the whole lab, but optional, so an app updated before anyone
         // downloads them still opens; the Protocols area offers the download.
