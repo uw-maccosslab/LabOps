@@ -284,4 +284,15 @@ public sealed class ProtocolsAreaTests
     [InlineData("file:///C:/Users/someone/.ssh/id_ed25519", false)]
     public void A_frame_in_a_page_shows_nothing_from_the_web_or_another_file(string uri, bool allowed) =>
         LabOps.App.Services.WebViewGuard.IsFrameAllowed(uri).ShouldBe(allowed);
+
+    /// <summary>
+    /// An empty page draws nothing, and until a page has drawn something the browser shows a black
+    /// box: the flash on the first protocol of a session. The page shown while one renders has text.
+    /// </summary>
+    [Fact]
+    public void The_page_shown_while_a_protocol_renders_draws_something()
+    {
+        var body = System.Text.RegularExpressions.Regex.Match(LabOps.App.Views.ProtocolsView.BlankPage, "<body[^>]*>(.*)</body>").Groups[1].Value;
+        System.Text.RegularExpressions.Regex.Replace(body, "<[^>]+>", "").Trim().ShouldNotBeEmpty();
+    }
 }
