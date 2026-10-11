@@ -1,14 +1,16 @@
 # How LabOps fits together
 
-LabOps is a Windows app, but most of what it shows and changes lives somewhere else: in two
-git repositories on GitHub, in the Python engines inside those repositories, in Claude Code, and
-on Panorama. This page explains those pieces and how they connect. [How it works, step by
-step](flows.md) follows the main actions through them.
+LabOps is a Windows app, but most of what it shows and changes lives somewhere else: in three
+git repositories on GitHub, in the engines that hold their rules, in Claude Code, and on Panorama.
+This page explains those pieces and how they connect. [What LabOps does](what-labops-does.md)
+describes the app area by area, [The three engines](engines.md) the engines, and [How it works,
+step by step](flows.md) follows the main actions through them.
 
 Three ideas explain most of the design:
 
 1. **The records are git repositories.** Projects live in
-   [LabOps-Projects](https://github.com/uw-maccosslab/LabOps-Projects) and quotes in
+   [LabOps-Projects](https://github.com/uw-maccosslab/LabOps-Projects), protocols in
+   [LabOps-Protocols](https://github.com/uw-maccosslab/LabOps-Protocols) and quotes in
    [LabOps-Quotes](https://github.com/uw-maccosslab/LabOps-Quotes). Everyone works on their own
    copy (a clone), and the app keeps it in step with GitHub: it saves each change as a commit and
    brings in everyone else's.
@@ -45,13 +47,13 @@ flowchart LR
         claudeService["Claude service"]
     end
 
-    app -->|"1. runs commands"| engine
+    app -->|"(1) runs commands"| engine
     engine -->|"changes"| records
-    app -->|"2. starts, chats with"| claude
+    app -->|"(2) starts, chats with"| claude
     claude -->|"follows"| guide
     claude -->|"edits, runs the engine"| records
-    records <-->|"3. kept in step by the app, with git"| github
-    app -->|"4. reads; writes only wiki pages"| panorama
+    records <-->|"(3) kept in step by the app, with git"| github
+    app -->|"(4) reads; writes wiki pages<br/>and the lab dashboard"| panorama
     claude --> claudeService
 ```
 
@@ -62,7 +64,8 @@ flowchart LR
 3. **git** carries every change to and from GitHub. The app commits and syncs; GitHub runs each
    repository's checks after every push.
 4. **Panorama** is read to choose an experiment's folders and notebook, and to count the Skyline
-   documents in them. The one thing the app writes there is each project's wiki page.
+   documents in them. The app writes two kinds of page there: each project's wiki page, and the
+   lab-only dashboard of everyone's open work.
 
 ### Panorama and PanoramaBridge
 
@@ -84,6 +87,8 @@ flowchart LR
     folder -->|"Skyline documents counted"| wikiBuild["LabOps: Wiki page<br/>the projects engine builds it"]
     wikiBuild -->|"publishes"| wikiPage["Wiki page<br/>.../BioTRACK, page default"]
     creds -.-> wikiBuild
+    overview["LabOps: the overview"] -->|"Publish to Panorama,<br/>then kept up to date"| dashboard["Lab dashboard<br/>a lab-only folder's page"]
+    creds -.-> overview
 ```
 
 LabOps signs in to Panorama with the sign-in PanoramaBridge saved on the computer (an API key
@@ -94,11 +99,11 @@ for one and keep it under its own name.
 
 ```mermaid
 flowchart LR
-    push["A push to main,<br/>from anyone"] --> check["check workflow<br/>engine tests, then quote.py verify<br/>or labops projects check"]
+    push["A push to main,<br/>from anyone"] --> check["check workflow<br/>quote.py or protocol.py: tests, then verify;<br/>projects: labops projects check,<br/>with labops built from LabOps"]
     push --> index["index workflow<br/>rebuilds the README table,<br/>commits it as github-actions"]
     index -->|"arrives with everyone's next sync"| clones["Everyone's clone"]
     check -->|"result shown in the app's status bar"| status["Checks passed or failed"]
-    tag["An engine-v... tag"] --> release["release workflow<br/>tests, then a GitHub Release<br/>from the release notes"]
+    tag["An engine-v... tag<br/>(quotes, protocols)"] --> release["release workflow<br/>tests, then a GitHub Release<br/>from the release notes"]
 ```
 
 ## The pieces
@@ -112,10 +117,10 @@ flowchart LR
 | `protocol.py`, `quote.py` | The quotes' and protocols' engines: every rule, command and generated file | Inside each clone, run with uv and Python | Pushed with the repository; tagged `engine-v...` for release notes |
 | `LabOps.Engines`, `labops` | The projects engine (the port of `project.py`), in the app and as its command-line tool | Inside LabOps; `labops.exe` in its `tools` folder | A LabOps release |
 | `CLAUDE.md`, `.claude/skills/` | What Claude follows in each repository | Inside each clone | Pushed with the repository |
-| `config/app.yaml` | `min_app_version`, and for quotes the `approvers` who may send | Inside each clone | Pushed with the repository |
+| `config/app.yaml` | `min_app_version`; for quotes the `approvers` who may send, for projects the dashboard's Panorama folder | Inside each clone | Pushed with the repository |
 | Claude Code | `claude.exe`, one process per conversation | Started by the app in the clone's folder | Its own updates |
 | GitHub Actions | `check` (tests and validation), `index` (README table), `release` | GitHub | Workflow files in each repository |
-| Panorama | Raw data (WebDAV file areas), Skyline documents, the lab's ELN | panoramaweb.org | Not changed by LabOps |
+| Panorama | Raw data (WebDAV file areas), Skyline documents, the lab's ELN | panoramaweb.org | LabOps writes only the projects' wiki pages and the lab dashboard |
 
 The quotes repository is optional. A lab member without access to it sees the Projects and
 Protocols areas. The protocols are optional in Setup too, so an updated app opens before anyone
@@ -125,25 +130,30 @@ downloads them; until then the Protocols area offers Setup.
 
 ```mermaid
 flowchart LR
-    subgraph appProj["LabOps.App: windows"]
-        main["MainWindow<br/>Quotes area"]
-        projects["ProjectsView<br/>Projects area"]
-        chat["ChatPanel<br/>Claude conversation"]
-        dialogs["Dialogs<br/>Setup, New quote, New project,<br/>Step, Assign, Add step, Add link,<br/>Panorama browser, Notebook picker,<br/>Sign-in, Permission"]
+    subgraph appProj["LabOps.App"]
+        direction TB
+        areas["The areas<br/>MainWindow: toolbar, Quotes<br/>ProjectsView: list, overview<br/>ProtocolsView<br/>ChatPanel: the Claude pane"]
+        dialogs["Dialogs<br/>Setup, New quote, New project,<br/>New protocol, Step, Assign, Plan,<br/>Add step, Add link, Wiki page,<br/>Panorama browser, Sign-in, Permission"]
+        services["Services<br/>WikiPublisher, DashboardPublisher,<br/>UpdateService, WebViewGuard"]
     end
 
-    subgraph core["LabOps.Core: the logic, no windows"]
+    subgraph core["LabOps.Core: no windows"]
+        direction TB
         sync["Sync<br/>SyncService, GitClient, ItemHistory"]
         setup["Setup<br/>SetupService, GitHubCli"]
-        engine["Engines<br/>ProjectEngine, QuoteEngine, RepoConfig"]
+        engine["Engines<br/>ProjectEngine, ProtocolEngine,<br/>QuoteEngine, RepoConfig"]
+        overview["Projects<br/>the overview and dashboard pages"]
         claudeCore["Claude<br/>ClaudeLauncher, ClaudeSession,<br/>AppToolServer, PermissionMemory"]
         pano["Panorama<br/>PanoramaClient, PanoramaSignIn"]
     end
 
+    engines["LabOps.Engines<br/>the projects engine"]
+
     subgraph procs["What they talk to"]
+        direction TB
         git["git"]
         gh["gh"]
-        uv["uv and Python,<br/>the engines"]
+        uv["uv and Python:<br/>protocol.py, quote.py"]
         cc["claude"]
         web["panoramaweb.org"]
     end
@@ -151,17 +161,18 @@ flowchart LR
     appProj --> core
     sync --> git
     setup --> gh
+    engine -->|"in-process"| engines
     engine --> uv
     claudeCore --> cc
-    pano -->|"HTTPS GET only"| web
+    pano -->|"reads; writes wiki pages<br/>and the dashboard"| web
 ```
 
-- **One `Repository` per clone.** `RepositoryProfile` holds what differs between the two
+- **One `Repository` per clone.** `RepositoryProfile` holds what differs between the three
   repositories: the GitHub name, the engine, the folder that holds the items
-  (`projects/<Lab>/<Project>` or `quotes/<Group>/<year>/<number>`), the files the engine generates
-  (`calculation.md`, `quote.md`), and whether commits must pass the identifier check
-  (LabOps-Projects only). Each open clone gets its own `GitClient` and `SyncService`; `Workspace`
-  holds the ones that are open.
+  (`projects/<Lab>/<Project>`, `protocols/<id>` or `quotes/<Group>/<year>/<number>`), the files the
+  engine generates (`calculation.md`, `quote.md`), and the check every commit must pass
+  (LabOps-Projects' identifier check, LabOps-Protocols' published-version check). Each open clone
+  gets its own `GitClient` and `SyncService`; `Workspace` holds the ones that are open.
 - **The quotes' and protocols' engines are separate programs.** `QuoteEngine` and `ProtocolEngine`
   run `uv run --frozen python scripts/<engine>.py --json <command>` in the clone and read the JSON
   it prints. `ProjectEngine` builds the command lines `labops projects` takes and runs them
@@ -173,8 +184,11 @@ flowchart LR
   (a question in the chat pane), `report_quote_summary` (the quote card) and `approve` (the
   permission prompt). It is named `quotes-app` in both repositories, for historical reasons.
 - **Panorama is read, except for wiki pages.** The app reads folder listings, the notebook list
-  and each results folder's Skyline documents, and writes one thing: a project's wiki page
-  (`wiki-saveWiki.api`), built by the engine's `wiki` command. LabKey wants a CSRF token on every POST, even
+  and each results folder's Skyline documents, and writes two kinds of page: a project's wiki page
+  (`wiki-saveWiki.api`), built by the engine's `wiki` command, and the lab dashboard, built from the
+  same list the overview shows. The dashboard is published the first time by a person, from the
+  overview; after that each copy that has just synced keeps it up to date, unless someone edited
+  it on Panorama. LabKey wants a CSRF token on every POST, even
   with an API key, so the save first gets one from `login-whoami.api` and sends it with that
   session's cookies. The app republishes a page on its own only when the page's footer marks it as
   LabOps's, nobody has edited it on Panorama since (the footer fingerprints the page), and its
@@ -255,14 +269,18 @@ All three repositories have the same outline:
 ```
 CLAUDE.md                 what Claude follows; conventions for people too
 .claude/skills/           step-by-step procedures (new-quote, update-experiment, ...)
-config/app.yaml           min_app_version; the quotes also list approvers
-scripts/                  the engine
+config/                   app.yaml (min_app_version), people, categories or instruments
+scripts/                  the engine (protocols and quotes)
 templates/                starting files and text
-tests/                    the engine's tests (pytest)
-release-notes/            one file per engine release (engine-v...)
+tests/                    the engine's tests, pytest (protocols and quotes)
+release-notes/            one file per engine release, engine-v... (protocols and quotes)
 .github/workflows/        check, index, release
 README.md                 the human index; its table is regenerated after every push
 ```
+
+LabOps-Projects has had no engine of its own since October 2026: its rules are in this repository
+([The three engines](engines.md)), and its workflows build the `labops` tool from LabOps at the tag
+its `min_app_version` names.
 
 LabOps-Projects also has `inbox/`, where collaborators' original files go. Git ignores it, so
 originals never leave the computer. Its `.githooks/pre-commit` runs the identifier check for
@@ -277,12 +295,12 @@ push, so a change made without the hook is caught too.
 
 | What | Where |
 |---|---|
-| The app | Installed per user by Velopack, with `tools\uv.exe` and `tools\gh.exe` beside it |
-| Settings | `%LOCALAPPDATA%\LabOps\settings.json`: the two clone folders, Claude conversation ids per item, the sync interval (5 minutes), window size, beta updates. No passwords. |
+| The app | Installed per user by Velopack, with `tools\uv.exe`, `tools\gh.exe` and `tools\labops.exe` beside it |
+| Settings | `%LOCALAPPDATA%\LabOps\settings.json`: the clone folders, Claude conversation ids per item, the sync interval (5 minutes), window size, beta updates. No passwords. |
 | Logs | `%LOCALAPPDATA%\LabOps\logs\`, one file a day, kept 14 days, secrets removed |
 | Claude's tool server address | `%LOCALAPPDATA%\LabOps\claude\mcp-*.json`, written each run |
-| Clones | `Documents\LabOps-Projects`, `Documents\LabOps-Quotes` (or folders you choose) |
-| Engine environment | `.venv` inside each clone, made by `uv sync` |
+| Clones | `Documents\LabOps-Projects`, `Documents\LabOps-Protocols`, `Documents\LabOps-Quotes` (or folders you choose) |
+| Engine environment | `.venv` inside the protocols and quotes clones, made by `uv sync`; the projects engine is part of the app |
 | Panorama sign-in | Windows Credential Manager: `PanoramaBridge:https://panoramaweb.org` (PanoramaBridge's, only read) and `LabOps:https://panoramaweb.org` (LabOps's own, only when needed) |
 | GitHub sign-in | The gh CLI's, set up during Setup |
 
@@ -304,9 +322,11 @@ flowchart LR
     gate -.->|"older app: read-only,<br/>asks to update"| update
 ```
 
-Most changes are on the left and reach people within minutes. When a repository needs a newer app,
-for example a new layout the app must read, its `config/app.yaml` raises `min_app_version` once
-that app is released. Older copies then show a banner, keep working read-only, and update.
+Most changes are on the left and reach people within minutes. A change to a projects rule is on
+the right, since the projects engine is part of the app. When a repository needs a newer app, for
+example a new layout the app must read, its `config/app.yaml` raises `min_app_version` once that
+app is released. Older copies then show a banner, keep working read-only, look for the update at
+once, and offer **Restart to update** when it is downloaded.
 
 Releases follow the [release notes convention](../release-notes/README.md): an app release is
 tagged `v{version}`, an engine release `engine-v{version}` in its repository.
