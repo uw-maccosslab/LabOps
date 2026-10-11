@@ -411,7 +411,7 @@ public static class DashboardHtml
         h.Close("div");
         PhaseKey(h);
         h.Element("p", "legend", "Each bar is a step, in its phase's color until it is done, then gray. Solid: what happened. "
-                                 + "Dashed: what is planned. A red ring or red dashes: late. The line is today. "
+                                 + "Dashed: what is planned. A red ring: late. The line is today. "
                                  + "Point at a bar, or Tab to it, for its step and dates; click it to see the item.");
     }
 
@@ -619,19 +619,18 @@ public static class DashboardHtml
 
     /// <summary>
     /// How a step's bar looks: in its phase's color, solid as it happens and dashed as planned, and
-    /// gray once the step is done or skipped. A late one is ringed in red, or dashed in red.
+    /// gray once the step is done or skipped. A late one is ringed in red, so its phase still shows.
     /// </summary>
     private static (string Classes, string Style) BarLook(StageEntry step, bool planned, bool late)
     {
-        var finished = step.IsDone || step.IsSkipped;
-        if (planned)
+        if (step.IsDone || step.IsSkipped)
         {
-            return late ? ("bar bar-planned bar-planned-late", "")
-                : finished ? ("bar bar-planned", "")
-                : ("bar bar-planned", $";border-color:{step.PhaseColor}");
+            return (planned ? "bar bar-planned" : "bar bar-done", "");
         }
 
-        return finished ? ("bar bar-done", "") : (late ? "bar bar-late" : "bar", $";background:{step.PhaseColor}");
+        return planned
+            ? (late ? "bar bar-late bar-planned" : "bar bar-planned", $";border-color:{step.PhaseColor}")
+            : (late ? "bar bar-late" : "bar", $";background:{step.PhaseColor}");
     }
 
     /// <summary>" (Preparation)": a step's phase, for a bar's label, so it is not told by color alone.</summary>

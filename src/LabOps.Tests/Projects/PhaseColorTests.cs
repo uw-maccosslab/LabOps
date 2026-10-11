@@ -86,6 +86,10 @@ public sealed partial class PhaseColorTests
         done.ShouldNotContain("background:", Case.Sensitive);
         Bar(html, "2026-10-Otter-DIA, Data deposited to Panorama (Acquisition): Oct 12 to Oct 13 (planned)")
             .ShouldContain("border-color:#4a3aa7", Case.Sensitive, "planned: dashed in the phase's color");
+        // A plan that has passed: dashed in its phase's color, inside the red ring of late work.
+        var overdue = Bar(html, "RVB-Heron-Liver, Metadata organized (Samples): Sep 28 to Oct 6 (planned), late");
+        overdue.ShouldStartWith("<a class=\"bar bar-late bar-planned\"", Case.Sensitive);
+        overdue.ShouldContain("border-color:#1baf7a", Case.Sensitive);
         var late = Bar(html, "2026-09-BioTRACK-DIA, Signal processing (Analysis): Sep 29 to Oct 9, late");
         late.ShouldStartWith("<a class=\"bar bar-late\"", Case.Sensitive);
         late.ShouldContain("background:#e87ba4", Case.Sensitive, "late: ringed in red over its phase's color");
