@@ -15,8 +15,16 @@ namespace LabOps.App.Views;
 /// </summary>
 public partial class ProtocolsView : UserControl
 {
+    /// <summary>
+    /// What the preview shows until a protocol's page is ready. It draws something, if only white
+    /// on white: until a page has drawn something, the browser shows a black box.
+    /// </summary>
+    internal const string BlankPage =
+        "<!doctype html><html><body style=\"background:#fff;color:#fff\"><span aria-hidden=\"true\">.</span></body></html>";
+
     private bool _started;
     private bool _ready;
+    private bool _loadedHidden;
     private ProtocolsViewModel? _vm;
 
     public ProtocolsView()
@@ -24,6 +32,7 @@ public partial class ProtocolsView : UserControl
         InitializeComponent();
         Loaded += OnLoaded;
         DataContextChanged += OnDataContextChanged;
+        Preview.IsVisibleChanged += OnPreviewVisibleChanged;
     }
 
     /// <summary>Puts the cursor in the search box.</summary>
@@ -76,6 +85,19 @@ public partial class ProtocolsView : UserControl
         }
     }
 
+    /// <summary>
+    /// Loads the page again as the preview appears, if it was loaded while hidden. The browser never
+    /// draws a page it loaded hidden, so the preview stayed black until the next page arrived: on
+    /// the first protocol, for as long as its page took to render.
+    /// </summary>
+    private void OnPreviewVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (e.NewValue is true && _loadedHidden)
+        {
+            ShowPage();
+        }
+    }
+
     private void ShowPage()
     {
         if (!_ready)
@@ -83,6 +105,7 @@ public partial class ProtocolsView : UserControl
             return;
         }
 
+        _loadedHidden = !Preview.IsVisible;
         if (_vm?.PreviewFile is { } file && File.Exists(file))
         {
             // The query makes a page rendered again under the same name load afresh.
@@ -90,7 +113,7 @@ public partial class ProtocolsView : UserControl
         }
         else
         {
-            Preview.NavigateToString("<!doctype html><html><body style=\"font-family:Segoe UI;color:#5b6670\"></body></html>");
+            Preview.NavigateToString(BlankPage);
         }
     }
 
