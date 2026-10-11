@@ -53,6 +53,9 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly Dictionary<RepositoryKind, SyncStatus> _syncStatus = [];
     private readonly Dictionary<RepositoryKind, CheckRun?> _checks = [];
     private DispatcherTimer? _timer;
+
+    // A lab repository needs a newer app than this one (ShowBanner).
+    private bool _needsUpdate;
     private List<QuoteSummary> _all = [];
 
     public MainViewModel(
@@ -177,6 +180,9 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] public partial bool UpdateReady { get; set; }
 
     [ObservableProperty] public partial string? Banner { get; set; }
+
+    /// <summary>The banner's button while the app is too old for a repository; null for none.</summary>
+    [ObservableProperty] public partial string? BannerAction { get; set; }
 
     [ObservableProperty] public partial string? UserText { get; set; }
 
@@ -334,7 +340,8 @@ public sealed partial class MainViewModel : ObservableObject
     /// </summary>
     private void CheckForUpdatesIfDue()
     {
-        if (UpdateService.IsCheckDue(_updates.Status, _updates.LastChecked, DateTimeOffset.Now, UpdateService.CheckInterval))
+        var interval = _needsUpdate ? UpdateService.NeededCheckInterval : UpdateService.CheckInterval;
+        if (UpdateService.IsCheckDue(_updates.Status, _updates.LastChecked, DateTimeOffset.Now, interval))
         {
             _ = _updates.CheckAsync();
         }
@@ -363,13 +370,68 @@ public sealed partial class MainViewModel : ObservableObject
     private void ShowBanner()
     {
         var old = OpenRepositories().Where(r => r.AppTooOld).ToList();
+        _needsUpdate = old.Count > 0;
         Banner = old.Count == 0
             ? null
-            : $"This version of {AppInfo.ProductName} is too old for the {string.Join(" and ", old.Select(r => r.Profile.DisplayName))} "
-              + $"(it needs {old.Max(r => r.Config.MinAppVersion)}). Update the app to make changes.";
+            : TooOldText(string.Join(" and ", old.Select(r => r.Profile.DisplayName)), old.Max(r => r.Config.MinAppVersion)!.ToString(), _updates.Status);
+        BannerAction = old.Count == 0 ? null : TooOldAction(_updates.Status);
         OnPropertyChanged(nameof(CanSendSelected));
         Projects.RefreshCommands();
         Protocols.RefreshCommands();
+        if (_needsUpdate)
+        {
+            // Changes wait for the update, so it is looked for now rather than at the next 4-hourly check.
+            CheckForUpdatesIfDue();
+        }
+    }
+
+    /// <summary>
+    /// The banner while a repository needs a newer app (<paramref name="what"/>, needing
+    /// <paramref name="needs"/>): that changes wait for the update, and how the update is going.
+    /// </summary>
+    internal static string TooOldText(string what, string needs, UpdateStatus update)
+    {
+        var start = $"This version of {AppInfo.ProductName} is too old for the {what} (it needs {needs}), so changes wait for the update.";
+        return update.Stage switch
+        {
+            UpdateStage.Checking => $"{start} Looking for it...",
+            UpdateStage.Downloading => $"{start} Downloading {update.AvailableVersion} ({update.DownloadPercent}%)...",
+            UpdateStage.ReadyToApply when update.Error is not null => $"{start} {update.AvailableVersion} did not install last time; see why.",
+            UpdateStage.ReadyToApply => $"{start} {update.AvailableVersion} is downloaded: restart to install it.",
+            UpdateStage.UpToDate => $"{start} It has not reached the update feed yet; {AppInfo.ProductName} looks again every few minutes.",
+            UpdateStage.Failed => $"{start} Looking for it failed: {update.Error}",
+            UpdateStage.NotInstalled => $"{start} This copy cannot update itself; download the new version.",
+            _ => start,
+        };
+    }
+
+    /// <summary>The banner's button while a repository needs a newer app; null while the update is on its way.</summary>
+    internal static string? TooOldAction(UpdateStatus update) => update.Stage switch
+    {
+        UpdateStage.Checking or UpdateStage.Downloading => null,
+        UpdateStage.ReadyToApply => "Restart to update",
+        UpdateStage.NotInstalled => "Download the new version",
+        _ => "Check for updates",
+    };
+
+    /// <summary>The banner's button: restart into the downloaded update, or look for it now.</summary>
+    [RelayCommand]
+    private void UpdateNow()
+    {
+        switch (_updates.Status.Stage)
+        {
+            case UpdateStage.ReadyToApply:
+                ApplyUpdate();
+                break;
+            case UpdateStage.NotInstalled:
+                Shell.Open(AppInfo.RepositoryUrl + "/releases/latest");
+                break;
+            case UpdateStage.Checking or UpdateStage.Downloading:
+                break;
+            default:
+                _ = _updates.CheckAsync();
+                break;
+        }
     }
 
     private void OnWorkChanged(object? sender, PropertyChangedEventArgs e)
@@ -1048,6 +1110,10 @@ public sealed partial class MainViewModel : ObservableObject
     {
         UpdateReady = status.Stage == UpdateStage.ReadyToApply;
         UpdateText = UpdateTextFor(status);
+        if (_needsUpdate)
+        {
+            ShowBanner();
+        }
     }
 
     /// <summary>The update button's text; after a restart that did not install the update, it says so.</summary>

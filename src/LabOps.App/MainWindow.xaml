@@ -47,7 +47,13 @@
         <!-- Banner -->
         <Border DockPanel.Dock="Top" Background="{StaticResource WarnLightBrush}" BorderBrush="#F79009" BorderThickness="0,0,0,1"
                 Padding="12,8" Visibility="{Binding Banner, Converter={StaticResource NullToVisibility}}">
-            <TextBlock Text="{Binding Banner}" TextWrapping="Wrap" />
+            <DockPanel>
+                <!-- While the app is too old for a repository: look for the update now, or restart into it -->
+                <Button DockPanel.Dock="Right" Content="{Binding BannerAction}" Command="{Binding UpdateNowCommand}"
+                        Style="{StaticResource PrimaryButton}" Margin="12,0,0,0" VerticalAlignment="Center"
+                        Visibility="{Binding BannerAction, Converter={StaticResource NullToVisibility}}" />
+                <TextBlock Text="{Binding Banner}" TextWrapping="Wrap" VerticalAlignment="Center" />
+            </DockPanel>
         </Border>
 
         <!-- Status bar -->

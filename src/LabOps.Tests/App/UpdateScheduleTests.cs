@@ -52,4 +52,34 @@ public sealed class UpdateScheduleTests
         why.ShouldContain("another program was still using LabOps's folder");
         why.ShouldContain("Close those (or restart Windows), then try again.");
     }
+
+    /// <summary>While a lab repository needs a newer app, changes wait, so the update is looked for every few minutes.</summary>
+    [Fact]
+    public void A_needed_update_is_looked_for_every_ten_minutes()
+    {
+        UpdateService.NeededCheckInterval.ShouldBe(TimeSpan.FromMinutes(10));
+        UpdateService.IsCheckDue(new UpdateStatus(UpdateStage.UpToDate), Now.AddMinutes(-10), Now, UpdateService.NeededCheckInterval).ShouldBeTrue();
+        UpdateService.IsCheckDue(new UpdateStatus(UpdateStage.UpToDate), Now.AddMinutes(-9), Now, UpdateService.NeededCheckInterval).ShouldBeFalse();
+    }
+
+    /// <summary>
+    /// The banner of an app too old for a repository says how the update is going, and its button
+    /// looks for the update or restarts into it; nothing to press while it is on its way.
+    /// </summary>
+    [Theory]
+    [InlineData(UpdateStage.Idle, "", "Check for updates")]
+    [InlineData(UpdateStage.Checking, " Looking for it...", null)]
+    [InlineData(UpdateStage.Downloading, " Downloading 26.14.0 (40%)...", null)]
+    [InlineData(UpdateStage.ReadyToApply, " 26.14.0 is downloaded: restart to install it.", "Restart to update")]
+    [InlineData(UpdateStage.UpToDate, " It has not reached the update feed yet; LabOps looks again every few minutes.", "Check for updates")]
+    [InlineData(UpdateStage.Failed, " Looking for it failed: offline", "Check for updates")]
+    [InlineData(UpdateStage.NotInstalled, " This copy cannot update itself; download the new version.", "Download the new version")]
+    public void A_too_old_app_says_how_its_update_is_going_and_offers_the_next_step(UpdateStage stage, string news, string? button)
+    {
+        var status = new UpdateStatus(stage, "26.14.0", 40, stage == UpdateStage.Failed ? "offline" : null);
+
+        LabOps.App.ViewModels.MainViewModel.TooOldText("lab projects", "26.14.0", status)
+            .ShouldBe($"This version of LabOps is too old for the lab projects (it needs 26.14.0), so changes wait for the update.{news}");
+        LabOps.App.ViewModels.MainViewModel.TooOldAction(status).ShouldBe(button);
+    }
 }

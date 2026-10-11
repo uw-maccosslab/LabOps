@@ -8,6 +8,13 @@ the GitHub Release description and fails if it is missing.
 
 ## Bug Fixes
 
+- **A copy too old for a lab repository could update from the banner that said so.** The banner
+  said to update but offered no way to, and the app looked for updates only every 4 hours, so a
+  release just made could wait hours. While a repository needed a newer app, LabOps looked for the
+  update at once and every 10 minutes after, the banner said how the update was going, and its
+  button read **Check for updates**, or **Restart to update** once the update was downloaded
+  (`src/LabOps.App/ViewModels/MainViewModel.cs`, `Services/UpdateService.cs`).
+
 ## Performance
 
 ## Breaking Changes

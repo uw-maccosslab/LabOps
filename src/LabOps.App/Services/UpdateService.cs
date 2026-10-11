@@ -49,6 +49,12 @@ public sealed class UpdateService
     /// <summary>How often a running copy looks for a new release, as in PanoramaBridge.</summary>
     public static readonly TimeSpan CheckInterval = TimeSpan.FromHours(4);
 
+    /// <summary>
+    /// How often it looks while a lab repository needs a newer app: changes wait for the update, and
+    /// a release just published may take a few minutes to reach the feed.
+    /// </summary>
+    public static readonly TimeSpan NeededCheckInterval = TimeSpan.FromMinutes(10);
+
     /// <summary>Set at startup when the installer started the app again after a restart to update.</summary>
     public static bool RestartedByInstaller { get; set; }
 
