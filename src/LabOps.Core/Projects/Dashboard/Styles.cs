@@ -53,7 +53,6 @@ internal static class Styles
         ("bar-done", "background:#a9b4bf"),
         ("bar-late", "box-shadow:0 0 0 2px #b42318"),
         ("bar-planned", "top:3px;border:1.5px dashed #5b6670"),
-        ("bar-planned-late", "border-color:#b42318"),
         ("bar-clash", "top:3px;height:12px;background:#b42318;opacity:0.85"),
         ("today", "position:absolute;top:0;bottom:0;border-left:2px solid #f59e0b"),
         ("cal", "border-collapse:collapse;width:100%;table-layout:fixed"),
