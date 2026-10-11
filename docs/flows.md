@@ -10,6 +10,9 @@ These follow the main actions through the app, the engines, git, GitHub, Claude 
 - [Choosing a Panorama folder or notebook](#choosing-a-panorama-folder-or-notebook)
 - [A protocol, from upload to bench](#a-protocol-from-upload-to-bench)
 - [First-run setup](#first-run-setup)
+- [The project's wiki page](#the-projects-wiki-page)
+- [The lab dashboard](#the-lab-dashboard)
+- [Updating LabOps](#updating-labops)
 
 ## Saving a change
 
@@ -248,7 +251,7 @@ sequenceDiagram
     App->>App: check --staged, commit, push
     You->>App: Add protocol, on a project's Sample prep
     App->>Projects: link <project> protocol <id> --version 1 --step sample_prep
-    Note over App,Projects: the step shows "Protocol: ..., version 1"; clicking it opens that version
+    Note over App,Projects: the step shows "Protocol: ..., version 1", and clicking it opens that version
 ```
 
 A later change goes in the draft, never in a published version: Publish makes version 2, and a
@@ -259,26 +262,27 @@ project that recorded version 1 still opens exactly what it followed. The pre-co
 
 ```mermaid
 flowchart TB
-    subgraph programs["1. Programs"]
+    subgraph programs["Step 1: programs"]
         direction LR
         gitStep["Git<br/>winget install"] ~~~ ghStep["GitHub CLI<br/>winget install"] ~~~ claudeStep["Claude Code<br/>claude.ai install script"]
     end
-    subgraph signIns["2. Sign-ins"]
+    subgraph signIns["Step 2: sign-ins"]
         direction LR
         ghSign["GitHub<br/>gh auth login, in the browser"] ~~~ claudeSign["Claude<br/>claude auth login"]
     end
-    subgraph repos["3. Repositories and engines"]
+    subgraph repos["Step 3: repositories and engines"]
         direction LR
-        lpClone["LabOps-Projects<br/>gh repo clone, or a copy you have"] --> lpEngine["Project engine<br/>uv sync: Python and packages"]
+        lpClone["LabOps-Projects<br/>gh repo clone, or a copy you have"] --> lpEngine["Project engine<br/>built into LabOps"]
+        prClone["LabOps-Protocols, optional<br/>the area offers it later"] --> prEngine["Protocol engine<br/>uv sync: Python and packages"]
         sqClone["LabOps-Quotes, optional<br/>only if GitHub gives access"] --> sqEngine["Quote engine<br/>uv sync"]
     end
-    identity["4. Git identity<br/>your name and GitHub no-reply email, in each clone"]
+    identity["Step 4: git identity<br/>your name and GitHub no-reply email, in each clone"]
     programs --> signIns --> repos --> identity
 ```
 
-Each clone is set to rebase on pull with autostash, and LabOps-Projects to use its `.githooks`. Setup
-runs again whenever something is missing, for example after the engines are deleted or a sign-in
-expires.
+Each clone is set to rebase on pull with autostash, and LabOps-Projects and LabOps-Protocols to use
+their `.githooks`. Setup runs again whenever something is missing, for example after an engine's
+environment is deleted or a sign-in expires.
 
 ## The project's wiki page
 
@@ -323,3 +327,77 @@ sequenceDiagram
   are Claude's, in the project's `wiki.yaml`; everything else comes from the records each time.
 - **A page written or edited by hand** is replaced only from the Wiki page window, after a
   question; Panorama keeps the earlier version in the page's history.
+
+## The lab dashboard
+
+The overview's **Publish to Panorama** puts a summary of every lab's open work on a Panorama page:
+what needs attention, how much work is at each phase in each lab, and the instruments' coming
+weeks. LabOps-Projects' `config/app.yaml` names the folder (`dashboard: {folder: ...}`), which only
+lab members can read.
+
+```mermaid
+sequenceDiagram
+    actor You
+    participant App as LabOps
+    participant Engine as projects engine
+    participant Panorama as panoramaweb.org
+
+    You->>App: Overview, Publish to Panorama
+    App->>Engine: list (every lab's open work)
+    App->>App: draw the summary, every style inline
+    App->>Panorama: the page as it is now
+    alt no page yet, or one LabOps made
+        App->>Panorama: wiki-saveWiki.api
+        App-->>You: published, with a link
+    else a page someone else made
+        App-->>You: left alone, and why
+    end
+    Note over App,Panorama: after that, on each reload of the projects
+    loop every copy of the app, after it has just synced
+        App->>Panorama: the page as it is now
+        alt LabOps's page, unchanged on Panorama, and the summary differs
+            App->>Panorama: wiki-saveWiki.api
+        else edited on Panorama, or nothing new
+            App-->>App: left alone
+        end
+    end
+```
+
+- **Only a copy that has just synced** (in the last 10 minutes) updates the page, so a copy that has
+  been offline never overwrites newer work.
+- **A page edited on Panorama** is left alone until a person publishes it again from the overview.
+- **The page is bounded:** each list stops at 25 rows and says how many more there are, so it stays
+  readable however many projects there are.
+
+## Updating LabOps
+
+```mermaid
+sequenceDiagram
+    participant Repo as A lab repository
+    participant App as LabOps
+    participant Feed as GitHub Releases<br/>(this repository)
+    actor You
+
+    Note over App,Feed: at startup, then every 4 hours
+    App->>Feed: anything newer on my channel?
+    Feed-->>App: v26.14.0
+    App->>Feed: download it, in the background
+    App-->>You: Update 26.14.0 ready: restart to install
+    opt a repository needs a newer app
+        Repo-->>App: config/app.yaml: min_app_version 26.14.0
+        App-->>You: banner: too old, changes wait for the update
+        App->>Feed: look now, then every 10 minutes
+        App-->>You: Restart to update, in the banner
+    end
+    You->>App: Restart to update
+    App->>App: Velopack installs it and starts the new version
+```
+
+- **It never restarts on its own,** because someone may be partway through a conversation with
+  Claude; it waits for the button.
+- **A restart that did not install** (usually because a file opened from LabOps, such as a
+  protocol's page in the browser or a quote's PDF, kept its folder in use) is noticed, and the
+  button says what to close first.
+- **Releases** are tagged `v{version}` in this repository; the release workflow runs the tests,
+  builds the installer and the update packages (with the `labops` tool inside), and publishes them
+  with the release notes.
