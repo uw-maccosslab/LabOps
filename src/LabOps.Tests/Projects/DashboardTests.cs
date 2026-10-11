@@ -120,7 +120,8 @@ public sealed class DashboardTests
     public void A_late_step_is_red_on_the_board_and_the_timeline()
     {
         Page(DashboardView.Board).ShouldContain("card card-late", Case.Sensitive);
-        Page(DashboardView.Timeline).ShouldContain("class=\"bar-late\"", Case.Sensitive);
+        // Ringed in red over its phase's color, so the phase still shows.
+        Page(DashboardView.Timeline).ShouldContain("class=\"bar bar-late\"", Case.Sensitive);
     }
 
     [Fact]

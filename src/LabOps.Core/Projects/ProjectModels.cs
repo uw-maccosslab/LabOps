@@ -1,3 +1,5 @@
+using LabOps.Engines.Projects;
+
 namespace LabOps.Core.Projects;
 
 /// <summary>A validation message from project.py (level ERROR or WARN).</summary>
@@ -62,6 +64,12 @@ public sealed record StageEntry
     public string? Note { get; init; }
 
     public string DisplayLabel => Label ?? StageNames.Label(Kind ?? Stage);
+
+    /// <summary>The phase the step's kind belongs to; null for a step of kind other.</summary>
+    public Phases.Phase? Phase => Phases.Of(Kind ?? Stage);
+
+    /// <summary>The color the step is shown in everywhere: its phase's.</summary>
+    public string PhaseColor => Phases.ColorOf(Kind ?? Stage);
 
     public bool IsPending => Status == "pending";
 
@@ -276,6 +284,9 @@ public sealed record ProjectSummary : ITimeline
 
     /// <summary>GitHub login of who has the step <see cref="Progress"/> names.</summary>
     public string? Assigned => ProgressStep.Step?.Assigned;
+
+    /// <summary>The step <see cref="Progress"/> names; null once the project is complete.</summary>
+    public StageEntry? ProgressEntry => ProgressStep.Step;
 
     /// <summary>The step <see cref="Progress"/> names, and whose it is ("Samples" or the experiment's short name).</summary>
     private (string Where, StageEntry? Step) ProgressStep

@@ -1,3 +1,5 @@
+using LabOps.Engines.Projects;
+
 namespace LabOps.Core.Projects.Dashboard;
 
 /// <summary>The overview's views.</summary>
@@ -76,16 +78,6 @@ public sealed record Booking(string Instrument, DashboardItem Item, StageEntry S
 /// </summary>
 public static class DashboardModel
 {
-    /// <summary>The board's columns: each gathers the steps of those kinds.</summary>
-    public static readonly IReadOnlyList<(string Id, string Label, string[] Kinds)> Phases =
-    [
-        ("samples", "Samples", ["samples_received", "metadata_organized", "plate_layout"]),
-        ("prep", "Preparation", ["sample_prep", "assay_development"]),
-        ("acquisition", "Acquisition", ["data_acquisition", "data_deposited"]),
-        ("analysis", "Analysis", ["signal_processing", "data_analysis"]),
-        ("results", "Results", ["results_returned"]),
-    ];
-
     /// <summary>Every project and experiment that is not closed, lab by lab, each project before its experiments.</summary>
     public static List<DashboardItem> Items(ProjectList list)
     {
@@ -106,8 +98,9 @@ public static class DashboardModel
     }
 
     /// <summary>
-    /// The board column of an item's current step. A step of another kind (a second shipment, say)
-    /// goes with the next step it leads to, or else the one before it.
+    /// The board column of an item's current step, its place in <see cref="Phases.All"/>. A step of
+    /// another kind (a second shipment, say) goes with the next step it leads to, or else the one
+    /// before it.
     /// </summary>
     public static int Phase(DashboardItem item)
     {
@@ -119,7 +112,7 @@ public static class DashboardModel
         var at = item.Steps.ToList().IndexOf(current);
         foreach (var step in item.Steps.Skip(at).Concat(item.Steps.Take(at).Reverse()))
         {
-            var phase = PhaseOf(step.Kind);
+            var phase = Phases.IndexOf(step.Kind);
             if (phase >= 0)
             {
                 return phase;
@@ -127,19 +120,6 @@ public static class DashboardModel
         }
 
         return item.IsExperiment ? 3 : 0;
-    }
-
-    private static int PhaseOf(string? kind)
-    {
-        for (var i = 0; i < Phases.Count; i++)
-        {
-            if (Phases[i].Kinds.Contains(kind))
-            {
-                return i;
-            }
-        }
-
-        return -1;
     }
 
     /// <summary>

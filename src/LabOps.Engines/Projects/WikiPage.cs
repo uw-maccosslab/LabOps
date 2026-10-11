@@ -55,6 +55,10 @@ public static partial class WikiPage
         ["icon"] = "margin-right:7px;color:#116596",
         ["footer"] = "margin:28px 0 0;padding:10px 0 0;border-top:1px solid #dde3e8;font-size:12.5px;color:#6b7680",
         ["badge"] = "display:inline-block;padding:1px 8px;border-radius:10px;font-size:12px;font-weight:500;white-space:nowrap;",
+        ["swatch"] = "display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:7px;vertical-align:-1px;",
+        ["card_swatch"] = "display:inline-block;width:13px;height:13px;border-radius:3px;margin-right:8px;vertical-align:1px;",
+        ["key"] = "margin:6px 0 0;font-size:12.5px;color:#6b7680",
+        ["key_item"] = "display:inline-block;margin-right:14px;white-space:nowrap",
     };
 
     private const string Green = "background:#e3f4e8;color:#1d6b34";
@@ -198,6 +202,20 @@ public static partial class WikiPage
 
     private static string Badge(string label, string colors) => $"<span style=\"{S["badge"]}{colors}\">{Escape(label)}</span>";
 
+    /// <summary>A step's phase color, as the app and the lab dashboard show it (gray for a step of kind other).</summary>
+    private static string PhaseColor(PyDict step) => Phases.ColorOf(Values.Text(step["kind"]) ?? Values.Text(step["id"]));
+
+    /// <summary>A small square in a color, before the name that says the same in words.</summary>
+    private static string Swatch(string color, string style = "swatch") =>
+        $"<span style=\"{S[style]}background:{color}\" aria-hidden=\"true\"></span>";
+
+    /// <summary>The phases and their colors, under the steps.</summary>
+    private static string PhaseKey() =>
+        $"<p style=\"{S["key"]}\">The square beside each step is its phase: "
+        + string.Join(" ", Phases.All.Select(p => (p.Label, p.Color)).Append(("Other", Phases.OtherColor))
+            .Select(x => $"<span style=\"{S["key_item"]}\">{Swatch(x.Item2)}{Escape(x.Item1)}</span>"))
+        + "</p>";
+
     private static string H2(string text) => $"<h2 style=\"{S["h2"]}\">{Escape(text)}</h2>";
 
     /// <summary>The project's wiki.yaml, or an empty mapping when Claude has not written one yet.</summary>
@@ -293,7 +311,7 @@ public static partial class WikiPage
         {
             // project.py stopped on a status it did not know; show it as it is written.
             var (label, colors) = StepBadges.TryGetValue(Steps.Status(s), out var badge) ? badge : (Steps.Status(s), Gray);
-            yield return $"<tr><td style=\"{S["td"]};font-weight:500\">{Escape(Steps.Label(s))}</td>"
+            yield return $"<tr><td style=\"{S["td"]};font-weight:500\">{Swatch(PhaseColor(s))}{Escape(Steps.Label(s))}</td>"
                          + $"<td style=\"{S["td"]}\">{Badge(label, colors)}</td>"
                          + $"<td style=\"{S["td"]};white-space:nowrap\">{Escape(StepDates(s))}</td>"
                          + $"<td style=\"{S["td"]};white-space:nowrap\">{Escape(StepWho(s, names))}</td>"
@@ -427,19 +445,19 @@ public static partial class WikiPage
         }
 
         // The figures at a glance.
-        var cards = new List<(string Value, object? Detail)>();
+        var cards = new List<(string Value, object? Detail, string? Color)>();
         if (counts is not null)
         {
             cards.Add(($"{counts.Study} samples", PyText.Truthy(w["samples_card"]) ? w["samples_card"]
-                : string.Join(", ", new[] { p["sample_type"], p["species"] }.Where(PyText.Truthy).Select(PyText.Str))));
+                : string.Join(", ", new[] { p["sample_type"], p["species"] }.Where(PyText.Truthy).Select(PyText.Str)), null));
             if (counts.Qc > 0)
             {
-                cards.Add(($"{counts.Qc} QC samples", PyText.Truthy(w["qc_card"]) ? w["qc_card"] : "quality control samples"));
+                cards.Add(($"{counts.Qc} QC samples", PyText.Truthy(w["qc_card"]) ? w["qc_card"] : "quality control samples", null));
             }
         }
         else if (Values.Int(p["expected_samples"]) is { } expected && PyText.Truthy(expected))
         {
-            cards.Add(($"{PyText.Str(expected)} samples", "expected; the sample table is not organized yet"));
+            cards.Add(($"{PyText.Str(expected)} samples", "expected; the sample table is not organized yet", null));
         }
 
         foreach (var (name, e) in experiments.Take(3))
@@ -459,7 +477,7 @@ public static partial class WikiPage
 
             var first = PyText.Truthy(e["instrument"]) ? Values.Text(e["title"]) : name;
             cards.Add((Values.Text(e["instrument"]) ?? Values.Text(e["title"]) ?? name,
-                string.Join("; ", new[] { first, state }.Where(x => !string.IsNullOrEmpty(x)))));
+                string.Join("; ", new[] { first, state }.Where(x => !string.IsNullOrEmpty(x))), null));
         }
 
         var timelines = new List<(string Group, List<PyDict> Steps)> { ("Samples", Steps.Read(p)) };
@@ -470,15 +488,15 @@ public static partial class WikiPage
         {
             var started = Date(current["started"]);
             cards.Add((Steps.Label(current), $"current step{(now.Group == "Samples" ? "" : $" of {now.Group}")}"
-                                             + (started is not null ? $", started {FormatDate(started)}" : "")));
+                                             + (started is not null ? $", started {FormatDate(started)}" : ""), PhaseColor(current)));
         }
         else
         {
-            cards.Add(("Complete", "every step is done"));
+            cards.Add(("Complete", "every step is done", null));
         }
 
         output.Add($"<div style=\"{S["cards"]}\">" + string.Concat(cards.Select(c =>
-            $"<div style=\"{S["card"]}\"><span style=\"{S["card_value"]}\">{Escape(c.Value)}</span>"
+            $"<div style=\"{S["card"]}\"><span style=\"{S["card_value"]}\">{(c.Color is null ? "" : Swatch(c.Color, "card_swatch"))}{Escape(c.Value)}</span>"
             + $"<span style=\"{S["card_detail"]}\">{Inline(c.Detail)}</span></div>")) + "</div>");
 
         // The plan: as written, or each experiment in turn.
@@ -506,6 +524,7 @@ public static partial class WikiPage
 
         output.Add(H2("Progress"));
         output.Add($"<div style=\"overflow-x:auto\"><table style=\"{S["table"]}\">" + string.Concat(rows) + "</table></div>");
+        output.Add(PhaseKey());
 
         // The samples: as Claude described them, or the counts.
         output.Add(H2("Samples"));

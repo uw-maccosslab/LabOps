@@ -154,8 +154,8 @@ public sealed partial class DashboardReviewTests
 
         // A link (the keyboard reaches it, and it shows the item), with its description as its name.
         timeline.ShouldContain("href=\"https://labops.invalid/open/2026-09-BioTRACK-DIA\" "
-                               + "title=\"2026-09-BioTRACK-DIA, Signal processing: Sep 29 to Oct 9, late\" "
-                               + "aria-label=\"2026-09-BioTRACK-DIA, Signal processing: Sep 29 to Oct 9, late\"", Case.Sensitive);
+                               + "title=\"2026-09-BioTRACK-DIA, Signal processing (Analysis): Sep 29 to Oct 9, late\" "
+                               + "aria-label=\"2026-09-BioTRACK-DIA, Signal processing (Analysis): Sep 29 to Oct 9, late\"", Case.Sensitive);
         instruments.ShouldContain("aria-label=\"2026-10-Otter-DIA (ClearwaterZoo-Cole): Oct 3 to Oct 11, under way, overlaps another booking\"",
             Case.Sensitive);
         foreach (var page in (string[])[timeline, instruments])

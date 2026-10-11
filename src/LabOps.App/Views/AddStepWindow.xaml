@@ -16,7 +16,17 @@
                 <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
             <TextBlock Grid.Row="0" Text="Kind" VerticalAlignment="Center" />
-            <ComboBox x:Name="Kind" Grid.Row="0" Grid.Column="1" DisplayMemberPath="Label" Margin="0,2,0,6" />
+            <ComboBox x:Name="Kind" Grid.Row="0" Grid.Column="1" Margin="0,2,0,6">
+                <ComboBox.ItemTemplate>
+                    <!-- Each kind with its phase's color, as the step will be shown -->
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal">
+                            <Rectangle Width="9" Height="9" Margin="0,0,7,0" VerticalAlignment="Center" Fill="{Binding Phase}" />
+                            <TextBlock Text="{Binding Label}" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
             <TextBlock Grid.Row="1" Text="Label" VerticalAlignment="Center" />
             <TextBox x:Name="Label" Grid.Row="1" Grid.Column="1" Margin="0,2,0,6"
                      ToolTip="Optional unless the kind is Other. For example: Unblinded metadata from MNRF; Second shipment" />

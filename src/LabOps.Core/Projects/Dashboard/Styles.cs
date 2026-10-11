@@ -19,6 +19,8 @@ internal static class Styles
         ("section", "font-size:13px;font-weight:600;color:#364152;margin:14px 0 4px 0"),
         ("empty", "color:#5b6670;margin:2px 0 6px 0"),
         ("legend", "color:#5b6670;font-size:12px;margin:8px 0 0 0"),
+        ("key", "color:#5b6670;font-size:12px;margin:8px 0 0 0"),
+        ("key-item", "display:inline-block;margin-right:12px;white-space:nowrap"),
         ("list", "border-collapse:collapse"),
         ("head", "text-align:left;color:#5b6670;font-weight:600;font-size:12px;padding:3px 22px 3px 0;border-bottom:1px solid #d9e0e6"),
         ("cell", "text-align:left;vertical-align:top;padding:3px 22px 3px 0;border-bottom:1px solid #eef1f4"),
@@ -26,6 +28,8 @@ internal static class Styles
         ("lab", "color:#5b6670"),
         ("item", "color:#0b5cad;text-decoration:none;font-weight:600"),
         ("item-plain", "font-weight:600"),
+        // A step's phase, before its name; the color is the element's own.
+        ("swatch", "display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:-1px"),
         ("badge", "display:inline-block;padding:0 6px;border-radius:9px;font-size:11px;background:#eef1f4;color:#364152"),
         ("badge-late", "background:#fde8e8;color:#b42318"),
         ("badge-progress", "background:#e6f0fb;color:#0b5cad"),
@@ -45,12 +49,12 @@ internal static class Styles
         ("tl-sub", "padding-left:14px;width:186px"),
         ("tl-track", "position:relative;flex:1 1 auto;height:18px"),
         ("week", "position:absolute;top:2px;border-left:1px solid #d9e0e6;padding-left:3px;height:14px"),
-        ("bar", "position:absolute;top:4px;height:10px;border-radius:3px;background:#5b8fd0"),
-        ("bar-done", "position:absolute;top:4px;height:10px;border-radius:3px;background:#a9b4bf"),
-        ("bar-late", "position:absolute;top:4px;height:10px;border-radius:3px;background:#d64545"),
-        ("bar-planned", "position:absolute;top:3px;height:10px;border-radius:3px;border:1px dashed #5b6670"),
-        ("bar-planned-late", "position:absolute;top:3px;height:10px;border-radius:3px;border:1px dashed #d64545"),
-        ("bar-clash", "position:absolute;top:3px;height:12px;border-radius:3px;background:#d64545;opacity:0.85"),
+        // A bar's color is its step's phase, on the element; these say how far along it is.
+        ("bar", "position:absolute;top:4px;height:10px;border-radius:3px"),
+        ("bar-late", "box-shadow:0 0 0 2px #b42318"),
+        ("bar-planned", "top:3px;border:1.5px dashed #5b6670"),
+        ("bar-planned-late", "border-color:#b42318"),
+        ("bar-clash", "top:3px;height:12px;background:#b42318;opacity:0.85"),
         ("today", "position:absolute;top:0;bottom:0;border-left:2px solid #f59e0b"),
         ("cal", "border-collapse:collapse;width:100%;table-layout:fixed"),
         ("cal-head", "font-size:12px;color:#5b6670;font-weight:600;padding:4px;text-align:left"),
@@ -58,11 +62,11 @@ internal static class Styles
         ("cal-out", "background:#f9fafb;color:#5b6670"),
         ("cal-today", "border:2px solid #f59e0b"),
         ("day", "font-size:11px;color:#5b6670"),
-        ("chip", "display:block;font-size:11px;padding:1px 4px;margin-top:2px;border-radius:3px;background:#e6f0fb;color:#1f2933;"
+        ("chip", "display:block;font-size:11px;padding:1px 4px;margin-top:2px;border-radius:3px;background:#eef1f4;color:#1f2933;"
                  + "text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"),
         ("chip-planned", "background:#ffffff;border:1px dashed #7b8794"),
-        ("chip-done", "background:#e7f6ec"),
-        ("chip-late", "background:#fde8e8;color:#b42318;border:1px dashed #d64545"),
+        ("chip-done", "background:#ffffff;border:1px solid #e3e8ee;color:#5b6670"),
+        ("chip-late", "background:#fde8e8;color:#b42318;border:1px dashed #b42318"),
         ("more", "font-size:11px;color:#5b6670;margin-top:2px"),
     ];
 
