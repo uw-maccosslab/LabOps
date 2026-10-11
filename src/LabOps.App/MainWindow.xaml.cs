@@ -11,6 +11,7 @@ public partial class MainWindow : Window
 {
     private readonly MainViewModel _vm;
     private readonly AppPaths _paths;
+    private readonly HiddenLoads _previewLoads;
     private bool _previewReady;
     private bool _shutDown;
 
@@ -19,6 +20,9 @@ public partial class MainWindow : Window
         _vm = vm;
         _paths = paths;
         InitializeComponent();
+        // The preview loads while the Quotes area is hidden, and a page loaded hidden is never
+        // drawn: it is loaded again when the preview shows.
+        _previewLoads = WebViewGuard.RedrawWhenShown(Preview, ShowPreview);
         DataContext = vm;
         Loaded += OnLoaded;
         Closing += OnClosing;
@@ -46,7 +50,7 @@ public partial class MainWindow : Window
             Preview.CoreWebView2.Settings.IsStatusBarEnabled = false;
             Preview.CoreWebView2.NavigationStarting += OnPreviewNavigating;
             _previewReady = true;
-            Preview.NavigateToString(_vm.PreviewHtml);
+            ShowPreview();
         }
         catch (Exception ex) when (ex is WebView2RuntimeNotFoundException or System.Runtime.InteropServices.COMException)
         {
@@ -74,11 +78,20 @@ public partial class MainWindow : Window
     {
         if (e.PropertyName == nameof(MainViewModel.PreviewHtml) && _previewReady)
         {
-            Preview.NavigateToString(_vm.PreviewHtml);
+            ShowPreview();
         }
         else if (e.PropertyName == nameof(MainViewModel.Area) && IsLoaded)
         {
             Dispatcher.InvokeAsync(FocusSearch);
+        }
+    }
+
+    private void ShowPreview()
+    {
+        if (_previewReady)
+        {
+            _previewLoads.Loading();
+            Preview.NavigateToString(_vm.PreviewHtml);
         }
     }
 

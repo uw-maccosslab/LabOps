@@ -57,11 +57,22 @@ public sealed partial class PhaseColorTests
     }
 
     [Fact]
-    public void Finished_work_is_its_phase_color_faded_toward_white()
+    public void The_key_is_every_phase_then_other()
     {
-        Phases.Faded("#2a78d6").ShouldBe("#9fc2ed");
-        Phases.Faded("#2a78d6", 1).ShouldBe("#2a78d6");
-        Phases.Faded("#2a78d6", 0).ShouldBe("#ffffff");
+        Phases.Key.ShouldBe([.. Phases.All.Select(p => (p.Label, p.Color)), ("Other", Phases.OtherColor)]);
+        Phases.LabelOf("sample_prep").ShouldBe("Preparation");
+        Phases.LabelOf("other").ShouldBe(Phases.OtherLabel);
+    }
+
+    /// <summary>A step written without a kind goes by its id, for its column as for its color.</summary>
+    [Fact]
+    public void A_step_without_a_kind_is_placed_and_colored_by_its_id()
+    {
+        var step = new StageEntry { Stage = "data_analysis" };
+        var item = new DashboardItem("2026-10-Test-DIA", true, "Zoo-Lab", "Proj", null, null, null, [step], step, [], null);
+
+        DashboardModel.Phase(item).ShouldBe(Phases.IndexOf("data_analysis"));
+        step.PhaseColor.ShouldBe(Phases.ColorOf("data_analysis"));
     }
 
     [Fact]
@@ -70,28 +81,29 @@ public sealed partial class PhaseColorTests
         var html = Page(DashboardView.Timeline);
 
         Bar(html, "2026-10-Otter-DIA, Data acquisition (Acquisition): Oct 3 to Oct 9").ShouldContain("background:#4a3aa7", Case.Sensitive);
-        Bar(html, "CWZ-Otter-EV, Sample prep (Preparation): Sep 12 to Sep 19")
-            .ShouldContain($"background:{Phases.Faded("#2a78d6")}", Case.Sensitive, "finished: faded");
+        var done = Bar(html, "CWZ-Otter-EV, Sample prep (Preparation): Sep 12 to Sep 19");
+        done.ShouldStartWith("<a class=\"bar bar-done\"", Case.Sensitive, "finished: gray");
+        done.ShouldNotContain("background:", Case.Sensitive);
         Bar(html, "2026-10-Otter-DIA, Data deposited to Panorama (Acquisition): Oct 12 to Oct 13 (planned)")
             .ShouldContain("border-color:#4a3aa7", Case.Sensitive, "planned: dashed in the phase's color");
         var late = Bar(html, "2026-09-BioTRACK-DIA, Signal processing (Analysis): Sep 29 to Oct 9, late");
         late.ShouldStartWith("<a class=\"bar bar-late\"", Case.Sensitive);
         late.ShouldContain("background:#e87ba4", Case.Sensitive, "late: ringed in red over its phase's color");
         Styles.Inline("bar-late").ShouldContain(Phases.LateColor, Case.Sensitive);
-        html.ShouldContain("<p class=\"key\">", Case.Sensitive);
+        html.ShouldContain("<p class=\"legend\"><span class=\"key-item\">", Case.Sensitive);
     }
 
     [Fact]
-    public void An_instrument_schedule_is_in_the_acquisition_color_except_where_bookings_overlap()
+    public void An_instrument_schedule_is_in_the_acquisition_color_until_done_except_where_bookings_overlap()
     {
         var bars = AnyBar().Matches(Page(DashboardView.Instruments)).Select(m => m.Value).ToList();
 
         bars.ShouldNotBeEmpty();
         bars.ShouldContain(b => b.StartsWith("<a class=\"bar bar-clash\"", StringComparison.Ordinal));
-        foreach (var bar in bars.Where(b => !b.Contains("bar-clash", StringComparison.Ordinal)))
+        bars.ShouldContain(b => b.StartsWith("<a class=\"bar bar-done\"", StringComparison.Ordinal));
+        foreach (var bar in bars.Where(b => !b.Contains("bar-clash", StringComparison.Ordinal) && !b.Contains("bar-done", StringComparison.Ordinal)))
         {
-            new[] { "background:#4a3aa7", $"background:{Phases.Faded("#4a3aa7")}", "border-color:#4a3aa7" }
-                .ShouldContain(look => bar.Contains(look, StringComparison.Ordinal), bar);
+            new[] { "background:#4a3aa7", "border-color:#4a3aa7" }.ShouldContain(look => bar.Contains(look, StringComparison.Ordinal), bar);
         }
     }
 

@@ -64,11 +64,15 @@ public static partial class WikiPage
     private const string Green = "background:#e3f4e8;color:#1d6b34";
     private const string Blue = "background:#e1effa;color:#0d4f75";
     private const string Gray = "background:#eef1f4;color:#5b6670";
+
+    // A step's status is told by its words and these grays, never by a hue: the hues are the phases'.
+    private const string DoneGray = "background:#e2e7ec;color:#364152";
+    private const string NotStarted = "background:#ffffff;color:#5b6670;border:1px solid #d9e0e6";
     private const string Amber = "background:#fff4dc;color:#8a5a00";
 
     private static readonly Dictionary<string, (string, string)> StepBadges = new()
     {
-        ["done"] = ("Done", Green), ["in_progress"] = ("In progress", Blue), ["pending"] = ("Not started", Gray), ["skipped"] = ("Skipped", Gray),
+        ["done"] = ("Done", DoneGray), ["in_progress"] = ("In progress", Blue), ["pending"] = ("Not started", NotStarted), ["skipped"] = ("Skipped", Gray),
     };
 
     private static readonly Dictionary<string, (string, string)> StatusBadges = new()
@@ -212,8 +216,7 @@ public static partial class WikiPage
     /// <summary>The phases and their colors, under the steps.</summary>
     private static string PhaseKey() =>
         $"<p style=\"{S["key"]}\">The square beside each step is its phase: "
-        + string.Join(" ", Phases.All.Select(p => (p.Label, p.Color)).Append(("Other", Phases.OtherColor))
-            .Select(x => $"<span style=\"{S["key_item"]}\">{Swatch(x.Item2)}{Escape(x.Item1)}</span>"))
+        + string.Join(" ", Phases.Key.Select(x => $"<span style=\"{S["key_item"]}\">{Swatch(x.Color)}{Escape(x.Label)}</span>"))
         + "</p>";
 
     private static string H2(string text) => $"<h2 style=\"{S["h2"]}\">{Escape(text)}</h2>";

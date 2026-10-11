@@ -9,6 +9,10 @@ namespace LabOps.App.ViewModels;
 /// <param name="Assigned">Who has the step <see cref="Progress"/> names, as a name; empty when nobody.</param>
 public sealed record ProjectRow(LabSummary Lab, ProjectSummary Project, DateTimeOffset? Modified, string Assigned = "")
 {
+    // Where the project stands, worked out once as the row is made (rows are made afresh on each
+    // reload): the list shows, searches and colors by it.
+    private readonly StageEntry? _progressStep = Project.ProgressEntry;
+
     public string Name => Project.Project;
 
     public string Title => Project.Title ?? "";
@@ -38,16 +42,16 @@ public sealed record ProjectRow(LabSummary Lab, ProjectSummary Project, DateTime
     }
 
     /// <summary>"Samples: Metadata organized", "DIA: Data acquisition", or "Complete".</summary>
-    public string Progress => Project.Progress;
+    public string Progress { get; } = Project.Progress;
 
     public int ProgressRank => Project.ProgressRank;
 
     /// <summary>The phase color of the step <see cref="Progress"/> names; clear once the project is complete.</summary>
     public System.Windows.Media.Brush ProgressBrush =>
-        Project.ProgressEntry is { } step ? PhaseBrushes.Of(step.PhaseColor) : System.Windows.Media.Brushes.Transparent;
+        _progressStep is { } step ? PhaseBrushes.Of(step.PhaseColor) : System.Windows.Media.Brushes.Transparent;
 
     /// <summary>The phase of the step <see cref="Progress"/> names, which its square shows.</summary>
-    public string? ProgressPhase => Project.ProgressEntry is { } step ? step.Phase?.Label ?? "Other" : null;
+    public string? ProgressPhase => _progressStep?.PhaseLabel;
 
     /// <summary>The experiments by short name: "DIA, PRM".</summary>
     public string ExperimentNames => string.Join(", ", Project.Experiments.Select(ProjectSummary.ShortName));
@@ -241,7 +245,7 @@ public sealed class StageRowViewModel(TimelineSection section, StageEntry entry,
     public System.Windows.Media.Brush PhaseBrush => PhaseBrushes.Of(Entry.PhaseColor);
 
     /// <summary>"Preparation": the phase the color stands for, or Other.</summary>
-    public string PhaseName => Entry.Phase?.Label ?? "Other";
+    public string PhaseName => Entry.PhaseLabel;
 
     /// <summary>The first step not yet done or skipped.</summary>
     public bool IsCurrent { get; } = isCurrent;

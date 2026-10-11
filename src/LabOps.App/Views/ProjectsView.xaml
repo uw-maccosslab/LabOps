@@ -103,7 +103,8 @@
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding Status}" Value="done">
                                                 <Setter Property="Text" Value="&#x2713;" />
-                                                <Setter Property="Foreground" Value="{StaticResource OkBrush}" />
+                                                <!-- Done is gray, as everywhere; green would read as a phase -->
+                                                <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding Status}" Value="in_progress">
                                                 <Setter Property="Text" Value="&#x25CF;" />

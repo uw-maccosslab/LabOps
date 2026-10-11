@@ -1,4 +1,5 @@
 using System.IO;
+using System.Windows;
 using LabOps.Core.Infrastructure;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
@@ -13,6 +14,32 @@ namespace LabOps.App.Services;
 /// </summary>
 internal static class WebViewGuard
 {
+    /// <summary>
+    /// What a view shows while its page is not ready. It draws something, if only white on white:
+    /// until a page has drawn something, the browser shows a black box.
+    /// </summary>
+    public const string BlankPage =
+        "<!doctype html><html><body style=\"background:#fff;color:#fff\"><span aria-hidden=\"true\">.</span></body></html>";
+
+    /// <summary>
+    /// Has a view load its page again as it appears, if the page was loaded while it was hidden
+    /// (a view in an area not shown, or behind a selection not yet made). The view calls
+    /// <see cref="HiddenLoads.Loading"/> each time it loads a page; <paramref name="load"/> loads
+    /// its current page.
+    /// </summary>
+    public static HiddenLoads RedrawWhenShown(UIElement view, Action load)
+    {
+        var loads = new HiddenLoads(() => view.IsVisible, load);
+        view.IsVisibleChanged += (_, e) =>
+        {
+            if (e.NewValue is true)
+            {
+                loads.Shown();
+            }
+        };
+        return loads;
+    }
+
     /// <summary>Starts the view's browser with the app's own profile and locks it down.</summary>
     /// <param name="ownLinks">
     /// Handles one of the page's own links (true when it was one), so that opening it in a new

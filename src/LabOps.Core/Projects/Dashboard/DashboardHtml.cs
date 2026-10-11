@@ -410,8 +410,8 @@ public static class DashboardHtml
 
         h.Close("div");
         PhaseKey(h);
-        h.Element("p", "legend", "Each bar is a step, in its phase's color. Solid: under way. Faded: done. Dashed: planned. "
-                                 + "A red ring or red dashes: late. The line is today. "
+        h.Element("p", "legend", "Each bar is a step, in its phase's color until it is done, then gray. Solid: what happened. "
+                                 + "Dashed: what is planned. A red ring or red dashes: late. The line is today. "
                                  + "Point at a bar, or Tab to it, for its step and dates; click it to see the item.");
     }
 
@@ -509,7 +509,7 @@ public static class DashboardHtml
 
         h.Close("table");
         PhaseKey(h);
-        h.Element("p", "legend", "The square is the step's phase. Gray: started. White: finished. Dashed: planned to start, or due. Red: late.");
+        h.Element("p", "legend", "The square is the step's phase. White: started. Gray: finished. Dashed: planned to start, or due. Red: late.");
     }
 
     // ---------------------------------------------------------------- instruments
@@ -609,25 +609,33 @@ public static class DashboardHtml
         if (app)
         {
             h.Close("div");
-            h.Element("p", "legend", "Each line is an experiment's data acquisition, in the Acquisition phase's color. Solid: under way. "
-                                     + "Faded: done. Dashed: planned. Red: overlaps another booking on the same instrument. The line is today.");
+            h.Element("p", "legend", "Each line is an experiment's data acquisition, in the Acquisition phase's color until it is done, "
+                                     + "then gray. Solid: recorded. Dashed: planned. Red: overlaps another booking on the same instrument. "
+                                     + "The line is today.");
         }
     }
 
     // ---------------------------------------------------------------- pieces
 
     /// <summary>
-    /// How a step's bar looks: in its phase's color, solid while under way, faded once done or
-    /// skipped, dashed while planned. A late one is ringed in red, or dashed in red while planned.
+    /// How a step's bar looks: in its phase's color, solid as it happens and dashed as planned, and
+    /// gray once the step is done or skipped. A late one is ringed in red, or dashed in red.
     /// </summary>
-    private static (string Classes, string Style) BarLook(StageEntry step, bool planned, bool late) =>
-        planned
-            ? late ? ("bar bar-planned bar-planned-late", "") : ("bar bar-planned", $";border-color:{step.PhaseColor}")
-            : (late ? "bar bar-late" : "bar",
-                $";background:{(step.IsDone || step.IsSkipped ? Phases.Faded(step.PhaseColor) : step.PhaseColor)}");
+    private static (string Classes, string Style) BarLook(StageEntry step, bool planned, bool late)
+    {
+        var finished = step.IsDone || step.IsSkipped;
+        if (planned)
+        {
+            return late ? ("bar bar-planned bar-planned-late", "")
+                : finished ? ("bar bar-planned", "")
+                : ("bar bar-planned", $";border-color:{step.PhaseColor}");
+        }
+
+        return finished ? ("bar bar-done", "") : (late ? "bar bar-late" : "bar", $";background:{step.PhaseColor}");
+    }
 
     /// <summary>" (Preparation)": a step's phase, for a bar's label, so it is not told by color alone.</summary>
-    private static string PhaseNote(StageEntry step) => step.Phase is { } phase ? $" ({phase.Label})" : "";
+    private static string PhaseNote(StageEntry step) => step.Phase is not null ? $" ({step.PhaseLabel})" : "";
 
     /// <summary>A small square in a step's phase color, before its name, which says the same in words.</summary>
     private static void Swatch(Html h, StageEntry step) => Swatch(h, step.PhaseColor);
@@ -638,8 +646,8 @@ public static class DashboardHtml
     /// <summary>The phases and their colors, under a view that shows them.</summary>
     private static void PhaseKey(Html h)
     {
-        h.Open("p", "key");
-        foreach (var (label, color) in Phases.All.Select(p => (p.Label, p.Color)).Append(("Other", Phases.OtherColor)))
+        h.Open("p", "legend");
+        foreach (var (label, color) in Phases.Key)
         {
             h.Open("span", "key-item");
             Swatch(h, color);

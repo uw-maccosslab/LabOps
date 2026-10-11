@@ -292,7 +292,43 @@ public sealed class ProtocolsAreaTests
     [Fact]
     public void The_page_shown_while_a_protocol_renders_draws_something()
     {
-        var body = System.Text.RegularExpressions.Regex.Match(LabOps.App.Views.ProtocolsView.BlankPage, "<body[^>]*>(.*)</body>").Groups[1].Value;
+        var body = System.Text.RegularExpressions.Regex.Match(LabOps.App.Services.WebViewGuard.BlankPage, "<body[^>]*>(.*)</body>").Groups[1].Value;
         System.Text.RegularExpressions.Regex.Replace(body, "<[^>]+>", "").Trim().ShouldNotBeEmpty();
+    }
+
+    /// <summary>
+    /// A page loaded while its view was hidden is never drawn, so it is loaded again as the view
+    /// appears, once; a page loaded while the view showed is left alone.
+    /// </summary>
+    [Fact]
+    public void A_page_loaded_while_hidden_is_loaded_again_when_its_view_appears()
+    {
+        var visible = false;
+        var loads = 0;
+        LabOps.App.Services.HiddenLoads? tracker = null;
+        tracker = new LabOps.App.Services.HiddenLoads(() => visible, () =>
+        {
+            loads++;
+            tracker!.Loading();
+        });
+
+        tracker.Loading();      // the page loads while the view is hidden
+        visible = true;
+        tracker.Shown();
+        loads.ShouldBe(1, "loaded again as it appears");
+        tracker.Shown();
+        loads.ShouldBe(1, "and only once");
+
+        tracker.Loading();      // a page loaded while it shows
+        visible = false;
+        visible = true;
+        tracker.Shown();
+        loads.ShouldBe(1, "is drawn already, so it stays");
+
+        visible = false;
+        tracker.Loading();      // the next page, loaded while hidden again
+        visible = true;
+        tracker.Shown();
+        loads.ShouldBe(2);
     }
 }
