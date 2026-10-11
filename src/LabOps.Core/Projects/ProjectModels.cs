@@ -71,6 +71,9 @@ public sealed record StageEntry
     /// <summary>The color the step is shown in everywhere: its phase's.</summary>
     public string PhaseColor => Phases.ColorOf(Kind ?? Stage);
 
+    /// <summary>"Preparation": the name of the step's phase, or Other.</summary>
+    public string PhaseLabel => Phases.LabelOf(Kind ?? Stage);
+
     public bool IsPending => Status == "pending";
 
     public bool IsInProgress => Status == "in_progress";

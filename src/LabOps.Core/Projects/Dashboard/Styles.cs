@@ -19,7 +19,6 @@ internal static class Styles
         ("section", "font-size:13px;font-weight:600;color:#364152;margin:14px 0 4px 0"),
         ("empty", "color:#5b6670;margin:2px 0 6px 0"),
         ("legend", "color:#5b6670;font-size:12px;margin:8px 0 0 0"),
-        ("key", "color:#5b6670;font-size:12px;margin:8px 0 0 0"),
         ("key-item", "display:inline-block;margin-right:12px;white-space:nowrap"),
         ("list", "border-collapse:collapse"),
         ("head", "text-align:left;color:#5b6670;font-weight:600;font-size:12px;padding:3px 22px 3px 0;border-bottom:1px solid #d9e0e6"),
@@ -49,8 +48,9 @@ internal static class Styles
         ("tl-sub", "padding-left:14px;width:186px"),
         ("tl-track", "position:relative;flex:1 1 auto;height:18px"),
         ("week", "position:absolute;top:2px;border-left:1px solid #d9e0e6;padding-left:3px;height:14px"),
-        // A bar's color is its step's phase, on the element; these say how far along it is.
+        // A bar's color is its step's phase, on the element, until the step is done; these say how far along it is.
         ("bar", "position:absolute;top:4px;height:10px;border-radius:3px"),
+        ("bar-done", "background:#a9b4bf"),
         ("bar-late", "box-shadow:0 0 0 2px #b42318"),
         ("bar-planned", "top:3px;border:1.5px dashed #5b6670"),
         ("bar-planned-late", "border-color:#b42318"),
@@ -62,10 +62,10 @@ internal static class Styles
         ("cal-out", "background:#f9fafb;color:#5b6670"),
         ("cal-today", "border:2px solid #f59e0b"),
         ("day", "font-size:11px;color:#5b6670"),
-        ("chip", "display:block;font-size:11px;padding:1px 4px;margin-top:2px;border-radius:3px;background:#eef1f4;color:#1f2933;"
+        ("chip", "display:block;font-size:11px;padding:1px 4px;margin-top:2px;border-radius:3px;background:#ffffff;border:1px solid #d9e0e6;color:#1f2933;"
                  + "text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"),
         ("chip-planned", "background:#ffffff;border:1px dashed #7b8794"),
-        ("chip-done", "background:#ffffff;border:1px solid #e3e8ee;color:#5b6670"),
+        ("chip-done", "background:#eef1f4;border-color:#eef1f4;color:#5b6670"),
         ("chip-late", "background:#fde8e8;color:#b42318;border:1px dashed #b42318"),
         ("more", "font-size:11px;color:#5b6670;margin-top:2px"),
     ];

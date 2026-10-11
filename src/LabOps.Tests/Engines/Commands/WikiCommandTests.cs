@@ -146,6 +146,9 @@ public sealed partial class WikiCommandTests
         // The current step's card (the plate layout) has its square too.
         html.ShouldContain($"background:{Phases.ColorOf("plate_layout")}\" aria-hidden=\"true\"></span>Plate layout</span>", Case.Sensitive);
         Text(html).ShouldContain("The square beside each step is its phase: Samples Preparation Acquisition Analysis Results Other", Case.Sensitive);
+        // A step's status is in grays, never a hue: those are the phases'.
+        html.ShouldContain("background:#e2e7ec;color:#364152\">Done</span>", Case.Sensitive);
+        html.ShouldNotContain("background:#e3f4e8;color:#1d6b34\">Done", Case.Sensitive);
     }
 
     [Fact]

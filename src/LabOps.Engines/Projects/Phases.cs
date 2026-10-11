@@ -1,5 +1,3 @@
-using System.Globalization;
-
 namespace LabOps.Engines.Projects;
 
 /// <summary>
@@ -26,6 +24,13 @@ public static class Phases
     /// <summary>The color of a step in no phase (kind other).</summary>
     public const string OtherColor = "#7b8794";
 
+    /// <summary>How a step in no phase is named beside <see cref="OtherColor"/>.</summary>
+    public const string OtherLabel = "Other";
+
+    /// <summary>Every color a step can have, with its name, in order: the key under a view that shows them.</summary>
+    public static IReadOnlyList<(string Label, string Color)> Key { get; } =
+        [.. All.Select(p => (p.Label, p.Color)), (OtherLabel, OtherColor)];
+
     /// <summary>The red of late work, darker than any phase's color so the two never mix up.</summary>
     public const string LateColor = "#b42318";
 
@@ -49,14 +54,6 @@ public static class Phases
     /// <summary>The color of a step of this kind.</summary>
     public static string ColorOf(string? kind) => Of(kind)?.Color ?? OtherColor;
 
-    /// <summary>
-    /// A color faded toward white, for work that is finished: the phase still shows, quieter.
-    /// <paramref name="strength"/> is how much of the color is kept, from 0 (white) to 1.
-    /// </summary>
-    public static string Faded(string color, double strength = 0.45)
-    {
-        var rgb = int.Parse(color.AsSpan(1), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
-        int Mix(int channel) => (int)Math.Round(255 - (255 - channel) * strength);
-        return string.Create(CultureInfo.InvariantCulture, $"#{Mix(rgb >> 16 & 0xff):x2}{Mix(rgb >> 8 & 0xff):x2}{Mix(rgb & 0xff):x2}");
-    }
+    /// <summary>The name of the phase of a step of this kind, or Other.</summary>
+    public static string LabelOf(string? kind) => Of(kind)?.Label ?? OtherLabel;
 }

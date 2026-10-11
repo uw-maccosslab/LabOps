@@ -106,13 +106,15 @@ dotnet test --project src/LabOps.Tests/LabOps.Tests.csproj
   - `Engines/ParityTests` and `ParityWriteTests` (opt-in: `LAB_PROJECTS_REPO` and uv) run both
     engines on the real clone, on a repository of edge cases, on generated workbooks, on staged
     commits, and through a 90-command write scenario, comparing JSON, text, exit codes and every
-    file byte for byte.
+    file byte for byte. A wiki page's HTML is left out: it shows each step's phase color, which
+    `project.py` never did (`Engines/Commands/WikiCommandTests` holds the page).
   - `Engines/Commands` holds LabOps-Projects' command tests, moved here from its pytest suite when
     `project.py` was removed: `TestRepo` makes a scratch repository from `Fixtures/projects-repo`
     (the templates with made-up examples) and runs `labops projects` in-process
     (`LabopsCommandLine.Run`), as the tool does.
   - Where the C# engine deliberately differs (Python crashed, or a line edit was wrong),
-    `Engines/EngineFixTests` and `YamlEditTests` say so; anything else that differs is a bug.
+    `Engines/EngineFixTests` and `YamlEditTests` say so, and the wiki page's phase colors are the
+    one difference by design; anything else that differs is a bug.
 - `Fixtures/project-*.json` were recorded from the real `project.py`; they test the app's reading
   of the engine's JSON, which the C# engine keeps unchanged. `Fixtures/protocol-*.json` were
   recorded from the real `protocol.py` (its `tests/test_contract.py` guards that side).

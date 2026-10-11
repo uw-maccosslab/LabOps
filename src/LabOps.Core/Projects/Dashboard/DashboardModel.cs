@@ -112,14 +112,15 @@ public static class DashboardModel
         var at = item.Steps.ToList().IndexOf(current);
         foreach (var step in item.Steps.Skip(at).Concat(item.Steps.Take(at).Reverse()))
         {
-            var phase = Phases.IndexOf(step.Kind);
+            var phase = Phases.IndexOf(step.Kind ?? step.Stage);
             if (phase >= 0)
             {
                 return phase;
             }
         }
 
-        return item.IsExperiment ? 3 : 0;
+        // With no step in a phase: an experiment goes with analysis, a project with its samples.
+        return Phases.IndexOf(item.IsExperiment ? "data_analysis" : "samples_received");
     }
 
     /// <summary>

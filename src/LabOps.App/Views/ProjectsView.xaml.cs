@@ -18,6 +18,7 @@ namespace LabOps.App.Views;
 /// </summary>
 public partial class ProjectsView : UserControl
 {
+    private readonly HiddenLoads _loads;
     private ProjectsViewModel? _vm;
     private bool _started;
     private bool _ready;
@@ -27,6 +28,9 @@ public partial class ProjectsView : UserControl
     {
         InitializeComponent();
         DataContextChanged += OnDataContextChanged;
+        // The overview is drawn again after a sync, even while the Projects area is hidden, and a
+        // page loaded hidden is never drawn: it is loaded again when the overview shows.
+        _loads = WebViewGuard.RedrawWhenShown(OverviewPage, ShowPage);
     }
 
     /// <summary>Puts the cursor in the search box.</summary>
@@ -108,6 +112,7 @@ public partial class ProjectsView : UserControl
         {
             Directory.CreateDirectory(Path.GetDirectoryName(_page)!);
             File.WriteAllText(_page, vm.Overview.Html, new UTF8Encoding(false));
+            _loads.Loading();
             // The query makes the page load afresh each time it is drawn again.
             OverviewPage.CoreWebView2.Navigate($"{new Uri(_page).AbsoluteUri}?v={DateTime.UtcNow.Ticks}");
         }
