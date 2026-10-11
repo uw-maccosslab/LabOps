@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net;
 using System.Text;
 using LabOps.Core.Panorama;
+using LabOps.Engines.Projects;
 
 namespace LabOps.Core.Projects.Dashboard;
 
@@ -181,6 +182,11 @@ public static class DashboardHtml
                 .ToList());
         }
 
+        if (late.Count + due.Count > 0)
+        {
+            PhaseKey(h);
+        }
+
         // Errors in lab.yaml count as well as those in projects and experiments; a person's view
         // leaves out the labs and the repository as a whole, which are nobody's in particular.
         var broken = items.Where(i => i.Issues.Any(x => x.IsError)).ToList();
@@ -237,7 +243,9 @@ public static class DashboardHtml
             ItemLink(h, item, view.Links);
             h.Close("td")
                 .Element("td", "cell lab", item.Lab)
-                .Element("td", "cell", step.DisplayLabel)
+                .Open("td", "cell");
+            Swatch(h, step);
+            h.Text(step.DisplayLabel).Close("td")
                 .Element("td", "cell", step.Assigned is { } who ? view.Name(who) : "nobody")
                 .Element("td", late ? "cell late" : "cell", when)
                 .Element("td", late ? "cell late" : "cell lab", howLong)
@@ -261,13 +269,14 @@ public static class DashboardHtml
         }
 
         h.Open("div", "board");
-        for (var phase = 0; phase < DashboardModel.Phases.Count; phase++)
+        for (var phase = 0; phase < Phases.All.Count; phase++)
         {
             var here = placed.Where(x => x.Phase == phase).Select(x => x.Item)
                 .OrderByDescending(i => i.IsLate(i.Current!, view.Today))
                 .ThenBy(i => i.Lab, StringComparer.OrdinalIgnoreCase).ThenBy(i => i.Name, StringComparer.OrdinalIgnoreCase).ToList();
             h.Open("div", "col");
-            h.Element("div", "col-head", Counted(DashboardModel.Phases[phase].Label, here.Count));
+            h.Element("div", "col-head", Counted(Phases.All[phase].Label, here.Count),
+                $"padding-bottom:3px;border-bottom:3px solid {Phases.All[phase].Color}");
             foreach (var item in here)
             {
                 var step = item.Current!;
@@ -325,16 +334,18 @@ public static class DashboardHtml
         }
 
         h.Open("table", "list").Open("tr").Element("th", "head", "Lab");
-        foreach (var phase in DashboardModel.Phases)
+        foreach (var phase in Phases.All)
         {
-            h.Element("th", "head num", phase.Label);
+            h.Open("th", "head num");
+            Swatch(h, phase.Color);
+            h.Text(phase.Label).Close("th");
         }
 
         h.Close("tr");
         foreach (var lab in placed.GroupBy(x => x.Item.Lab, StringComparer.OrdinalIgnoreCase).OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase))
         {
             h.Open("tr").Element("td", "cell", lab.Key);
-            for (var phase = 0; phase < DashboardModel.Phases.Count; phase++)
+            for (var phase = 0; phase < Phases.All.Count; phase++)
             {
                 var n = lab.Count(x => x.Phase == phase);
                 h.Element("td", "cell num", n == 0 ? "" : n.ToString(CultureInfo.InvariantCulture));
@@ -386,10 +397,10 @@ public static class DashboardHtml
                 foreach (var span in spans)
                 {
                     var late = item.IsLate(span.Step, today);
-                    var cls = span.Planned ? (late ? "bar-planned-late" : "bar-planned")
-                        : span.Step.IsDone || span.Step.IsSkipped ? "bar-done" : late ? "bar-late" : "bar";
-                    var tip = $"{item.Name}, {span.Step.DisplayLabel}: {Range(span.From, span.To)}{(span.Planned ? " (planned)" : "")}{(late ? ", late" : "")}";
-                    Bar(h, item, cls, Position(span.From, span.To, first, last), tip);
+                    var (cls, color) = BarLook(span.Step, span.Planned, late);
+                    var tip = $"{item.Name}, {span.Step.DisplayLabel}{PhaseNote(span.Step)}: {Range(span.From, span.To)}"
+                              + $"{(span.Planned ? " (planned)" : "")}{(late ? ", late" : "")}";
+                    Bar(h, item, cls, Position(span.From, span.To, first, last) + color, tip);
                 }
 
                 TodayLine(h, today, first, last);
@@ -398,7 +409,9 @@ public static class DashboardHtml
         }
 
         h.Close("div");
-        h.Element("p", "legend", "Solid: what happened (gray once done). Dashed: what is planned. Red: late. The line is today. "
+        PhaseKey(h);
+        h.Element("p", "legend", "Each bar is a step, in its phase's color. Solid: under way. Faded: done. Dashed: planned. "
+                                 + "A red ring or red dashes: late. The line is today. "
                                  + "Point at a bar, or Tab to it, for its step and dates; click it to see the item.");
     }
 
@@ -477,7 +490,9 @@ public static class DashboardHtml
                     var late = e.Planned && e.Item.IsLate(e.Step, view.Today);
                     var chip = late ? "chip chip-late" : e.Planned ? "chip chip-planned" : e.What is "finished" or "skipped" ? "chip chip-done" : "chip";
                     var text = $"{e.Item.Name}: {e.Step.DisplayLabel} {e.What}{(late ? " (late)" : "")}";
-                    h.Open("a", chip, null, ("href", OpenPrefix + Uri.EscapeDataString(e.Item.Name)), ("title", text)).Text(text).Close("a");
+                    h.Open("a", chip, null, ("href", OpenPrefix + Uri.EscapeDataString(e.Item.Name)), ("title", text));
+                    Swatch(h, e.Step);
+                    h.Text(text).Close("a");
                 }
 
                 if (those.Count > ChipsPerDay)
@@ -493,7 +508,8 @@ public static class DashboardHtml
         }
 
         h.Close("table");
-        h.Element("p", "legend", "Blue: started. Green: finished. Dashed: planned to start, or due. Red: late.");
+        PhaseKey(h);
+        h.Element("p", "legend", "The square is the step's phase. Gray: started. White: finished. Dashed: planned to start, or due. Red: late.");
     }
 
     // ---------------------------------------------------------------- instruments
@@ -558,10 +574,10 @@ public static class DashboardHtml
                     h.Open("div", "tl-row").Open("div", "tl-name");
                     ItemLink(h, b.Item, view.Links);
                     h.Element("span", "lab", " " + b.Item.Lab).Close("div").Open("div", "tl-track");
-                    var cls = clashing.Contains(b) ? "bar-clash" : b.Planned ? "bar-planned" : b.Step.IsDone ? "bar-done" : "bar";
+                    var (cls, color) = clashing.Contains(b) ? ("bar bar-clash", "") : BarLook(b.Step, b.Planned, late: false);
                     var tip = $"{b.Item.Name} ({b.Item.Lab}): {Range(b.From, b.To)}, "
                               + (b.Planned ? "planned" : b.Step.IsDone ? "done" : "under way") + (clashing.Contains(b) ? ", overlaps another booking" : "");
-                    Bar(h, b.Item, cls, Position(b.From, b.To, first, last), tip);
+                    Bar(h, b.Item, cls, Position(b.From, b.To, first, last) + color, tip);
                     TodayLine(h, view.Today, first, last);
                     h.Close("div").Close("div");
                 }
@@ -593,12 +609,45 @@ public static class DashboardHtml
         if (app)
         {
             h.Close("div");
-            h.Element("p", "legend", "Each line is an experiment's data acquisition. Solid: recorded (gray once done). Dashed: planned. "
-                                     + "Red: overlaps another booking on the same instrument. The line is today.");
+            h.Element("p", "legend", "Each line is an experiment's data acquisition, in the Acquisition phase's color. Solid: under way. "
+                                     + "Faded: done. Dashed: planned. Red: overlaps another booking on the same instrument. The line is today.");
         }
     }
 
     // ---------------------------------------------------------------- pieces
+
+    /// <summary>
+    /// How a step's bar looks: in its phase's color, solid while under way, faded once done or
+    /// skipped, dashed while planned. A late one is ringed in red, or dashed in red while planned.
+    /// </summary>
+    private static (string Classes, string Style) BarLook(StageEntry step, bool planned, bool late) =>
+        planned
+            ? late ? ("bar bar-planned bar-planned-late", "") : ("bar bar-planned", $";border-color:{step.PhaseColor}")
+            : (late ? "bar bar-late" : "bar",
+                $";background:{(step.IsDone || step.IsSkipped ? Phases.Faded(step.PhaseColor) : step.PhaseColor)}");
+
+    /// <summary>" (Preparation)": a step's phase, for a bar's label, so it is not told by color alone.</summary>
+    private static string PhaseNote(StageEntry step) => step.Phase is { } phase ? $" ({phase.Label})" : "";
+
+    /// <summary>A small square in a step's phase color, before its name, which says the same in words.</summary>
+    private static void Swatch(Html h, StageEntry step) => Swatch(h, step.PhaseColor);
+
+    private static void Swatch(Html h, string color) =>
+        h.Open("span", "swatch", $"background:{color}", ("aria-hidden", "true")).Close("span");
+
+    /// <summary>The phases and their colors, under a view that shows them.</summary>
+    private static void PhaseKey(Html h)
+    {
+        h.Open("p", "key");
+        foreach (var (label, color) in Phases.All.Select(p => (p.Label, p.Color)).Append(("Other", Phases.OtherColor)))
+        {
+            h.Open("span", "key-item");
+            Swatch(h, color);
+            h.Text(label).Close("span");
+        }
+
+        h.Close("p");
+    }
 
     private static void ItemLink(Html h, DashboardItem item, Links links)
     {

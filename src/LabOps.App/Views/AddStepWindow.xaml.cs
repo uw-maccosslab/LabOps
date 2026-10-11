@@ -23,7 +23,7 @@ public partial class AddStepWindow : Window
         Owner = owner;
         Title = AppInfo.ProductName;
         Heading.Text = heading;
-        Kind.ItemsSource = StageNames.Kinds.Select(k => new Choice(k, StageNames.Label(k))).ToList();
+        Kind.ItemsSource = StageNames.Kinds.Select(k => new Choice(k, StageNames.Label(k)) { Phase = ViewModels.PhaseBrushes.OfKind(k) }).ToList();
         Kind.SelectedIndex = 0;
 
         // After the last step unless chosen otherwise: after any step, or first of all.
@@ -65,6 +65,9 @@ public partial class AddStepWindow : Window
 
     private sealed record Choice(string? Value, string Label)
     {
+        /// <summary>For a kind of step: its phase's color, shown beside it.</summary>
+        public System.Windows.Media.Brush? Phase { get; init; }
+
         // What screen readers and UI Automation read for the list item.
         public override string ToString() => Label;
     }

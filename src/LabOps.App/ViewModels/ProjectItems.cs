@@ -42,6 +42,13 @@ public sealed record ProjectRow(LabSummary Lab, ProjectSummary Project, DateTime
 
     public int ProgressRank => Project.ProgressRank;
 
+    /// <summary>The phase color of the step <see cref="Progress"/> names; clear once the project is complete.</summary>
+    public System.Windows.Media.Brush ProgressBrush =>
+        Project.ProgressEntry is { } step ? PhaseBrushes.Of(step.PhaseColor) : System.Windows.Media.Brushes.Transparent;
+
+    /// <summary>The phase of the step <see cref="Progress"/> names, which its square shows.</summary>
+    public string? ProgressPhase => Project.ProgressEntry is { } step ? step.Phase?.Label ?? "Other" : null;
+
     /// <summary>The experiments by short name: "DIA, PRM".</summary>
     public string ExperimentNames => string.Join(", ", Project.Experiments.Select(ProjectSummary.ShortName));
 
@@ -229,6 +236,12 @@ public sealed class StageRowViewModel(TimelineSection section, StageEntry entry,
     public string Label => Entry.DisplayLabel;
 
     public string Status => Entry.Status;
+
+    /// <summary>The step's phase color, as the overview and the wiki pages show it.</summary>
+    public System.Windows.Media.Brush PhaseBrush => PhaseBrushes.Of(Entry.PhaseColor);
+
+    /// <summary>"Preparation": the phase the color stands for, or Other.</summary>
+    public string PhaseName => Entry.Phase?.Label ?? "Other";
 
     /// <summary>The first step not yet done or skipped.</summary>
     public bool IsCurrent { get; } = isCurrent;

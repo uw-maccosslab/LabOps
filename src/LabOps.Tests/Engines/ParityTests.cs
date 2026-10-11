@@ -14,6 +14,13 @@ public sealed class ParityTests
     private static void ShouldMatch(List<string> differences) =>
         differences.ShouldBeEmpty(string.Join("\n\n", differences.Take(12)));
 
+    /// <summary>
+    /// A wiki page's HTML is no longer project.py's: it shows each step's phase color, which the
+    /// Python engine never did (WikiCommandTests holds the page). The rest of the reply still
+    /// matches, the written parts' fingerprint (which decides republishing) included.
+    /// </summary>
+    private static readonly string[] WikiHtml = ["html"];
+
     [Fact]
     public void The_real_repository_reads_the_same()
     {
@@ -26,7 +33,7 @@ public sealed class ParityTests
         parity.Compare(root, differences, ["check"], e => e.Check());
         foreach (var project in new ProjectRepository(root).ProjectFiles().Select(f => Path.GetFileName(Path.GetDirectoryName(f))!))
         {
-            parity.Compare(root, differences, ["wiki", project, "--date", "2026-10-08"], e => e.Wiki(project, date: new DateOnly(2026, 10, 8)));
+            parity.Compare(root, differences, ["wiki", project, "--date", "2026-10-08"], e => e.Wiki(project, date: new DateOnly(2026, 10, 8)), WikiHtml);
         }
 
         // index writes the README, so on a copy.
@@ -56,9 +63,9 @@ public sealed class ParityTests
         File.WriteAllText(documents, EdgeCases.Documents);
         foreach (var project in new ProjectRepository(root).ProjectFiles().Select(f => Path.GetFileName(Path.GetDirectoryName(f))!).Distinct())
         {
-            parity.Compare(root, differences, ["wiki", project, "--date", "2026-10-08"], e => e.Wiki(project, date: new DateOnly(2026, 10, 8)));
+            parity.Compare(root, differences, ["wiki", project, "--date", "2026-10-08"], e => e.Wiki(project, date: new DateOnly(2026, 10, 8)), WikiHtml);
             parity.Compare(root, differences, ["wiki", project, "--date", "2026-10-08", "--documents", documents],
-                e => e.Wiki(project, documents, date: new DateOnly(2026, 10, 8)));
+                e => e.Wiki(project, documents, date: new DateOnly(2026, 10, 8)), WikiHtml);
         }
 
         foreach (var file in Directory.EnumerateFiles(Path.Combine(root, "inbox"), "*", SearchOption.AllDirectories).Order(StringComparer.Ordinal))

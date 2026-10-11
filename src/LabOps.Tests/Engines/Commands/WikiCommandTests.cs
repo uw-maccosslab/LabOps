@@ -133,6 +133,21 @@ public sealed partial class WikiCommandTests
         Str(Page(repo)["written_hash"]).ShouldNotBe(writtenHash);
     }
 
+    /// <summary>Each step is in its phase's color, as the app and the lab dashboard show it, and a key names the colors.</summary>
+    [Fact]
+    public void Each_step_has_its_phase_color_and_a_key_says_which_is_which()
+    {
+        using var repo = TestRepo.Create();
+        Otter(repo);
+        var html = Str(Page(repo)["html"]);
+
+        html.ShouldContain($"background:{Phases.ColorOf("samples_received")}\" aria-hidden=\"true\"></span>Samples received</td>", Case.Sensitive);
+        html.ShouldContain($"background:{Phases.ColorOf("data_acquisition")}\" aria-hidden=\"true\"></span>Data acquisition</td>", Case.Sensitive);
+        // The current step's card (the plate layout) has its square too.
+        html.ShouldContain($"background:{Phases.ColorOf("plate_layout")}\" aria-hidden=\"true\"></span>Plate layout</span>", Case.Sensitive);
+        Text(html).ShouldContain("The square beside each step is its phase: Samples Preparation Acquisition Analysis Results Other", Case.Sensitive);
+    }
+
     [Fact]
     public void Data_folders_link_to_panorama_with_their_skyline_documents()
     {
