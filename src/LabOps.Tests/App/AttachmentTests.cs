@@ -77,6 +77,16 @@ public sealed class AttachmentTests : IDisposable
         Directory.GetFiles(folder).Length.ShouldBe(copies.Length);
     }
 
+    /// <summary>A copy that fails for another reason is reported, not tried again under new names.</summary>
+    [Fact]
+    public void A_copy_that_fails_otherwise_is_reported_not_retried()
+    {
+        var folder = Path.Combine(_root, "conversation");
+
+        Should.Throw<FileNotFoundException>(() => ChatViewModel.CopyInto(folder, Path.Combine(_root, "gone.png"), "gone.png"));
+        Directory.GetFiles(folder).ShouldBeEmpty();
+    }
+
     [Fact]
     public void Attachments_left_by_an_earlier_run_are_cleared_at_startup()
     {
