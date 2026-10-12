@@ -356,7 +356,16 @@ public sealed class ProtocolsAreaTests
             ProtocolsView.LinkedFile(new Uri(method).AbsoluteUri, null).ShouldBeNull("no protocols on this computer");
 
             ProtocolsView.IsThisPage($"{new Uri(page).AbsoluteUri}?v=638123", page).ShouldBeTrue("the page, loaded afresh");
-            ProtocolsView.IsThisPage("data:text/html;base64,PCFkb2N0eXBl", page).ShouldBeTrue("the blank page");
+            // How WebView2 names the blank page the view shows with NavigateToString.
+            var blank = "data:text/html;charset=utf-8;base64," + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(LabOps.App.Services.WebViewGuard.BlankPage));
+            ProtocolsView.IsThisPage(blank, page).ShouldBeTrue("the blank page");
+            ProtocolsView.IsThisPage(blank, null).ShouldBeTrue("the blank page, before any protocol");
+            ProtocolsView.IsThisPage("data:text/html," + Uri.EscapeDataString(LabOps.App.Services.WebViewGuard.BlankPage), page).ShouldBeTrue("the blank page, not in base64");
+            ProtocolsView.IsThisPage("data:text/html;charset=utf-8;base64,PCFkb2N0eXBlIGh0bWw+PHA+aGk8L3A+", page).ShouldBeFalse("another inline page");
+            ProtocolsView.IsThisPage("data:text/html,<p>a page a link names</p>", page).ShouldBeFalse("another inline page");
+            ProtocolsView.IsThisPage("data:text/html;base64,not base64!", page).ShouldBeFalse();
+            ProtocolsView.IsThisPage("data:image/png;base64,iVBORw0KGgo=", page).ShouldBeFalse();
+            ProtocolsView.IsThisPage("about:blank", page).ShouldBeFalse("the view never shows it");
             ProtocolsView.IsThisPage(new Uri(method).AbsoluteUri, page).ShouldBeFalse();
             ProtocolsView.IsThisPage(new Uri(outside).AbsoluteUri, null).ShouldBeFalse("no page shown yet");
         }

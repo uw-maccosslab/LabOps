@@ -129,9 +129,12 @@ public partial class ProtocolsView : UserControl
         return true;
     }
 
-    /// <summary>The page shown: the protocol's, as rendered to <paramref name="page"/>, or the blank one.</summary>
+    /// <summary>
+    /// The page shown: the protocol's, as rendered to <paramref name="page"/>, or the blank one. A
+    /// link in a protocol's text to any other page, an inline one included, is not followed here.
+    /// </summary>
     internal static bool IsThisPage(string uri, string? page) =>
-        uri.StartsWith("data:", StringComparison.Ordinal) || uri.StartsWith("about:", StringComparison.Ordinal)
+        WebViewGuard.IsBlankPage(uri)
         || (page is not null && Uri.TryCreate(uri, UriKind.Absolute, out var link) && link.IsFile
             && string.Equals(Path.GetFullPath(link.LocalPath), Path.GetFullPath(page), StringComparison.OrdinalIgnoreCase));
 
