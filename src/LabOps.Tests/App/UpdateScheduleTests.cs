@@ -1,4 +1,6 @@
 using LabOps.App.Services;
+using LabOps.App.ViewModels;
+using LabOps.Core.Infrastructure;
 
 namespace LabOps.Tests.App;
 
@@ -72,14 +74,61 @@ public sealed class UpdateScheduleTests
     [InlineData(UpdateStage.Downloading, " Downloading 26.14.0 (40%)...", null)]
     [InlineData(UpdateStage.ReadyToApply, " 26.14.0 is downloaded: restart to install it.", "Restart to update")]
     [InlineData(UpdateStage.UpToDate, " It has not reached the update feed yet; LabOps looks again every few minutes.", "Check for updates")]
-    [InlineData(UpdateStage.Failed, " Looking for it failed: offline", "Check for updates")]
+    [InlineData(UpdateStage.Failed,
+        " Getting it failed (offline). Check the internet connection, then press Check for updates; LabOps also tries again every few minutes.",
+        "Check for updates")]
     [InlineData(UpdateStage.NotInstalled, " This copy cannot update itself; download the new version.", "Download the new version")]
     public void A_too_old_app_says_how_its_update_is_going_and_offers_the_next_step(UpdateStage stage, string news, string? button)
     {
         var status = new UpdateStatus(stage, "26.14.0", 40, stage == UpdateStage.Failed ? "offline" : null);
 
-        LabOps.App.ViewModels.MainViewModel.TooOldText("lab projects", "26.14.0", status)
+        MainViewModel.TooOldText("lab projects", new Version(26, 14, 0), status)
             .ShouldBe($"This version of LabOps is too old for the lab projects (it needs 26.14.0), so changes wait for the update.{news}");
-        LabOps.App.ViewModels.MainViewModel.TooOldAction(status).ShouldBe(button);
+        MainViewModel.TooOldAction(status).ShouldBe(button);
+    }
+
+    /// <summary>
+    /// An update downloaded before the repository asked for a newer one is still too old: the banner
+    /// says the restart installs it and the one needed comes after, rather than that the restart is
+    /// all it takes.
+    /// </summary>
+    [Fact]
+    public void A_downloaded_update_older_than_needed_says_another_comes_after_the_restart()
+    {
+        var staged = new UpdateStatus(UpdateStage.ReadyToApply, "26.14.0", 100);
+
+        MainViewModel.TooOldText("lab protocols", new Version(26, 15, 0), staged).ShouldBe(
+            "This version of LabOps is too old for the lab protocols (it needs 26.15.0), so changes wait for the update. "
+            + "26.14.0 is downloaded but is older than that: restart to install it, and LabOps then gets 26.15.0.");
+        MainViewModel.TooOldText("lab protocols", new Version(26, 15, 0), staged with { AvailableVersion = "26.15.0" })
+            .ShouldEndWith("26.15.0 is downloaded: restart to install it.");
+        // Not a plain version: taken as new enough.
+        MainViewModel.TooOldText("lab protocols", new Version(26, 15, 0), staged with { AvailableVersion = "26.16.0-beta.1" })
+            .ShouldEndWith("26.16.0-beta.1 is downloaded: restart to install it.");
+        MainViewModel.TooOldAction(staged).ShouldBe("Restart to update");
+    }
+
+    /// <summary>
+    /// A check asked for while one runs (at startup, by the timer, from the banner's button) joins
+    /// it: two would download the same release at once, and the second, waiting on the update
+    /// lock, could report a failure for an update on its way.
+    /// </summary>
+    [Fact]
+    public async Task A_check_asked_for_while_one_runs_joins_it()
+    {
+        var checks = new OneAtATime<UpdateStage>();
+        var started = 0;
+        var first = new TaskCompletionSource<UpdateStage>();
+
+        var a = checks.Run(() => { started++; return first.Task; });
+        var b = checks.Run(() => { started++; return Task.FromResult(UpdateStage.Failed); });
+
+        b.ShouldBeSameAs(a);
+        started.ShouldBe(1);
+        first.SetResult(UpdateStage.ReadyToApply);
+        (await b).ShouldBe(UpdateStage.ReadyToApply);
+
+        (await checks.Run(() => { started++; return Task.FromResult(UpdateStage.UpToDate); })).ShouldBe(UpdateStage.UpToDate, "once it ends, the next starts afresh");
+        started.ShouldBe(2);
     }
 }

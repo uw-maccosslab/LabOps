@@ -92,14 +92,27 @@ internal static class WebViewGuard
         && !(context == CoreWebView2WebResourceContext.Document && uri.StartsWith("file:", StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
-    /// Whether a navigation is to <see cref="BlankPage"/>, which a view shows with NavigateToString
-    /// (WebView2 names it <c>data:text/html;charset=utf-8;base64,</c> and the page's bytes). Any
-    /// other inline page, such as one a link in a page's text names, is not.
+    /// Whether a navigation is to the page a view shows: the file it wrote (<paramref name="page"/>,
+    /// loaded afresh with a query), or <see cref="BlankPage"/>. Any other file, and any other
+    /// inline page, such as one a link in the page's text names, is not.
     /// </summary>
-    internal static bool IsBlankPage(string uri)
+    internal static bool IsPage(string uri, string? page) =>
+        IsBlankPage(uri)
+        || (page is not null && Uri.TryCreate(uri, UriKind.Absolute, out var link) && link.IsFile
+            && string.Equals(Path.GetFullPath(link.LocalPath), Path.GetFullPath(page), StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>Whether a navigation is to <see cref="BlankPage"/>, shown with NavigateToString.</summary>
+    internal static bool IsBlankPage(string uri) => IsInlinePage(uri, BlankPage);
+
+    /// <summary>
+    /// Whether a navigation is to <paramref name="html"/>, which a view showed with NavigateToString
+    /// (WebView2 names it <c>data:text/html;charset=utf-8;base64,</c> and the page's bytes, checked
+    /// with WebView2 1.0.4258.31 for pages up to 1.5 MB). Any other inline page is not.
+    /// </summary>
+    internal static bool IsInlinePage(string uri, string? html)
     {
         var comma = uri.IndexOf(',', StringComparison.Ordinal);
-        if (!uri.StartsWith("data:text/html", StringComparison.OrdinalIgnoreCase) || comma < 0)
+        if (html is null || !uri.StartsWith("data:text/html", StringComparison.OrdinalIgnoreCase) || comma < 0)
         {
             return false;
         }
@@ -107,22 +120,17 @@ internal static class WebViewGuard
         var data = uri[(comma + 1)..];
         if (!uri[..comma].EndsWith(";base64", StringComparison.OrdinalIgnoreCase))
         {
-            return string.Equals(Uri.UnescapeDataString(data), BlankPage, StringComparison.Ordinal);
+            return string.Equals(Uri.UnescapeDataString(data), html, StringComparison.Ordinal);
         }
 
         var bytes = new byte[data.Length];
         return Convert.TryFromBase64String(data, bytes, out var length)
-            && string.Equals(Encoding.UTF8.GetString(bytes, 0, length), BlankPage, StringComparison.Ordinal);
+            && string.Equals(Encoding.UTF8.GetString(bytes, 0, length), html, StringComparison.Ordinal);
     }
 
     /// <summary>A frame may show only an empty or inline document, never the web or another file.</summary>
     internal static bool IsFrameAllowed(string uri) =>
         uri.StartsWith("about:", StringComparison.Ordinal) || uri.StartsWith("data:", StringComparison.Ordinal);
-
-    /// <summary>Whether a navigation is to the page itself (a file the app wrote, or a string it showed).</summary>
-    internal static bool IsThePage(string uri) =>
-        uri.StartsWith("file:", StringComparison.OrdinalIgnoreCase) || uri.StartsWith("data:", StringComparison.Ordinal)
-        || uri.StartsWith("about:", StringComparison.Ordinal);
 
     /// <summary>Opens a web or mail link in the person's browser or mail program; anything else is ignored.</summary>
     internal static void OpenOutside(string uri)

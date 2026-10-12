@@ -246,14 +246,21 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
         var name = Path.GetFileNameWithoutExtension(target);
         var extension = Path.GetExtension(target);
         var directory = Path.GetDirectoryName(target)!;
-        for (var n = 2; File.Exists(target); n++)
-        {
-            target = Path.Combine(directory, $"{name} ({n}){extension}");
-        }
-
         Directory.CreateDirectory(directory);
-        File.Copy(source, target);
-        return target;
+        for (var n = 2; ; n++)
+        {
+            // The copy itself claims the name, never overwriting: two attached at once (two
+            // pictures pasted in the same second) could otherwise both find the same name free.
+            try
+            {
+                File.Copy(source, target);
+                return target;
+            }
+            catch (IOException) when (File.Exists(target))
+            {
+                target = Path.Combine(directory, $"{name} ({n}){extension}");
+            }
+        }
     }
 
     /// <summary>

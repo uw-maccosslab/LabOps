@@ -73,18 +73,19 @@ public partial class ChatPanel : UserControl
             return false;
         }
 
-        IDataObject? data;
+        string[]? files;
+        byte[]? png;
         try
         {
-            data = Clipboard.GetDataObject();
+            (files, png) = Clipboard.GetDataObject() is { } data ? WhatToAttach(data) : (null, null);
         }
-        catch (System.Runtime.InteropServices.COMException)
+        catch (System.Runtime.InteropServices.ExternalException)
         {
-            // Another program has the clipboard open; the paste goes ahead as text.
+            // Another program has the clipboard open, or what it copied can no longer be read (it
+            // left it to be made when pasted, then closed); the paste goes ahead as text.
             return false;
         }
 
-        var (files, png) = data is null ? (null, null) : WhatToAttach(data);
         if (files is not null)
         {
             Attach(chat.AddAttachmentsAsync(files));

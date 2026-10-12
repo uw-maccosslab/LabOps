@@ -1,3 +1,4 @@
+using LabOps.App.Services;
 using LabOps.App.ViewModels;
 using LabOps.App.Views;
 using LabOps.Core.Projects;
@@ -349,29 +350,93 @@ public sealed class ProtocolsAreaTests
             File.WriteAllText(outside, "program");
             var page = Path.Combine(clone, "spin-trap-v1.html");
 
-            ProtocolsView.LinkedFile(new Uri(method).AbsoluteUri, clone).ShouldBe(method);
-            ProtocolsView.LinkedFile(new Uri(outside).AbsoluteUri, clone).ShouldBeNull("not a protocol's file");
-            ProtocolsView.LinkedFile(new Uri(method + ".missing").AbsoluteUri, clone).ShouldBeNull("not there");
-            ProtocolsView.LinkedFile("https://example.org/KF-Demo.bdz", clone).ShouldBeNull("the web opens in the browser");
-            ProtocolsView.LinkedFile(new Uri(method).AbsoluteUri, null).ShouldBeNull("no protocols on this computer");
+            ProtocolFiles.Linked(new Uri(method).AbsoluteUri, clone).ShouldBe(method);
+            ProtocolFiles.Linked(new Uri(outside).AbsoluteUri, clone).ShouldBeNull("not a protocol's file");
+            ProtocolFiles.Linked(new Uri(method + ".missing").AbsoluteUri, clone).ShouldBeNull("not there");
+            ProtocolFiles.Linked("https://example.org/KF-Demo.bdz", clone).ShouldBeNull("the web opens in the browser");
+            ProtocolFiles.Linked(new Uri(method).AbsoluteUri, null).ShouldBeNull("no protocols on this computer");
+            ProtocolFiles.Linked(@"file://elsewhere.invalid/share/protocols/spin-trap/methods/KF-Demo.bdz", clone)
+                .ShouldBeNull("another computer's share");
 
-            ProtocolsView.IsThisPage($"{new Uri(page).AbsoluteUri}?v=638123", page).ShouldBeTrue("the page, loaded afresh");
+            WebViewGuard.IsPage($"{new Uri(page).AbsoluteUri}?v=638123", page).ShouldBeTrue("the page, loaded afresh");
             // How WebView2 names the blank page the view shows with NavigateToString.
-            var blank = "data:text/html;charset=utf-8;base64," + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(LabOps.App.Services.WebViewGuard.BlankPage));
-            ProtocolsView.IsThisPage(blank, page).ShouldBeTrue("the blank page");
-            ProtocolsView.IsThisPage(blank, null).ShouldBeTrue("the blank page, before any protocol");
-            ProtocolsView.IsThisPage("data:text/html," + Uri.EscapeDataString(LabOps.App.Services.WebViewGuard.BlankPage), page).ShouldBeTrue("the blank page, not in base64");
-            ProtocolsView.IsThisPage("data:text/html;charset=utf-8;base64,PCFkb2N0eXBlIGh0bWw+PHA+aGk8L3A+", page).ShouldBeFalse("another inline page");
-            ProtocolsView.IsThisPage("data:text/html,<p>a page a link names</p>", page).ShouldBeFalse("another inline page");
-            ProtocolsView.IsThisPage("data:text/html;base64,not base64!", page).ShouldBeFalse();
-            ProtocolsView.IsThisPage("data:image/png;base64,iVBORw0KGgo=", page).ShouldBeFalse();
-            ProtocolsView.IsThisPage("about:blank", page).ShouldBeFalse("the view never shows it");
-            ProtocolsView.IsThisPage(new Uri(method).AbsoluteUri, page).ShouldBeFalse();
-            ProtocolsView.IsThisPage(new Uri(outside).AbsoluteUri, null).ShouldBeFalse("no page shown yet");
+            var blank = "data:text/html;charset=utf-8;base64," + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(WebViewGuard.BlankPage));
+            WebViewGuard.IsPage(blank, page).ShouldBeTrue("the blank page");
+            WebViewGuard.IsPage(blank, null).ShouldBeTrue("the blank page, before any protocol");
+            WebViewGuard.IsPage("data:text/html," + Uri.EscapeDataString(WebViewGuard.BlankPage), page).ShouldBeTrue("the blank page, not in base64");
+            WebViewGuard.IsPage("data:text/html;charset=utf-8;base64,PCFkb2N0eXBlIGh0bWw+PHA+aGk8L3A+", page).ShouldBeFalse("another inline page");
+            WebViewGuard.IsPage("data:text/html,<p>a page a link names</p>", page).ShouldBeFalse("another inline page");
+            WebViewGuard.IsPage("data:text/html;base64,not base64!", page).ShouldBeFalse();
+            WebViewGuard.IsPage("data:image/png;base64,iVBORw0KGgo=", page).ShouldBeFalse();
+            WebViewGuard.IsPage("about:blank", page).ShouldBeFalse("the view never shows it");
+            WebViewGuard.IsPage(new Uri(method).AbsoluteUri, page).ShouldBeFalse();
+            WebViewGuard.IsPage(new Uri(outside).AbsoluteUri, null).ShouldBeFalse("no page shown yet");
         }
         finally
         {
             Directory.Delete(clone, recursive: true);
         }
+    }
+
+    /// <summary>
+    /// The engine links a method from where the LabOps-Protocols copy really is (Python's resolve()
+    /// goes through junctions and links, and gives a mapped drive's network path), which can differ
+    /// from the path the app knows the copy by; the method still opens.
+    /// </summary>
+    [Fact]
+    public void A_method_opens_when_the_copy_is_reached_through_a_junction()
+    {
+        var root = Directory.CreateTempSubdirectory("labops-junction-").FullName;
+        var alias = Path.Combine(root, "alias");
+        try
+        {
+            var real = Path.Combine(root, "real");
+            var method = Path.Combine(real, "protocols", "spin-trap", "methods", "KF-Demo.bdz");
+            Directory.CreateDirectory(Path.GetDirectoryName(method)!);
+            File.WriteAllText(method, "program");
+            using (var mklink = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("cmd.exe")
+            {
+                ArgumentList = { "/c", "mklink", "/J", alias, real },
+                CreateNoWindow = true,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+            })!)
+            {
+                mklink.WaitForExit();
+                mklink.ExitCode.ShouldBe(0, "a junction needs no special rights");
+            }
+
+            LabOps.Core.Infrastructure.FinalPath.Of(Path.Combine(alias, "protocols")).ShouldBe(Path.Combine(real, "protocols"));
+            LabOps.Core.Infrastructure.FinalPath.Of(Path.Combine(alias, "missing")).ShouldBeNull();
+            ProtocolFiles.Linked(new Uri(method).AbsoluteUri, alias).ShouldBe(method, "the copy known by its junction");
+            ProtocolFiles.Linked(new Uri(Path.Combine(real, "elsewhere.bdz")).AbsoluteUri, alias).ShouldBeNull();
+        }
+        finally
+        {
+            // The junction on its own first, which removes only the link.
+            if (Directory.Exists(alias))
+            {
+                Directory.Delete(alias);
+            }
+
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    /// <summary>
+    /// The wiki preview shows its page with NavigateToString; only that page loads there, so a link
+    /// in a project's text to another inline page is not followed.
+    /// </summary>
+    [Fact]
+    public void An_inline_page_is_only_the_one_the_view_showed()
+    {
+        const string html = "<!doctype html><html><body><p>µL of plasma, café &amp; more</p></body></html>";
+        var shown = "data:text/html;charset=utf-8;base64," + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(html));
+
+        WebViewGuard.IsInlinePage(shown, html).ShouldBeTrue();
+        WebViewGuard.IsInlinePage(shown, html + " ").ShouldBeFalse("a different page");
+        WebViewGuard.IsInlinePage(shown, null).ShouldBeFalse("nothing shown yet");
+        WebViewGuard.IsInlinePage("about:blank", html).ShouldBeFalse();
+        WebViewGuard.IsInlinePage("https://example.org/", html).ShouldBeFalse();
     }
 }

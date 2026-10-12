@@ -54,8 +54,11 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly Dictionary<RepositoryKind, CheckRun?> _checks = [];
     private DispatcherTimer? _timer;
 
-    // A lab repository needs a newer app than this one (ShowBanner).
+    // A lab repository needs a newer app than this one: which (as the banner names them) and the
+    // version needed (ShowTooOld).
     private bool _needsUpdate;
+    private string? _tooOldFor;
+    private Version? _needs;
     private List<QuoteSummary> _all = [];
 
     public MainViewModel(
@@ -179,9 +182,16 @@ public sealed partial class MainViewModel : ObservableObject
 
     [ObservableProperty] public partial bool UpdateReady { get; set; }
 
+    /// <summary>A message for the whole window (setup is not finished, the quotes could not be loaded).</summary>
     [ObservableProperty] public partial string? Banner { get; set; }
 
-    /// <summary>The banner's button while the app is too old for a repository; null for none.</summary>
+    /// <summary>
+    /// While a repository needs a newer app: that changes wait, and how the update is going. Apart
+    /// from <see cref="Banner"/>, so neither replaces the other's message.
+    /// </summary>
+    [ObservableProperty] public partial string? UpdateBanner { get; set; }
+
+    /// <summary>The update banner's button; null for none.</summary>
     [ObservableProperty] public partial string? BannerAction { get; set; }
 
     [ObservableProperty] public partial string? UserText { get; set; }
@@ -286,6 +296,8 @@ public sealed partial class MainViewModel : ObservableObject
 
     private async Task StartWorkingAsync()
     {
+        // There are repositories now, so setup's banner, if it showed, is out of date.
+        Banner = null;
         foreach (var repository in OpenRepositories())
         {
             repository.ReloadConfig();
@@ -298,7 +310,7 @@ public sealed partial class MainViewModel : ObservableObject
 
         _workspace.User = await _gh.GetUserAsync().ConfigureAwait(true);
         UserText = _workspace.User is null ? "Not signed in to GitHub" : $"Signed in as {_workspace.User.Login}";
-        ShowBanner();
+        ShowTooOld();
 
         await _work.RunAsync("Getting the latest changes...", async () =>
         {
@@ -318,7 +330,8 @@ public sealed partial class MainViewModel : ObservableObject
 
         _timer ??= CreateTimer();
         _ = RefreshChecksAsync();
-        _ = _updates.CheckAsync();
+        // At startup, unless a repository needing a newer app has already had it looked for.
+        CheckForUpdatesIfDue();
     }
 
     private DispatcherTimer CreateTimer()
@@ -367,29 +380,39 @@ public sealed partial class MainViewModel : ObservableObject
         await RefreshChecksAsync().ConfigureAwait(true);
     }
 
-    private void ShowBanner()
+    /// <summary>
+    /// Whether a repository needs a newer app than this one. If so, changes wait for the update, its
+    /// banner says how the update is going, and the update is looked for now rather than at the next
+    /// 4-hourly check.
+    /// </summary>
+    private void ShowTooOld()
     {
         var old = OpenRepositories().Where(r => r.AppTooOld).ToList();
         _needsUpdate = old.Count > 0;
-        Banner = old.Count == 0
-            ? null
-            : TooOldText(string.Join(" and ", old.Select(r => r.Profile.DisplayName)), old.Max(r => r.Config.MinAppVersion)!.ToString(), _updates.Status);
-        BannerAction = old.Count == 0 ? null : TooOldAction(_updates.Status);
+        _tooOldFor = _needsUpdate ? string.Join(" and ", old.Select(r => r.Profile.DisplayName)) : null;
+        _needs = _needsUpdate ? old.Max(r => r.Config.MinAppVersion) : null;
+        ShowUpdateBanner();
         OnPropertyChanged(nameof(CanSendSelected));
         Projects.RefreshCommands();
         Protocols.RefreshCommands();
         if (_needsUpdate)
         {
-            // Changes wait for the update, so it is looked for now rather than at the next 4-hourly check.
             CheckForUpdatesIfDue();
         }
+    }
+
+    /// <summary>The update banner's text and button, for how the update is going now.</summary>
+    private void ShowUpdateBanner()
+    {
+        UpdateBanner = _tooOldFor is not null && _needs is not null ? TooOldText(_tooOldFor, _needs, _updates.Status) : null;
+        BannerAction = UpdateBanner is null ? null : TooOldAction(_updates.Status);
     }
 
     /// <summary>
     /// The banner while a repository needs a newer app (<paramref name="what"/>, needing
     /// <paramref name="needs"/>): that changes wait for the update, and how the update is going.
     /// </summary>
-    internal static string TooOldText(string what, string needs, UpdateStatus update)
+    internal static string TooOldText(string what, Version needs, UpdateStatus update)
     {
         var start = $"This version of {AppInfo.ProductName} is too old for the {what} (it needs {needs}), so changes wait for the update.";
         return update.Stage switch
@@ -397,13 +420,23 @@ public sealed partial class MainViewModel : ObservableObject
             UpdateStage.Checking => $"{start} Looking for it...",
             UpdateStage.Downloading => $"{start} Downloading {update.AvailableVersion} ({update.DownloadPercent}%)...",
             UpdateStage.ReadyToApply when update.Error is not null => $"{start} {update.AvailableVersion} did not install last time; see why.",
+            // Downloaded before the repository asked for more: no check runs while an update waits,
+            // so the one needed comes only after this restart.
+            UpdateStage.ReadyToApply when IsOlder(update.AvailableVersion, needs) =>
+                $"{start} {update.AvailableVersion} is downloaded but is older than that: restart to install it, and {AppInfo.ProductName} then gets {needs}.",
             UpdateStage.ReadyToApply => $"{start} {update.AvailableVersion} is downloaded: restart to install it.",
             UpdateStage.UpToDate => $"{start} It has not reached the update feed yet; {AppInfo.ProductName} looks again every few minutes.",
-            UpdateStage.Failed => $"{start} Looking for it failed: {update.Error}",
+            UpdateStage.Failed =>
+                $"{start} Getting it failed ({update.Error}). Check the internet connection, then press Check for updates; {AppInfo.ProductName} also tries again every few minutes.",
             UpdateStage.NotInstalled => $"{start} This copy cannot update itself; download the new version.",
             _ => start,
         };
     }
+
+    /// <summary>Whether a release (26.14.0) comes before the version needed; false for one that is not a plain version.</summary>
+    private static bool IsOlder(string? release, Version needs) =>
+        Version.TryParse(release, out var v)
+        && new Version(v.Major, v.Minor, Math.Max(v.Build, 0)) < new Version(needs.Major, needs.Minor, Math.Max(needs.Build, 0));
 
     /// <summary>The banner's button while a repository needs a newer app; null while the update is on its way.</summary>
     internal static string? TooOldAction(UpdateStatus update) => update.Stage switch
@@ -426,9 +459,8 @@ public sealed partial class MainViewModel : ObservableObject
             case UpdateStage.NotInstalled:
                 Shell.Open(AppInfo.RepositoryUrl + "/releases/latest");
                 break;
-            case UpdateStage.Checking or UpdateStage.Downloading:
-                break;
             default:
+                // Joins a check already running rather than starting a second.
                 _ = _updates.CheckAsync();
                 break;
         }
@@ -483,9 +515,8 @@ public sealed partial class MainViewModel : ObservableObject
         await Projects.ReloadAsync().ConfigureAwait(true);
         await Protocols.ReloadAsync().ConfigureAwait(true);
         // Each area re-reads its repository's config/app.yaml, which may have raised (or lowered)
-        // the version it needs. The quotes reload shows the banner itself, after this, so a
-        // problem loading the quotes is not cleared.
-        ShowBanner();
+        // the version it needs. The quotes reload does so for the quotes itself.
+        ShowTooOld();
         await ReloadQuotesAsync().ConfigureAwait(true);
     }
 
@@ -496,11 +527,11 @@ public sealed partial class MainViewModel : ObservableObject
         {
             case RepositoryKind.Projects:
                 await Projects.ReloadAsync().ConfigureAwait(true);
-                ShowBanner();
+                ShowTooOld();
                 break;
             case RepositoryKind.Protocols:
                 await Protocols.ReloadAsync().ConfigureAwait(true);
-                ShowBanner();
+                ShowTooOld();
                 break;
             default:
                 await ReloadQuotesAsync().ConfigureAwait(true);
@@ -531,8 +562,10 @@ public sealed partial class MainViewModel : ObservableObject
             return;
         }
 
+        // Loaded, so a failure's banner from an earlier try is out of date.
+        Banner = null;
         repository.ReloadConfig();
-        ShowBanner();
+        ShowTooOld();
         ApplyFilter();
 
         if (keep is not null && Quotes.FirstOrDefault(q => q.QuoteNumber == keep) is { } match)
@@ -1110,10 +1143,9 @@ public sealed partial class MainViewModel : ObservableObject
     {
         UpdateReady = status.Stage == UpdateStage.ReadyToApply;
         UpdateText = UpdateTextFor(status);
-        if (_needsUpdate)
-        {
-            ShowBanner();
-        }
+        // Only the banner's words: this runs at every percent of a download, and which
+        // repositories need what has not changed.
+        ShowUpdateBanner();
     }
 
     /// <summary>The update button's text; after a restart that did not install the update, it says so.</summary>

@@ -122,10 +122,13 @@ public partial class ProjectsView : UserControl
         }
     }
 
-    /// <summary>The page itself loads; a project in it opens in the list; anything else is not followed.</summary>
+    /// <summary>
+    /// The page itself loads (the file written for it); a project in it opens in the list; nothing
+    /// else is followed here, another file or an inline page included.
+    /// </summary>
     private void OnNavigating(object? sender, CoreWebView2NavigationStartingEventArgs e)
     {
-        if (WebViewGuard.IsThePage(e.Uri))
+        if (WebViewGuard.IsPage(e.Uri, _page))
         {
             return;
         }
