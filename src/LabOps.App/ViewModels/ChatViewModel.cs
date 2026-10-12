@@ -256,12 +256,18 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
                 File.Copy(source, target);
                 return target;
             }
-            catch (IOException) when (File.Exists(target))
+            catch (IOException ex) when (ex.HResult is FileExists or AlreadyExists)
             {
+                // Only a name already taken moves on to the next; any other failure (a full disk,
+                // a source that cannot be read) is reported rather than tried again under new names.
                 target = Path.Combine(directory, $"{name} ({n}){extension}");
             }
         }
     }
+
+    // ERROR_FILE_EXISTS and ERROR_ALREADY_EXISTS, as HRESULTs.
+    private const int FileExists = unchecked((int)0x80070050);
+    private const int AlreadyExists = unchecked((int)0x800700B7);
 
     /// <summary>
     /// The name an attachment is kept under: as given, except that nothing in it can be taken as
