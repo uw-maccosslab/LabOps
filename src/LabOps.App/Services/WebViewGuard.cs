@@ -1,4 +1,5 @@
 using System.IO;
+using System.Text;
 using System.Windows;
 using LabOps.Core.Infrastructure;
 using Microsoft.Web.WebView2.Core;
@@ -89,6 +90,30 @@ internal static class WebViewGuard
     internal static bool IsBlocked(string uri, CoreWebView2WebResourceContext context) =>
         !uri.StartsWith("data:", StringComparison.Ordinal) && !uri.StartsWith("about:", StringComparison.Ordinal)
         && !(context == CoreWebView2WebResourceContext.Document && uri.StartsWith("file:", StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// Whether a navigation is to <see cref="BlankPage"/>, which a view shows with NavigateToString
+    /// (WebView2 names it <c>data:text/html;charset=utf-8;base64,</c> and the page's bytes). Any
+    /// other inline page, such as one a link in a page's text names, is not.
+    /// </summary>
+    internal static bool IsBlankPage(string uri)
+    {
+        var comma = uri.IndexOf(',', StringComparison.Ordinal);
+        if (!uri.StartsWith("data:text/html", StringComparison.OrdinalIgnoreCase) || comma < 0)
+        {
+            return false;
+        }
+
+        var data = uri[(comma + 1)..];
+        if (!uri[..comma].EndsWith(";base64", StringComparison.OrdinalIgnoreCase))
+        {
+            return string.Equals(Uri.UnescapeDataString(data), BlankPage, StringComparison.Ordinal);
+        }
+
+        var bytes = new byte[data.Length];
+        return Convert.TryFromBase64String(data, bytes, out var length)
+            && string.Equals(Encoding.UTF8.GetString(bytes, 0, length), BlankPage, StringComparison.Ordinal);
+    }
 
     /// <summary>A frame may show only an empty or inline document, never the web or another file.</summary>
     internal static bool IsFrameAllowed(string uri) =>
