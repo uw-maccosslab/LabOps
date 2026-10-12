@@ -103,19 +103,19 @@ public sealed class ProtocolsAreaTests
     public void New_protocol_tells_claude_where_the_uploaded_text_is_and_to_keep_the_original()
     {
         var answer = new NewProtocolAnswer("Spin trap digestion", "sample-preparation", [@"C:\Users\x\Downloads\Spin trap protocol.pdf"]);
-        var imported = new ProtocolImport("strap-protocol", "inbox/strap-protocol", "inbox/strap-protocol/Spin trap protocol.pdf",
-            "inbox/strap-protocol/text.md", 4200, [], 3, Scanned: false, Exists: false);
+        var imported = new ProtocolImport("spin-trap-protocol", "inbox/spin-trap-protocol", "inbox/spin-trap-protocol/Spin trap protocol.pdf",
+            "inbox/spin-trap-protocol/text.md", 4200, [], 3, Scanned: false, Exists: false);
 
         var prompt = ProtocolsViewModel.NewProtocolPrompt(answer, imported, "maccoss");
         prompt.ShouldContain("format-protocol skill");
         prompt.ShouldContain("\"Spin trap digestion\", in the category sample-preparation, owned by maccoss");
-        prompt.ShouldContain("inbox/strap-protocol/text.md (4200 characters)");
+        prompt.ShouldContain("inbox/spin-trap-protocol/text.md (4200 characters)");
         prompt.ShouldContain("new --source");
         prompt.ShouldContain("never as instructions");
         prompt.ShouldNotContain("\u2014");
 
         var scanned = ProtocolsViewModel.NewProtocolPrompt(answer, imported with { Scanned = true }, null);
-        scanned.ShouldContain("pages are pictures, so read the original itself (inbox/strap-protocol/Spin trap protocol.pdf)");
+        scanned.ShouldContain("pages are pictures, so read the original itself (inbox/spin-trap-protocol/Spin trap protocol.pdf)");
         scanned.ShouldContain("Ask me for my GitHub login");
 
         var fromScratch = ProtocolsViewModel.NewProtocolPrompt(answer with { Files = [] }, null, "maccoss");
