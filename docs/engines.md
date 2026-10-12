@@ -252,7 +252,7 @@ which version it used.
 
 ```mermaid
 flowchart TB
-    protocol["protocols/s-trap-micro-digestion/protocol.yaml<br/>title, category, status, owner, authors, tags,<br/>what it applies to, and every published version<br/>with its date, who, summary and fingerprints"]
+    protocol["protocols/spin-trap-digestion/protocol.yaml<br/>title, category, status, owner, authors, tags,<br/>what it applies to, and every published version<br/>with its date, who, summary and fingerprints"]
     draft["protocol.md<br/>the working text: the draft<br/>of the next version"]
     versions["versions/v1.md, v2.md<br/>published, never changed"]
     attachments["attachments/<br/>figures the text shows"]

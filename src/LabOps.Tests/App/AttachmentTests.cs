@@ -34,7 +34,7 @@ public sealed class AttachmentTests : IDisposable
     [InlineData("CLAUDE.md", "CLAUDE.md.txt")]
     [InlineData("claude.local.md", "claude.local.md.txt")]
     [InlineData(@"repo\.claude\settings.json", @"repo\_claude\settings.json")]
-    [InlineData(@"KingFisher Methods\SAX_KF1_current.kfx", @"KingFisher Methods\SAX_KF1_current.kfx")]
+    [InlineData(@"KingFisher Methods\BeadEV_KF1_current.kfx", @"KingFisher Methods\BeadEV_KF1_current.kfx")]
     public void Nothing_attached_can_be_taken_as_instructions_for_claude(string given, string kept) =>
         ChatViewModel.SafeRelative(given).ShouldBe(kept);
 
@@ -42,20 +42,20 @@ public sealed class AttachmentTests : IDisposable
     public void A_dropped_folder_attaches_its_files_under_its_name_and_copies_never_overwrite()
     {
         var methods = Directory.CreateDirectory(Path.Combine(_root, "in", "KingFisher Methods", "Apex")).FullName;
-        File.WriteAllText(Path.Combine(methods, "SAX_KF1.kfx"), "kf1");
+        File.WriteAllText(Path.Combine(methods, "BeadEV_KF1.kfx"), "kf1");
         var lone = Path.Combine(_root, "in", "request.pdf");
         File.WriteAllText(lone, "pdf");
 
         var files = ChatViewModel.ExpandFolders([Path.Combine(_root, "in", "KingFisher Methods"), lone, Path.Combine(_root, "missing")]).ToList();
 
-        files.Select(f => f.Relative).ShouldBe([Path.Combine("KingFisher Methods", "Apex", "SAX_KF1.kfx"), "request.pdf"]);
+        files.Select(f => f.Relative).ShouldBe([Path.Combine("KingFisher Methods", "Apex", "BeadEV_KF1.kfx"), "request.pdf"]);
         var folder = Path.Combine(_root, "conversation");
         var first = ChatViewModel.CopyInto(folder, lone, "request.pdf");
         var second = ChatViewModel.CopyInto(folder, lone, "request.pdf");
         Path.GetFileName(first).ShouldBe("request.pdf");
         Path.GetFileName(second).ShouldBe("request (2).pdf");
         ChatViewModel.CopyInto(folder, files[0].Source, files[0].Relative)
-            .ShouldBe(Path.Combine(folder, "KingFisher Methods", "Apex", "SAX_KF1.kfx"));
+            .ShouldBe(Path.Combine(folder, "KingFisher Methods", "Apex", "BeadEV_KF1.kfx"));
     }
 
     [Fact]
@@ -76,17 +76,17 @@ public sealed class AttachmentTests : IDisposable
     [Fact]
     public void A_method_file_uploaded_alone_is_named_as_a_method_not_read_as_the_protocol()
     {
-        var alone = new ProtocolImport("pnnl-proinsulin", "inbox/pnnl-proinsulin", "inbox/pnnl-proinsulin/IP-ProINS_UB.bdz",
-            "inbox/pnnl-proinsulin/text.md", 0, [], null, Scanned: false, Exists: true)
+        var alone = new ProtocolImport("otter-insulin-ip", "inbox/otter-insulin-ip", "inbox/otter-insulin-ip/IP-INS-Demo.bdz",
+            "inbox/otter-insulin-ip/text.md", 0, [], null, Scanned: false, Exists: true)
         {
-            Files = [new("inbox/pnnl-proinsulin/IP-ProINS_UB.bdz", "other", null, null, null, Scanned: false)],
+            Files = [new("inbox/otter-insulin-ip/IP-INS-Demo.bdz", "other", null, null, null, Scanned: false)],
         };
         ProtocolsViewModel.NeedsFileList(alone).ShouldBeTrue();
 
         var prompt = ProtocolsViewModel.UpdateFromFilesPrompt(
-            new ProtocolSummary { Id = "pnnl-proinsulin", Folder = "protocols/pnnl-proinsulin" }, alone);
+            new ProtocolSummary { Id = "otter-insulin-ip", Folder = "protocols/otter-insulin-ip" }, alone);
 
-        prompt.ShouldContain("IP-ProINS_UB.bdz (not a document");
+        prompt.ShouldContain("IP-INS-Demo.bdz (not a document");
         prompt.ShouldContain("methods/ folder");
         prompt.ShouldNotContain("extracted its text");
     }

@@ -22,11 +22,11 @@ public sealed class ProtocolsRepositoryTests
     {
         var p = RepositoryProfile.Protocols;
         (p.GitHubName, p.DefaultFolderName, p.EngineScript).ShouldBe(("uw-maccosslab/LabOps-Protocols", "LabOps-Protocols", "scripts/protocol.py"));
-        p.ItemFolder("protocols/kasil-capillary-frits/versions/v2.md").ShouldBe("protocols/kasil-capillary-frits");
-        p.IsItemPath("protocols/kasil-capillary-frits/protocol.md").ShouldBeTrue();
+        p.ItemFolder("protocols/capillary-column-packing/versions/v2.md").ShouldBe("protocols/capillary-column-packing");
+        p.IsItemPath("protocols/capillary-column-packing/protocol.md").ShouldBeTrue();
         p.IsItemPath("config/categories.yaml").ShouldBeFalse();
         p.IsGenerated("README.md").ShouldBeTrue();
-        p.IsGenerated("protocols/kasil-capillary-frits/protocol.md").ShouldBeFalse();
+        p.IsGenerated("protocols/capillary-column-packing/protocol.md").ShouldBeFalse();
         p.ChecksCommits.ShouldBeTrue();
         p.RenamedRemote("https://github.com/uw-maccosslab/LabOps-Protocols.git").ShouldBeNull();
         RepositoryProfile.All.ShouldContain(p);
@@ -90,15 +90,15 @@ public sealed class ProtocolsRepositoryTests
             {"ok": true, "engine_version": "26.3.0", "people": [], "problems": [], "closed_hidden": 0, "projects": [],
              "labs": [{"lab": "Zoo", "folder": "projects/Zoo", "notebooks": [], "issues": [], "projects": [
                {"project": "Marten", "folder": "projects/Zoo/Marten", "lab": "Zoo", "notebooks": [], "stages": [], "issues": [],
-                "protocols": [{"id": "sax-kfkf-ev-capture-digestion", "version": 3, "title": "KingFisher EV capture", "step": "sample_prep"}],
+                "protocols": [{"id": "bead-ev-capture-digestion", "version": 3, "title": "Bead EV capture", "step": "sample_prep"}],
                 "experiments": [{"experiment": "2026-10-Marten-DIA", "folder": "projects/Zoo/Marten/2026-10-Marten-DIA", "notebooks": [],
                   "panorama": [], "stages": [], "issues": [],
-                  "protocols": [{"id": "kasil-capillary-frits", "version": null, "title": null, "step": null}]}]}]}]}
+                  "protocols": [{"id": "capillary-column-packing", "version": null, "title": null, "step": null}]}]}]}]}
             """;
         using var doc = JsonDocument.Parse(json);
         var project = ProjectEngine.ReadList(doc.RootElement).Labs.Single().Projects.Single();
 
-        project.Protocols.ShouldBe([new ProtocolLink("sax-kfkf-ev-capture-digestion", 3, "KingFisher EV capture", "sample_prep")]);
-        project.Experiments.Single().Protocols.ShouldBe([new ProtocolLink("kasil-capillary-frits", null, null, null)]);
+        project.Protocols.ShouldBe([new ProtocolLink("bead-ev-capture-digestion", 3, "Bead EV capture", "sample_prep")]);
+        project.Experiments.Single().Protocols.ShouldBe([new ProtocolLink("capillary-column-packing", null, null, null)]);
     }
 }

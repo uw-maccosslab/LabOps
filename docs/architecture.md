@@ -255,7 +255,7 @@ flowchart LR
     end
 
     subgraph labProtocols["LabOps-Protocols"]
-        protocol["Protocol: protocols/s-trap-micro-digestion/<br/>protocol.yaml (record, every version),<br/>protocol.md (the draft)"]
+        protocol["Protocol: protocols/spin-trap-digestion/<br/>protocol.yaml (record, every version),<br/>protocol.md (the draft)"]
         versions["versions/v1.md, v2.md<br/>published, never changed"]
         files["attachments/ (figures),<br/>sources/ (the originals)"]
         protocol --> versions

@@ -987,7 +987,7 @@ public sealed partial class MainViewModel : ObservableObject
         return new ConversationMismatch(about, v.Label, v.Talk);
     }
 
-    /// <summary>What people call a protocol at the bench (SAX KFKF), or its title.</summary>
+    /// <summary>What people call a protocol at the bench (Bead EV capture), or its title.</summary>
     private static string ShortName(Core.Protocols.ProtocolSummary p) =>
         string.IsNullOrWhiteSpace(p.ShortTitle) ? p.DisplayTitle : p.ShortTitle!;
 

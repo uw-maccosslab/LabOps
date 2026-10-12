@@ -736,7 +736,7 @@ public sealed partial class ProtocolsViewModel : ObservableObject
 
         if (replacement.Length > 0 && _all.All(r => r.Id != replacement))
         {
-            MessageBox.Show($"There is no protocol {replacement}. Give the ID shown with it, for example s-trap-micro-digestion.",
+            MessageBox.Show($"There is no protocol {replacement}. Give the ID shown with it, for example spin-trap-digestion.",
                 AppInfo.ProductName);
             return;
         }

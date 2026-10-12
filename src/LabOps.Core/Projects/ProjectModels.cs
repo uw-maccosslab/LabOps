@@ -136,7 +136,7 @@ public sealed record AnalysisLocation(string? Repo, string? Folder);
 /// <param name="Step">The step's id; null when it belongs to the item as a whole.</param>
 public sealed record ProtocolLink(string? Id, int? Version, string? Title, string? Step)
 {
-    /// <summary>"S-Trap micro digestion, version 3".</summary>
+    /// <summary>"Spin trap digestion, version 3".</summary>
     public string Text => $"{(string.IsNullOrWhiteSpace(Title) ? Id : Title)}{(Version is { } v ? $", version {v}" : "")}";
 }
 

@@ -23,20 +23,20 @@ public sealed class ProtocolEngineTests
         list.People.ShouldContain(p => p.Login == "maccoss" && p.Name == "Michael MacCoss");
         list.Problems.ShouldBeEmpty();
 
-        var kasil = list.Protocols.Single(p => p.Id == "kasil-capillary-frits");
-        kasil.Folder.ShouldBe("protocols/kasil-capillary-frits");
-        kasil.Status.ShouldBe("active");
-        kasil.CategoryLabel.ShouldBe("LC-MS");
-        kasil.LatestVersion.ShouldBe(2);
-        kasil.DraftChanges.ShouldBeFalse();
-        kasil.VersionText.ShouldBe("v2");
-        kasil.Versions.Count.ShouldBe(2);
-        kasil.Versions[0].ShouldBe(kasil.Versions[0] with { Version = 1, Date = null, By = "maccoss", Imported = true });
-        kasil.Versions[1].Date.ShouldBe("2020-06");
-        kasil.Figures.ShouldBe(["foil-1.jpg", "foil-2.jpg", "foil-3.jpg"]);
-        kasil.Sources.ShouldBe(["Kasil Frit making.pdf"]);
+        var packing = list.Protocols.Single(p => p.Id == "capillary-column-packing");
+        packing.Folder.ShouldBe("protocols/capillary-column-packing");
+        packing.Status.ShouldBe("active");
+        packing.CategoryLabel.ShouldBe("LC-MS");
+        packing.LatestVersion.ShouldBe(2);
+        packing.DraftChanges.ShouldBeFalse();
+        packing.VersionText.ShouldBe("v2");
+        packing.Versions.Count.ShouldBe(2);
+        packing.Versions[0].ShouldBe(packing.Versions[0] with { Version = 1, Date = null, By = "maccoss", Imported = true });
+        packing.Versions[1].Date.ShouldBe("2020-06");
+        packing.Figures.ShouldBe(["foil-1.jpg", "foil-2.jpg", "foil-3.jpg"]);
+        packing.Sources.ShouldBe(["Column packing.pdf"]);
 
-        var strap = list.Protocols.Single(p => p.Id == "s-trap-micro-digestion");
+        var strap = list.Protocols.Single(p => p.Id == "spin-trap-digestion");
         strap.IsDraft.ShouldBeTrue();
         strap.IsPublished.ShouldBeFalse();
         strap.DraftChanges.ShouldBeTrue();
@@ -44,8 +44,8 @@ public sealed class ProtocolEngineTests
         strap.Owner.ShouldBe("maccoss");
         strap.Tags.ShouldNotBeEmpty();
 
-        var sax = list.Protocols.Single(p => p.Id == "sax-kfkf-ev-capture-digestion");
-        sax.ShortTitle.ShouldBe("SAX KFKF");
+        var sax = list.Protocols.Single(p => p.Id == "bead-ev-capture-digestion");
+        sax.ShortTitle.ShouldBe("Bead EV capture");
         sax.AppliesTo.SampleTypes.ShouldContain("plasma");
         sax.AppliesTo.Instruments.ShouldContain("KingFisher Flex");
     }
@@ -56,7 +56,7 @@ public sealed class ProtocolEngineTests
         using var doc = ProtocolEngine.Parse(new ProcessResult(1, Fixture("protocol-check-staged.json"), ""), allowNotOk: true);
         var problems = doc.RootElement.GetProperty("problems").EnumerateArray().Select(p => p.GetProperty("message").GetString()).ToList();
 
-        problems.ShouldContain(m => m!.Contains("versions/v1.md: version 1 of s-trap-micro-digestion was published and never changes",
+        problems.ShouldContain(m => m!.Contains("versions/v1.md: version 1 of spin-trap-digestion was published and never changes",
             StringComparison.Ordinal));
     }
 
@@ -81,7 +81,7 @@ public sealed class ProtocolEngineTests
     {
         // A version written as 1.0 in a protocol.yaml, as protocol engine 26.1.0 listed it.
         using var doc = System.Text.Json.JsonDocument.Parse(
-            """{"ok": true, "protocols": [{"id": "s-trap", "versions": [{"version": 1.0}], "latest_version": 1.0}]}""");
+            """{"ok": true, "protocols": [{"id": "spin-trap", "versions": [{"version": 1.0}], "latest_version": 1.0}]}""");
         Should.Throw<LabOps.Core.Engines.EngineException>(() => ProtocolEngine.ReadList(doc.RootElement))
             .Message.ShouldStartWith("LabOps could not read what the protocol engine answered");
     }
