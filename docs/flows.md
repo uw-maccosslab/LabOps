@@ -264,7 +264,7 @@ project that recorded version 1 still opens exactly what it followed. The pre-co
 flowchart TB
     subgraph programs["Step 1: programs"]
         direction LR
-        gitStep["Git<br/>winget install"] ~~~ ghStep["GitHub CLI<br/>winget install"] ~~~ claudeStep["Claude Code<br/>claude.ai install script"]
+        gitStep["Git<br/>winget install"] ~~~ ghStep["GitHub CLI<br/>comes with LabOps;<br/>winget only if missing"] ~~~ claudeStep["Claude Code<br/>claude.ai install script"]
     end
     subgraph signIns["Step 2: sign-ins"]
         direction LR
@@ -332,8 +332,9 @@ sequenceDiagram
 
 The overview's **Publish to Panorama** puts a summary of every lab's open work on a Panorama page:
 what needs attention, how much work is at each phase in each lab, and the instruments' coming
-weeks. LabOps-Projects' `config/app.yaml` names the folder (`dashboard: {folder: ...}`), which only
-lab members can read.
+weeks. LabOps-Projects' `config/app.yaml` names the folder (`dashboard: {folder: ...}`). Who can
+read the page is whoever can read that folder on Panorama: LabOps neither checks nor changes its
+permissions, so the person who names the folder makes sure only lab members can read it.
 
 ```mermaid
 sequenceDiagram

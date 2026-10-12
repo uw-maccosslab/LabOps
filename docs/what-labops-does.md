@@ -86,8 +86,9 @@ Results green. Finished work is gray, and late work has a red ring. Clicking an 
 shows it in the list.
 
 **Publish to Panorama** puts a summary of every lab's open work (what needs attention, the work in
-each phase, the instruments' coming weeks) on a lab-only Panorama page, which the app then keeps
-up to date.
+each phase, the instruments' coming weeks) on a page in the Panorama folder LabOps-Projects
+names, which the app then keeps up to date. That folder should be readable by lab members only;
+LabOps does not check its permissions.
 
 ## The Protocols area
 
@@ -107,6 +108,7 @@ the draft of the next. Its buttons:
 | **Publish version N** | Makes the draft a version, with a summary of what changed; it never changes after that |
 | **Retire**, **Make active** | Takes a protocol out of use, or brings it back; protocols are never deleted |
 | **Print** | Opens the page in the browser, to print |
+| **Folder**, **On GitHub** | Opens the protocol's folder on this computer, or its page on GitHub |
 
 A project's step records the exact version it followed, and its link opens that version here.
 
@@ -125,6 +127,7 @@ quote as the client will read it, or **Show the calculation** with every line an
 | **Make a revision** | Starts a revised quote from a sent one |
 | **Statement of work** | The contract's scope and prices at several sample counts |
 | **Open PDF**, **Spreadsheet** | The files that were sent |
+| **Folder**, **On GitHub** | Opens the quote's folder on this computer, or its page on GitHub |
 
 ## Claude in the app
 
@@ -148,7 +151,8 @@ do.
 
 LabOps reads Panorama to choose an experiment's folders and notebooks, and to count the Skyline
 documents in them, signed in the way PanoramaBridge is. It writes two kinds of page: each project's
-wiki page, which the collaborators of that project read, and the lab-only dashboard.
+wiki page, which the collaborators of that project read, and the lab dashboard. Each is read by
+whoever can open its Panorama folder; LabOps does not change those permissions.
 
 ## Updates
 
@@ -166,6 +170,6 @@ the update at once, and offers **Restart to update**.
 | LabOps-Projects, LabOps-Protocols | The lab; sample information there is deidentified |
 | LabOps-Quotes | The people who prepare quotes |
 | A project's wiki page on Panorama | Everyone who can open its Panorama folder, the collaborators included |
-| The lab dashboard on Panorama | Lab members only |
+| The lab dashboard on Panorama | Everyone who can open the folder LabOps-Projects names for it, which should be lab members only |
 
 Next: [How LabOps fits together](architecture.md) and [The three engines](engines.md).

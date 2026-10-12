@@ -12,7 +12,7 @@ context, and [What LabOps does](what-labops-does.md) describes the app around th
 | Repository | [LabOps-Projects](https://github.com/uw-maccosslab/LabOps-Projects) | [LabOps-Protocols](https://github.com/uw-maccosslab/LabOps-Protocols) | [LabOps-Quotes](https://github.com/uw-maccosslab/LabOps-Quotes) |
 | Engine | `LabOps.Engines` in this repository, and the `labops` tool | `scripts/protocol.py` | `scripts/quote.py` |
 | Language | C# (.NET 10) | Python 3.13 | Python 3.13 |
-| The app runs it | In its own process | `uv run --frozen python scripts/protocol.py --json ...` | `uv run --frozen python scripts/quote.py --json ...` |
+| The app runs it | Inside the app (in-process) | `uv run --frozen python scripts/protocol.py --json ...` | `uv run --frozen python scripts/quote.py --json ...` |
 | Claude, the hook and CI run it | `labops projects ...` | `uv run python scripts/protocol.py ...` | `uv run python scripts/quote.py ...` |
 | Its tests | `src/LabOps.Tests` (xUnit) | `tests/` (pytest) | `tests/` (pytest) |
 | A rule change reaches people | With a LabOps release | On their next sync | On their next sync |
@@ -88,7 +88,7 @@ flowchart LR
         core --> cmd
     end
 
-    app["The app<br/>in its own process"] --> core
+    app["The app<br/>in-process"] --> core
     tools["labops.exe in the app's<br/>tools folder, on Claude's PATH"] -.-> cli
     claude["Claude's skills"] --> tools
     hook["LabOps-Projects<br/>.githooks/pre-commit"] --> tools
