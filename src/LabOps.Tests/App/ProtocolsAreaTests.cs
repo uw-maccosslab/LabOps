@@ -331,4 +331,38 @@ public sealed class ProtocolsAreaTests
         tracker.Shown();
         loads.ShouldBe(2);
     }
+
+    /// <summary>
+    /// A protocol's page links a method by where its file is in the LabOps-Protocols copy; the
+    /// preview opens that in its folder, and follows no other file on the computer.
+    /// </summary>
+    [Fact]
+    public void A_method_the_page_links_is_opened_in_its_folder_and_no_other_file_is_followed()
+    {
+        var clone = Directory.CreateTempSubdirectory("labops-clone-").FullName;
+        try
+        {
+            var method = Path.Combine(clone, "protocols", "spin-trap", "methods", "KF-Demo.bdz");
+            Directory.CreateDirectory(Path.GetDirectoryName(method)!);
+            File.WriteAllText(method, "program");
+            var outside = Path.Combine(clone, "elsewhere.bdz");
+            File.WriteAllText(outside, "program");
+            var page = Path.Combine(clone, "spin-trap-v1.html");
+
+            ProtocolsView.LinkedFile(new Uri(method).AbsoluteUri, clone).ShouldBe(method);
+            ProtocolsView.LinkedFile(new Uri(outside).AbsoluteUri, clone).ShouldBeNull("not a protocol's file");
+            ProtocolsView.LinkedFile(new Uri(method + ".missing").AbsoluteUri, clone).ShouldBeNull("not there");
+            ProtocolsView.LinkedFile("https://example.org/KF-Demo.bdz", clone).ShouldBeNull("the web opens in the browser");
+            ProtocolsView.LinkedFile(new Uri(method).AbsoluteUri, null).ShouldBeNull("no protocols on this computer");
+
+            ProtocolsView.IsThisPage($"{new Uri(page).AbsoluteUri}?v=638123", page).ShouldBeTrue("the page, loaded afresh");
+            ProtocolsView.IsThisPage("data:text/html;base64,PCFkb2N0eXBl", page).ShouldBeTrue("the blank page");
+            ProtocolsView.IsThisPage(new Uri(method).AbsoluteUri, page).ShouldBeFalse();
+            ProtocolsView.IsThisPage(new Uri(outside).AbsoluteUri, null).ShouldBeFalse("no page shown yet");
+        }
+        finally
+        {
+            Directory.Delete(clone, recursive: true);
+        }
+    }
 }

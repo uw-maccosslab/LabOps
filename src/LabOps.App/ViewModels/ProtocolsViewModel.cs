@@ -136,6 +136,9 @@ public sealed partial class ProtocolsViewModel : ObservableObject
 
     private Repository? Repository => _workspace.Protocols;
 
+    /// <summary>The LabOps-Protocols copy on this computer, whose files a protocol's page may link (its methods).</summary>
+    public string? ClonePath => Repository?.Path;
+
     // -- loading -----------------------------------------------------------------------------
 
     /// <summary>
