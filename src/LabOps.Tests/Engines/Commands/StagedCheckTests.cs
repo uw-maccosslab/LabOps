@@ -72,7 +72,7 @@ public sealed class StagedCheckTests
             .ShouldContain(Shown, Case.Sensitive);
         repo.Fails("add-step", name, "other", "--label", "Ask pat@example.org")["error"]!.GetValue<string>()
             .ShouldContain(Shown, Case.Sensitive);
-        repo.Fails("link", name, "protocol", "s-trap-micro-digestion", "--version", "1", "--title", "From pat@example.org")["error"]!
+        repo.Fails("link", name, "protocol", "spin-trap-digestion", "--version", "1", "--title", "From pat@example.org")["error"]!
             .GetValue<string>().ShouldContain(Shown, Case.Sensitive);
         // Written by hand, the check finds them.
         TestRepo.WriteRaw(project, TestRepo.Raw(project).Replace(

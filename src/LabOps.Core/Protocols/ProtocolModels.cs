@@ -33,7 +33,7 @@ public sealed record ProtocolSummary
 
     public string? Title { get; init; }
 
-    /// <summary>What people call it at the bench, for example SAX KFKF.</summary>
+    /// <summary>What people call it at the bench, for example Bead EV capture.</summary>
     public string? ShortTitle { get; init; }
 
     public string? Category { get; init; }

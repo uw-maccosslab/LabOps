@@ -9492,7 +9492,7 @@
          },
          {
           "t": "str",
-          "v": "s-trap-micro-digestion"
+          "v": "spin-trap-digestion"
          }
         ],
         [
@@ -9512,7 +9512,7 @@
          },
          {
           "t": "str",
-          "v": "S-Trap micro digestion"
+          "v": "Spin trap digestion"
          }
         ],
         [
@@ -9530,7 +9530,7 @@
      ]
     }
    },
-   "result": "# a comment\n# a comment\n# a comment\n# a comment\n\nexperiment: YYYY-MM-Topic\ntitle: Short description of the experiment\nstatus: active            # a comment\nlab_contact: maccoss      # a comment\ninstrument: null          # a comment\n\n# a comment\nfunding:\n  type: null              # a comment\n  quotes: []\n  grant: null\n\nnotebooks: []\n# a comment\n# a comment\n\n# a comment\npanorama:\n  - {id: s-trap-micro-digestion, version: 3, title: S-Trap micro digestion, step: sample_prep}\n# a comment\n# a comment\n\n# a comment\n# a comment\nprotocols: []\n# a comment\n\n# a comment\nanalysis:\n  repo: null              # a comment\n  folder: null            # a comment\n\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\nsteps:\n  - {id: data_acquisition, kind: data_acquisition, status: pending}\n  - {id: data_deposited, kind: data_deposited, status: pending}\n  - {id: signal_processing, kind: signal_processing, status: pending}\n  - {id: data_analysis, kind: data_analysis, status: pending}\n  - {id: results_returned, kind: results_returned, status: pending}\n\nnotes: []\n"
+   "result": "# a comment\n# a comment\n# a comment\n# a comment\n\nexperiment: YYYY-MM-Topic\ntitle: Short description of the experiment\nstatus: active            # a comment\nlab_contact: maccoss      # a comment\ninstrument: null          # a comment\n\n# a comment\nfunding:\n  type: null              # a comment\n  quotes: []\n  grant: null\n\nnotebooks: []\n# a comment\n# a comment\n\n# a comment\npanorama:\n  - {id: spin-trap-digestion, version: 3, title: Spin trap digestion, step: sample_prep}\n# a comment\n# a comment\n\n# a comment\n# a comment\nprotocols: []\n# a comment\n\n# a comment\nanalysis:\n  repo: null              # a comment\n  folder: null            # a comment\n\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\nsteps:\n  - {id: data_acquisition, kind: data_acquisition, status: pending}\n  - {id: data_deposited, kind: data_deposited, status: pending}\n  - {id: signal_processing, kind: signal_processing, status: pending}\n  - {id: data_analysis, kind: data_analysis, status: pending}\n  - {id: results_returned, kind: results_returned, status: pending}\n\nnotes: []\n"
   },
   {
    "args": {
@@ -9678,7 +9678,7 @@
          },
          {
           "t": "str",
-          "v": "s-trap-micro-digestion"
+          "v": "spin-trap-digestion"
          }
         ],
         [
@@ -9698,7 +9698,7 @@
          },
          {
           "t": "str",
-          "v": "S-Trap micro digestion"
+          "v": "Spin trap digestion"
          }
         ],
         [
@@ -9716,7 +9716,7 @@
      ]
     }
    },
-   "result": "# a comment\n# a comment\n# a comment\n# a comment\n\nexperiment: YYYY-MM-Topic\ntitle: Short description of the experiment\nstatus: active            # a comment\nlab_contact: maccoss      # a comment\ninstrument: null          # a comment\n\n# a comment\nfunding:\n  type: null              # a comment\n  quotes: []\n  grant: null\n\nnotebooks:\n  - {id: s-trap-micro-digestion, version: 3, title: S-Trap micro digestion, step: sample_prep}\n# a comment\n# a comment\n\n# a comment\npanorama: []\n# a comment\n# a comment\n\n# a comment\n# a comment\nprotocols: []\n# a comment\n\n# a comment\nanalysis:\n  repo: null              # a comment\n  folder: null            # a comment\n\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\nsteps:\n  - {id: data_acquisition, kind: data_acquisition, status: pending}\n  - {id: data_deposited, kind: data_deposited, status: pending}\n  - {id: signal_processing, kind: signal_processing, status: pending}\n  - {id: data_analysis, kind: data_analysis, status: pending}\n  - {id: results_returned, kind: results_returned, status: pending}\n\nnotes: []\n"
+   "result": "# a comment\n# a comment\n# a comment\n# a comment\n\nexperiment: YYYY-MM-Topic\ntitle: Short description of the experiment\nstatus: active            # a comment\nlab_contact: maccoss      # a comment\ninstrument: null          # a comment\n\n# a comment\nfunding:\n  type: null              # a comment\n  quotes: []\n  grant: null\n\nnotebooks:\n  - {id: spin-trap-digestion, version: 3, title: Spin trap digestion, step: sample_prep}\n# a comment\n# a comment\n\n# a comment\npanorama: []\n# a comment\n# a comment\n\n# a comment\n# a comment\nprotocols: []\n# a comment\n\n# a comment\nanalysis:\n  repo: null              # a comment\n  folder: null            # a comment\n\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\nsteps:\n  - {id: data_acquisition, kind: data_acquisition, status: pending}\n  - {id: data_deposited, kind: data_deposited, status: pending}\n  - {id: signal_processing, kind: signal_processing, status: pending}\n  - {id: data_analysis, kind: data_analysis, status: pending}\n  - {id: results_returned, kind: results_returned, status: pending}\n\nnotes: []\n"
   },
   {
    "args": {
@@ -9864,7 +9864,7 @@
          },
          {
           "t": "str",
-          "v": "s-trap-micro-digestion"
+          "v": "spin-trap-digestion"
          }
         ],
         [
@@ -9884,7 +9884,7 @@
          },
          {
           "t": "str",
-          "v": "S-Trap micro digestion"
+          "v": "Spin trap digestion"
          }
         ],
         [
@@ -9902,7 +9902,7 @@
      ]
     }
    },
-   "result": "# a comment\n# a comment\n# a comment\n# a comment\n\nexperiment: YYYY-MM-Topic\ntitle: Short description of the experiment\nstatus: active            # a comment\nlab_contact: maccoss      # a comment\ninstrument: null          # a comment\n\n# a comment\nfunding:\n  type: null              # a comment\n  quotes: []\n  grant: null\n\nnotebooks: []\n# a comment\n# a comment\n\n# a comment\npanorama: []\n# a comment\n# a comment\n\n# a comment\n# a comment\nprotocols:\n  - {id: s-trap-micro-digestion, version: 3, title: S-Trap micro digestion, step: sample_prep}\n# a comment\n\n# a comment\nanalysis:\n  repo: null              # a comment\n  folder: null            # a comment\n\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\nsteps:\n  - {id: data_acquisition, kind: data_acquisition, status: pending}\n  - {id: data_deposited, kind: data_deposited, status: pending}\n  - {id: signal_processing, kind: signal_processing, status: pending}\n  - {id: data_analysis, kind: data_analysis, status: pending}\n  - {id: results_returned, kind: results_returned, status: pending}\n\nnotes: []\n"
+   "result": "# a comment\n# a comment\n# a comment\n# a comment\n\nexperiment: YYYY-MM-Topic\ntitle: Short description of the experiment\nstatus: active            # a comment\nlab_contact: maccoss      # a comment\ninstrument: null          # a comment\n\n# a comment\nfunding:\n  type: null              # a comment\n  quotes: []\n  grant: null\n\nnotebooks: []\n# a comment\n# a comment\n\n# a comment\npanorama: []\n# a comment\n# a comment\n\n# a comment\n# a comment\nprotocols:\n  - {id: spin-trap-digestion, version: 3, title: Spin trap digestion, step: sample_prep}\n# a comment\n\n# a comment\nanalysis:\n  repo: null              # a comment\n  folder: null            # a comment\n\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\nsteps:\n  - {id: data_acquisition, kind: data_acquisition, status: pending}\n  - {id: data_deposited, kind: data_deposited, status: pending}\n  - {id: signal_processing, kind: signal_processing, status: pending}\n  - {id: data_analysis, kind: data_analysis, status: pending}\n  - {id: results_returned, kind: results_returned, status: pending}\n\nnotes: []\n"
   },
   {
    "args": {
@@ -10053,7 +10053,7 @@
          },
          {
           "t": "str",
-          "v": "s-trap-micro-digestion"
+          "v": "spin-trap-digestion"
          }
         ],
         [
@@ -10073,7 +10073,7 @@
          },
          {
           "t": "str",
-          "v": "S-Trap micro digestion"
+          "v": "Spin trap digestion"
          }
         ],
         [
@@ -10240,7 +10240,7 @@
          },
          {
           "t": "str",
-          "v": "s-trap-micro-digestion"
+          "v": "spin-trap-digestion"
          }
         ],
         [
@@ -10260,7 +10260,7 @@
          },
          {
           "t": "str",
-          "v": "S-Trap micro digestion"
+          "v": "Spin trap digestion"
          }
         ],
         [
@@ -10278,7 +10278,7 @@
      ]
     }
    },
-   "result": "# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n\nproject: Name-Of-Project\ntitle: Short description of the project\nstatus: active            # a comment\nlab_contact: maccoss      # a comment\nseries: null              # a comment\n\n# a comment\n# a comment\nfunding:\n  type: internal          # a comment\n  quotes: []              # a comment\n  grant: null             # a comment\n\n# a comment\n# a comment\nhuman: false\nspecies: null\nsample_type: null         # a comment\nexpected_samples: null    # a comment\n\nnotebooks:\n  - {id: s-trap-micro-digestion, version: 3, title: S-Trap micro digestion, step: sample_prep}\n# a comment\n# a comment\n\n# a comment\n# a comment\nprotocols: []\n# a comment\n\n# a comment\nanalysis:\n  repo: null              # a comment\n  folder: null\n\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\nsteps:\n  - {id: samples_received, kind: samples_received, status: pending}\n  - {id: metadata_organized, kind: metadata_organized, status: pending}\n  - {id: plate_layout, kind: plate_layout, status: pending}\n  - {id: sample_prep, kind: sample_prep, status: pending}\n\nnotes: []\n\n# a comment\n# a comment\nwiki: null                # a comment\n"
+   "result": "# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n\nproject: Name-Of-Project\ntitle: Short description of the project\nstatus: active            # a comment\nlab_contact: maccoss      # a comment\nseries: null              # a comment\n\n# a comment\n# a comment\nfunding:\n  type: internal          # a comment\n  quotes: []              # a comment\n  grant: null             # a comment\n\n# a comment\n# a comment\nhuman: false\nspecies: null\nsample_type: null         # a comment\nexpected_samples: null    # a comment\n\nnotebooks:\n  - {id: spin-trap-digestion, version: 3, title: Spin trap digestion, step: sample_prep}\n# a comment\n# a comment\n\n# a comment\n# a comment\nprotocols: []\n# a comment\n\n# a comment\nanalysis:\n  repo: null              # a comment\n  folder: null\n\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\nsteps:\n  - {id: samples_received, kind: samples_received, status: pending}\n  - {id: metadata_organized, kind: metadata_organized, status: pending}\n  - {id: plate_layout, kind: plate_layout, status: pending}\n  - {id: sample_prep, kind: sample_prep, status: pending}\n\nnotes: []\n\n# a comment\n# a comment\nwiki: null                # a comment\n"
   },
   {
    "args": {
@@ -10426,7 +10426,7 @@
          },
          {
           "t": "str",
-          "v": "s-trap-micro-digestion"
+          "v": "spin-trap-digestion"
          }
         ],
         [
@@ -10446,7 +10446,7 @@
          },
          {
           "t": "str",
-          "v": "S-Trap micro digestion"
+          "v": "Spin trap digestion"
          }
         ],
         [
@@ -10464,7 +10464,7 @@
      ]
     }
    },
-   "result": "# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n\nproject: Name-Of-Project\ntitle: Short description of the project\nstatus: active            # a comment\nlab_contact: maccoss      # a comment\nseries: null              # a comment\n\n# a comment\n# a comment\nfunding:\n  type: internal          # a comment\n  quotes: []              # a comment\n  grant: null             # a comment\n\n# a comment\n# a comment\nhuman: false\nspecies: null\nsample_type: null         # a comment\nexpected_samples: null    # a comment\n\nnotebooks: []\n# a comment\n# a comment\n\n# a comment\n# a comment\nprotocols:\n  - {id: s-trap-micro-digestion, version: 3, title: S-Trap micro digestion, step: sample_prep}\n# a comment\n\n# a comment\nanalysis:\n  repo: null              # a comment\n  folder: null\n\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\nsteps:\n  - {id: samples_received, kind: samples_received, status: pending}\n  - {id: metadata_organized, kind: metadata_organized, status: pending}\n  - {id: plate_layout, kind: plate_layout, status: pending}\n  - {id: sample_prep, kind: sample_prep, status: pending}\n\nnotes: []\n\n# a comment\n# a comment\nwiki: null                # a comment\n"
+   "result": "# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n\nproject: Name-Of-Project\ntitle: Short description of the project\nstatus: active            # a comment\nlab_contact: maccoss      # a comment\nseries: null              # a comment\n\n# a comment\n# a comment\nfunding:\n  type: internal          # a comment\n  quotes: []              # a comment\n  grant: null             # a comment\n\n# a comment\n# a comment\nhuman: false\nspecies: null\nsample_type: null         # a comment\nexpected_samples: null    # a comment\n\nnotebooks: []\n# a comment\n# a comment\n\n# a comment\n# a comment\nprotocols:\n  - {id: spin-trap-digestion, version: 3, title: Spin trap digestion, step: sample_prep}\n# a comment\n\n# a comment\nanalysis:\n  repo: null              # a comment\n  folder: null\n\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\nsteps:\n  - {id: samples_received, kind: samples_received, status: pending}\n  - {id: metadata_organized, kind: metadata_organized, status: pending}\n  - {id: plate_layout, kind: plate_layout, status: pending}\n  - {id: sample_prep, kind: sample_prep, status: pending}\n\nnotes: []\n\n# a comment\n# a comment\nwiki: null                # a comment\n"
   },
   {
    "args": {
@@ -10612,7 +10612,7 @@
          },
          {
           "t": "str",
-          "v": "s-trap-micro-digestion"
+          "v": "spin-trap-digestion"
          }
         ],
         [
@@ -10632,7 +10632,7 @@
          },
          {
           "t": "str",
-          "v": "S-Trap micro digestion"
+          "v": "Spin trap digestion"
          }
         ],
         [
@@ -10650,7 +10650,7 @@
      ]
     }
    },
-   "result": "panorama:\n  - {id: s-trap-micro-digestion, version: 3, title: S-Trap micro digestion, step: sample_prep}\nnotes: []\n"
+   "result": "panorama:\n  - {id: spin-trap-digestion, version: 3, title: Spin trap digestion, step: sample_prep}\nnotes: []\n"
   },
   {
    "args": {
@@ -10801,7 +10801,7 @@
          },
          {
           "t": "str",
-          "v": "s-trap-micro-digestion"
+          "v": "spin-trap-digestion"
          }
         ],
         [
@@ -10821,7 +10821,7 @@
          },
          {
           "t": "str",
-          "v": "S-Trap micro digestion"
+          "v": "Spin trap digestion"
          }
         ],
         [
@@ -10991,7 +10991,7 @@
          },
          {
           "t": "str",
-          "v": "s-trap-micro-digestion"
+          "v": "spin-trap-digestion"
          }
         ],
         [
@@ -11011,7 +11011,7 @@
          },
          {
           "t": "str",
-          "v": "S-Trap micro digestion"
+          "v": "Spin trap digestion"
          }
         ],
         [
@@ -11178,7 +11178,7 @@
          },
          {
           "t": "str",
-          "v": "s-trap-micro-digestion"
+          "v": "spin-trap-digestion"
          }
         ],
         [
@@ -11198,7 +11198,7 @@
          },
          {
           "t": "str",
-          "v": "S-Trap micro digestion"
+          "v": "Spin trap digestion"
          }
         ],
         [
@@ -11216,7 +11216,7 @@
      ]
     }
    },
-   "result": "panorama:\n  - {id: s-trap-micro-digestion, version: 3, title: S-Trap micro digestion, step: sample_prep}\n# c\n\nnotes: []\n"
+   "result": "panorama:\n  - {id: spin-trap-digestion, version: 3, title: Spin trap digestion, step: sample_prep}\n# c\n\nnotes: []\n"
   },
   {
    "args": {
@@ -11367,7 +11367,7 @@
          },
          {
           "t": "str",
-          "v": "s-trap-micro-digestion"
+          "v": "spin-trap-digestion"
          }
         ],
         [
@@ -11387,7 +11387,7 @@
          },
          {
           "t": "str",
-          "v": "S-Trap micro digestion"
+          "v": "Spin trap digestion"
          }
         ],
         [
@@ -11557,7 +11557,7 @@
          },
          {
           "t": "str",
-          "v": "s-trap-micro-digestion"
+          "v": "spin-trap-digestion"
          }
         ],
         [
@@ -11577,7 +11577,7 @@
          },
          {
           "t": "str",
-          "v": "S-Trap micro digestion"
+          "v": "Spin trap digestion"
          }
         ],
         [
@@ -11747,7 +11747,7 @@
          },
          {
           "t": "str",
-          "v": "s-trap-micro-digestion"
+          "v": "spin-trap-digestion"
          }
         ],
         [
@@ -11767,7 +11767,7 @@
          },
          {
           "t": "str",
-          "v": "S-Trap micro digestion"
+          "v": "Spin trap digestion"
          }
         ],
         [
@@ -11937,7 +11937,7 @@
          },
          {
           "t": "str",
-          "v": "s-trap-micro-digestion"
+          "v": "spin-trap-digestion"
          }
         ],
         [
@@ -11957,7 +11957,7 @@
          },
          {
           "t": "str",
-          "v": "S-Trap micro digestion"
+          "v": "Spin trap digestion"
          }
         ],
         [
@@ -12127,7 +12127,7 @@
          },
          {
           "t": "str",
-          "v": "s-trap-micro-digestion"
+          "v": "spin-trap-digestion"
          }
         ],
         [
@@ -12147,7 +12147,7 @@
          },
          {
           "t": "str",
-          "v": "S-Trap micro digestion"
+          "v": "Spin trap digestion"
          }
         ],
         [
@@ -12319,7 +12319,7 @@
          },
          {
           "t": "str",
-          "v": "s-trap-micro-digestion"
+          "v": "spin-trap-digestion"
          }
         ],
         [
@@ -12339,7 +12339,7 @@
          },
          {
           "t": "str",
-          "v": "S-Trap micro digestion"
+          "v": "Spin trap digestion"
          }
         ],
         [
@@ -12358,7 +12358,7 @@
     },
     "comment": "Protocols used."
    },
-   "result": "# a comment\n# a comment\n# a comment\n# a comment\n\nexperiment: YYYY-MM-Topic\ntitle: Short description of the experiment\nstatus: active            # a comment\nlab_contact: maccoss      # a comment\ninstrument: null          # a comment\n\n# a comment\nfunding:\n  type: null              # a comment\n  quotes: []\n  grant: null\n\nnotebooks: []\n# a comment\n# a comment\n\n# a comment\npanorama:\n  - {id: s-trap-micro-digestion, version: 3, title: S-Trap micro digestion, step: sample_prep}\n# a comment\n# a comment\n\n# a comment\n# a comment\nprotocols: []\n# a comment\n\n# a comment\nanalysis:\n  repo: null              # a comment\n  folder: null            # a comment\n\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\nsteps:\n  - {id: data_acquisition, kind: data_acquisition, status: pending}\n  - {id: data_deposited, kind: data_deposited, status: pending}\n  - {id: signal_processing, kind: signal_processing, status: pending}\n  - {id: data_analysis, kind: data_analysis, status: pending}\n  - {id: results_returned, kind: results_returned, status: pending}\n\nnotes: []\n"
+   "result": "# a comment\n# a comment\n# a comment\n# a comment\n\nexperiment: YYYY-MM-Topic\ntitle: Short description of the experiment\nstatus: active            # a comment\nlab_contact: maccoss      # a comment\ninstrument: null          # a comment\n\n# a comment\nfunding:\n  type: null              # a comment\n  quotes: []\n  grant: null\n\nnotebooks: []\n# a comment\n# a comment\n\n# a comment\npanorama:\n  - {id: spin-trap-digestion, version: 3, title: Spin trap digestion, step: sample_prep}\n# a comment\n# a comment\n\n# a comment\n# a comment\nprotocols: []\n# a comment\n\n# a comment\nanalysis:\n  repo: null              # a comment\n  folder: null            # a comment\n\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\nsteps:\n  - {id: data_acquisition, kind: data_acquisition, status: pending}\n  - {id: data_deposited, kind: data_deposited, status: pending}\n  - {id: signal_processing, kind: signal_processing, status: pending}\n  - {id: data_analysis, kind: data_analysis, status: pending}\n  - {id: results_returned, kind: results_returned, status: pending}\n\nnotes: []\n"
   },
   {
    "args": {
@@ -12509,7 +12509,7 @@
          },
          {
           "t": "str",
-          "v": "s-trap-micro-digestion"
+          "v": "spin-trap-digestion"
          }
         ],
         [
@@ -12529,7 +12529,7 @@
          },
          {
           "t": "str",
-          "v": "S-Trap micro digestion"
+          "v": "Spin trap digestion"
          }
         ],
         [
@@ -12548,7 +12548,7 @@
     },
     "comment": "Protocols used."
    },
-   "result": "# a comment\n# a comment\n# a comment\n# a comment\n\nexperiment: YYYY-MM-Topic\ntitle: Short description of the experiment\nstatus: active            # a comment\nlab_contact: maccoss      # a comment\ninstrument: null          # a comment\n\n# a comment\nfunding:\n  type: null              # a comment\n  quotes: []\n  grant: null\n\nnotebooks:\n  - {id: s-trap-micro-digestion, version: 3, title: S-Trap micro digestion, step: sample_prep}\n# a comment\n# a comment\n\n# a comment\npanorama: []\n# a comment\n# a comment\n\n# a comment\n# a comment\nprotocols: []\n# a comment\n\n# a comment\nanalysis:\n  repo: null              # a comment\n  folder: null            # a comment\n\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\nsteps:\n  - {id: data_acquisition, kind: data_acquisition, status: pending}\n  - {id: data_deposited, kind: data_deposited, status: pending}\n  - {id: signal_processing, kind: signal_processing, status: pending}\n  - {id: data_analysis, kind: data_analysis, status: pending}\n  - {id: results_returned, kind: results_returned, status: pending}\n\nnotes: []\n"
+   "result": "# a comment\n# a comment\n# a comment\n# a comment\n\nexperiment: YYYY-MM-Topic\ntitle: Short description of the experiment\nstatus: active            # a comment\nlab_contact: maccoss      # a comment\ninstrument: null          # a comment\n\n# a comment\nfunding:\n  type: null              # a comment\n  quotes: []\n  grant: null\n\nnotebooks:\n  - {id: spin-trap-digestion, version: 3, title: Spin trap digestion, step: sample_prep}\n# a comment\n# a comment\n\n# a comment\npanorama: []\n# a comment\n# a comment\n\n# a comment\n# a comment\nprotocols: []\n# a comment\n\n# a comment\nanalysis:\n  repo: null              # a comment\n  folder: null            # a comment\n\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\nsteps:\n  - {id: data_acquisition, kind: data_acquisition, status: pending}\n  - {id: data_deposited, kind: data_deposited, status: pending}\n  - {id: signal_processing, kind: signal_processing, status: pending}\n  - {id: data_analysis, kind: data_analysis, status: pending}\n  - {id: results_returned, kind: results_returned, status: pending}\n\nnotes: []\n"
   },
   {
    "args": {
@@ -12699,7 +12699,7 @@
          },
          {
           "t": "str",
-          "v": "s-trap-micro-digestion"
+          "v": "spin-trap-digestion"
          }
         ],
         [
@@ -12719,7 +12719,7 @@
          },
          {
           "t": "str",
-          "v": "S-Trap micro digestion"
+          "v": "Spin trap digestion"
          }
         ],
         [
@@ -12738,7 +12738,7 @@
     },
     "comment": "Protocols used."
    },
-   "result": "# a comment\n# a comment\n# a comment\n# a comment\n\nexperiment: YYYY-MM-Topic\ntitle: Short description of the experiment\nstatus: active            # a comment\nlab_contact: maccoss      # a comment\ninstrument: null          # a comment\n\n# a comment\nfunding:\n  type: null              # a comment\n  quotes: []\n  grant: null\n\nnotebooks: []\n# a comment\n# a comment\n\n# a comment\npanorama: []\n# a comment\n# a comment\n\n# a comment\n# a comment\nprotocols:\n  - {id: s-trap-micro-digestion, version: 3, title: S-Trap micro digestion, step: sample_prep}\n# a comment\n\n# a comment\nanalysis:\n  repo: null              # a comment\n  folder: null            # a comment\n\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\nsteps:\n  - {id: data_acquisition, kind: data_acquisition, status: pending}\n  - {id: data_deposited, kind: data_deposited, status: pending}\n  - {id: signal_processing, kind: signal_processing, status: pending}\n  - {id: data_analysis, kind: data_analysis, status: pending}\n  - {id: results_returned, kind: results_returned, status: pending}\n\nnotes: []\n"
+   "result": "# a comment\n# a comment\n# a comment\n# a comment\n\nexperiment: YYYY-MM-Topic\ntitle: Short description of the experiment\nstatus: active            # a comment\nlab_contact: maccoss      # a comment\ninstrument: null          # a comment\n\n# a comment\nfunding:\n  type: null              # a comment\n  quotes: []\n  grant: null\n\nnotebooks: []\n# a comment\n# a comment\n\n# a comment\npanorama: []\n# a comment\n# a comment\n\n# a comment\n# a comment\nprotocols:\n  - {id: spin-trap-digestion, version: 3, title: Spin trap digestion, step: sample_prep}\n# a comment\n\n# a comment\nanalysis:\n  repo: null              # a comment\n  folder: null            # a comment\n\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\nsteps:\n  - {id: data_acquisition, kind: data_acquisition, status: pending}\n  - {id: data_deposited, kind: data_deposited, status: pending}\n  - {id: signal_processing, kind: signal_processing, status: pending}\n  - {id: data_analysis, kind: data_analysis, status: pending}\n  - {id: results_returned, kind: results_returned, status: pending}\n\nnotes: []\n"
   },
   {
    "args": {
@@ -12889,7 +12889,7 @@
          },
          {
           "t": "str",
-          "v": "s-trap-micro-digestion"
+          "v": "spin-trap-digestion"
          }
         ],
         [
@@ -12909,7 +12909,7 @@
          },
          {
           "t": "str",
-          "v": "S-Trap micro digestion"
+          "v": "Spin trap digestion"
          }
         ],
         [
@@ -12928,7 +12928,7 @@
     },
     "comment": "Protocols used."
    },
-   "result": "# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n\nproject: Name-Of-Project\ntitle: Short description of the project\nstatus: active            # a comment\nlab_contact: maccoss      # a comment\nseries: null              # a comment\n\n# a comment\n# a comment\nfunding:\n  type: internal          # a comment\n  quotes: []              # a comment\n  grant: null             # a comment\n\n# a comment\n# a comment\nhuman: false\nspecies: null\nsample_type: null         # a comment\nexpected_samples: null    # a comment\n\nnotebooks: []\n\n# Protocols used.\npanorama:\n  - {id: s-trap-micro-digestion, version: 3, title: S-Trap micro digestion, step: sample_prep}\n# a comment\n# a comment\n\n# a comment\n# a comment\nprotocols: []\n# a comment\n\n# a comment\nanalysis:\n  repo: null              # a comment\n  folder: null\n\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\nsteps:\n  - {id: samples_received, kind: samples_received, status: pending}\n  - {id: metadata_organized, kind: metadata_organized, status: pending}\n  - {id: plate_layout, kind: plate_layout, status: pending}\n  - {id: sample_prep, kind: sample_prep, status: pending}\n\nnotes: []\n\n# a comment\n# a comment\nwiki: null                # a comment\n"
+   "result": "# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n\nproject: Name-Of-Project\ntitle: Short description of the project\nstatus: active            # a comment\nlab_contact: maccoss      # a comment\nseries: null              # a comment\n\n# a comment\n# a comment\nfunding:\n  type: internal          # a comment\n  quotes: []              # a comment\n  grant: null             # a comment\n\n# a comment\n# a comment\nhuman: false\nspecies: null\nsample_type: null         # a comment\nexpected_samples: null    # a comment\n\nnotebooks: []\n\n# Protocols used.\npanorama:\n  - {id: spin-trap-digestion, version: 3, title: Spin trap digestion, step: sample_prep}\n# a comment\n# a comment\n\n# a comment\n# a comment\nprotocols: []\n# a comment\n\n# a comment\nanalysis:\n  repo: null              # a comment\n  folder: null\n\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\nsteps:\n  - {id: samples_received, kind: samples_received, status: pending}\n  - {id: metadata_organized, kind: metadata_organized, status: pending}\n  - {id: plate_layout, kind: plate_layout, status: pending}\n  - {id: sample_prep, kind: sample_prep, status: pending}\n\nnotes: []\n\n# a comment\n# a comment\nwiki: null                # a comment\n"
   },
   {
    "args": {
@@ -13079,7 +13079,7 @@
          },
          {
           "t": "str",
-          "v": "s-trap-micro-digestion"
+          "v": "spin-trap-digestion"
          }
         ],
         [
@@ -13099,7 +13099,7 @@
          },
          {
           "t": "str",
-          "v": "S-Trap micro digestion"
+          "v": "Spin trap digestion"
          }
         ],
         [
@@ -13118,7 +13118,7 @@
     },
     "comment": "Protocols used."
    },
-   "result": "# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n\nproject: Name-Of-Project\ntitle: Short description of the project\nstatus: active            # a comment\nlab_contact: maccoss      # a comment\nseries: null              # a comment\n\n# a comment\n# a comment\nfunding:\n  type: internal          # a comment\n  quotes: []              # a comment\n  grant: null             # a comment\n\n# a comment\n# a comment\nhuman: false\nspecies: null\nsample_type: null         # a comment\nexpected_samples: null    # a comment\n\nnotebooks:\n  - {id: s-trap-micro-digestion, version: 3, title: S-Trap micro digestion, step: sample_prep}\n# a comment\n# a comment\n\n# a comment\n# a comment\nprotocols: []\n# a comment\n\n# a comment\nanalysis:\n  repo: null              # a comment\n  folder: null\n\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\nsteps:\n  - {id: samples_received, kind: samples_received, status: pending}\n  - {id: metadata_organized, kind: metadata_organized, status: pending}\n  - {id: plate_layout, kind: plate_layout, status: pending}\n  - {id: sample_prep, kind: sample_prep, status: pending}\n\nnotes: []\n\n# a comment\n# a comment\nwiki: null                # a comment\n"
+   "result": "# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n\nproject: Name-Of-Project\ntitle: Short description of the project\nstatus: active            # a comment\nlab_contact: maccoss      # a comment\nseries: null              # a comment\n\n# a comment\n# a comment\nfunding:\n  type: internal          # a comment\n  quotes: []              # a comment\n  grant: null             # a comment\n\n# a comment\n# a comment\nhuman: false\nspecies: null\nsample_type: null         # a comment\nexpected_samples: null    # a comment\n\nnotebooks:\n  - {id: spin-trap-digestion, version: 3, title: Spin trap digestion, step: sample_prep}\n# a comment\n# a comment\n\n# a comment\n# a comment\nprotocols: []\n# a comment\n\n# a comment\nanalysis:\n  repo: null              # a comment\n  folder: null\n\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\nsteps:\n  - {id: samples_received, kind: samples_received, status: pending}\n  - {id: metadata_organized, kind: metadata_organized, status: pending}\n  - {id: plate_layout, kind: plate_layout, status: pending}\n  - {id: sample_prep, kind: sample_prep, status: pending}\n\nnotes: []\n\n# a comment\n# a comment\nwiki: null                # a comment\n"
   },
   {
    "args": {
@@ -13269,7 +13269,7 @@
          },
          {
           "t": "str",
-          "v": "s-trap-micro-digestion"
+          "v": "spin-trap-digestion"
          }
         ],
         [
@@ -13289,7 +13289,7 @@
          },
          {
           "t": "str",
-          "v": "S-Trap micro digestion"
+          "v": "Spin trap digestion"
          }
         ],
         [
@@ -13308,7 +13308,7 @@
     },
     "comment": "Protocols used."
    },
-   "result": "# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n\nproject: Name-Of-Project\ntitle: Short description of the project\nstatus: active            # a comment\nlab_contact: maccoss      # a comment\nseries: null              # a comment\n\n# a comment\n# a comment\nfunding:\n  type: internal          # a comment\n  quotes: []              # a comment\n  grant: null             # a comment\n\n# a comment\n# a comment\nhuman: false\nspecies: null\nsample_type: null         # a comment\nexpected_samples: null    # a comment\n\nnotebooks: []\n# a comment\n# a comment\n\n# a comment\n# a comment\nprotocols:\n  - {id: s-trap-micro-digestion, version: 3, title: S-Trap micro digestion, step: sample_prep}\n# a comment\n\n# a comment\nanalysis:\n  repo: null              # a comment\n  folder: null\n\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\nsteps:\n  - {id: samples_received, kind: samples_received, status: pending}\n  - {id: metadata_organized, kind: metadata_organized, status: pending}\n  - {id: plate_layout, kind: plate_layout, status: pending}\n  - {id: sample_prep, kind: sample_prep, status: pending}\n\nnotes: []\n\n# a comment\n# a comment\nwiki: null                # a comment\n"
+   "result": "# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n\nproject: Name-Of-Project\ntitle: Short description of the project\nstatus: active            # a comment\nlab_contact: maccoss      # a comment\nseries: null              # a comment\n\n# a comment\n# a comment\nfunding:\n  type: internal          # a comment\n  quotes: []              # a comment\n  grant: null             # a comment\n\n# a comment\n# a comment\nhuman: false\nspecies: null\nsample_type: null         # a comment\nexpected_samples: null    # a comment\n\nnotebooks: []\n# a comment\n# a comment\n\n# a comment\n# a comment\nprotocols:\n  - {id: spin-trap-digestion, version: 3, title: Spin trap digestion, step: sample_prep}\n# a comment\n\n# a comment\nanalysis:\n  repo: null              # a comment\n  folder: null\n\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\n# a comment\nsteps:\n  - {id: samples_received, kind: samples_received, status: pending}\n  - {id: metadata_organized, kind: metadata_organized, status: pending}\n  - {id: plate_layout, kind: plate_layout, status: pending}\n  - {id: sample_prep, kind: sample_prep, status: pending}\n\nnotes: []\n\n# a comment\n# a comment\nwiki: null                # a comment\n"
   },
   {
    "args": {
@@ -13459,7 +13459,7 @@
          },
          {
           "t": "str",
-          "v": "s-trap-micro-digestion"
+          "v": "spin-trap-digestion"
          }
         ],
         [
@@ -13479,7 +13479,7 @@
          },
          {
           "t": "str",
-          "v": "S-Trap micro digestion"
+          "v": "Spin trap digestion"
          }
         ],
         [
@@ -13498,7 +13498,7 @@
     },
     "comment": "Protocols used."
    },
-   "result": "panorama:\n  - {id: s-trap-micro-digestion, version: 3, title: S-Trap micro digestion, step: sample_prep}\nnotes: []\n"
+   "result": "panorama:\n  - {id: spin-trap-digestion, version: 3, title: Spin trap digestion, step: sample_prep}\nnotes: []\n"
   },
   {
    "args": {
@@ -13649,7 +13649,7 @@
          },
          {
           "t": "str",
-          "v": "s-trap-micro-digestion"
+          "v": "spin-trap-digestion"
          }
         ],
         [
@@ -13669,7 +13669,7 @@
          },
          {
           "t": "str",
-          "v": "S-Trap micro digestion"
+          "v": "Spin trap digestion"
          }
         ],
         [
@@ -13688,7 +13688,7 @@
     },
     "comment": "Protocols used."
    },
-   "result": "panorama: []\n\n# Protocols used.\nnotebooks:\n  - {id: s-trap-micro-digestion, version: 3, title: S-Trap micro digestion, step: sample_prep}\nnotes: []\n"
+   "result": "panorama: []\n\n# Protocols used.\nnotebooks:\n  - {id: spin-trap-digestion, version: 3, title: Spin trap digestion, step: sample_prep}\nnotes: []\n"
   },
   {
    "args": {
@@ -13839,7 +13839,7 @@
          },
          {
           "t": "str",
-          "v": "s-trap-micro-digestion"
+          "v": "spin-trap-digestion"
          }
         ],
         [
@@ -13859,7 +13859,7 @@
          },
          {
           "t": "str",
-          "v": "S-Trap micro digestion"
+          "v": "Spin trap digestion"
          }
         ],
         [
@@ -13878,7 +13878,7 @@
     },
     "comment": "Protocols used."
    },
-   "result": "panorama: []\n\n# Protocols used.\nprotocols:\n  - {id: s-trap-micro-digestion, version: 3, title: S-Trap micro digestion, step: sample_prep}\nnotes: []\n"
+   "result": "panorama: []\n\n# Protocols used.\nprotocols:\n  - {id: spin-trap-digestion, version: 3, title: Spin trap digestion, step: sample_prep}\nnotes: []\n"
   },
   {
    "args": {
@@ -14029,7 +14029,7 @@
          },
          {
           "t": "str",
-          "v": "s-trap-micro-digestion"
+          "v": "spin-trap-digestion"
          }
         ],
         [
@@ -14049,7 +14049,7 @@
          },
          {
           "t": "str",
-          "v": "S-Trap micro digestion"
+          "v": "Spin trap digestion"
          }
         ],
         [
@@ -14068,7 +14068,7 @@
     },
     "comment": "Protocols used."
    },
-   "result": "panorama:\n  - {id: s-trap-micro-digestion, version: 3, title: S-Trap micro digestion, step: sample_prep}\n# c\n\nnotes: []\n"
+   "result": "panorama:\n  - {id: spin-trap-digestion, version: 3, title: Spin trap digestion, step: sample_prep}\n# c\n\nnotes: []\n"
   },
   {
    "args": {
@@ -14219,7 +14219,7 @@
          },
          {
           "t": "str",
-          "v": "s-trap-micro-digestion"
+          "v": "spin-trap-digestion"
          }
         ],
         [
@@ -14239,7 +14239,7 @@
          },
          {
           "t": "str",
-          "v": "S-Trap micro digestion"
+          "v": "Spin trap digestion"
          }
         ],
         [
@@ -14258,7 +14258,7 @@
     },
     "comment": "Protocols used."
    },
-   "result": "panorama:\n  - {folder: /a, kind: raw}\n\n# Protocols used.\nnotebooks:\n  - {id: s-trap-micro-digestion, version: 3, title: S-Trap micro digestion, step: sample_prep}\n# c\n\nnotes: []\n"
+   "result": "panorama:\n  - {folder: /a, kind: raw}\n\n# Protocols used.\nnotebooks:\n  - {id: spin-trap-digestion, version: 3, title: Spin trap digestion, step: sample_prep}\n# c\n\nnotes: []\n"
   },
   {
    "args": {
@@ -14409,7 +14409,7 @@
          },
          {
           "t": "str",
-          "v": "s-trap-micro-digestion"
+          "v": "spin-trap-digestion"
          }
         ],
         [
@@ -14429,7 +14429,7 @@
          },
          {
           "t": "str",
-          "v": "S-Trap micro digestion"
+          "v": "Spin trap digestion"
          }
         ],
         [
@@ -14448,7 +14448,7 @@
     },
     "comment": "Protocols used."
    },
-   "result": "panorama:\n  - {folder: /a, kind: raw}\n\n# Protocols used.\nprotocols:\n  - {id: s-trap-micro-digestion, version: 3, title: S-Trap micro digestion, step: sample_prep}\n# c\n\nnotes: []\n"
+   "result": "panorama:\n  - {folder: /a, kind: raw}\n\n# Protocols used.\nprotocols:\n  - {id: spin-trap-digestion, version: 3, title: Spin trap digestion, step: sample_prep}\n# c\n\nnotes: []\n"
   },
   {
    "args": {
@@ -14599,7 +14599,7 @@
          },
          {
           "t": "str",
-          "v": "s-trap-micro-digestion"
+          "v": "spin-trap-digestion"
          }
         ],
         [
@@ -14619,7 +14619,7 @@
          },
          {
           "t": "str",
-          "v": "S-Trap micro digestion"
+          "v": "Spin trap digestion"
          }
         ],
         [
@@ -14638,7 +14638,7 @@
     },
     "comment": "Protocols used."
    },
-   "result": "notes: []\n\n# Protocols used.\npanorama:\n  - {id: s-trap-micro-digestion, version: 3, title: S-Trap micro digestion, step: sample_prep}\n"
+   "result": "notes: []\n\n# Protocols used.\npanorama:\n  - {id: spin-trap-digestion, version: 3, title: Spin trap digestion, step: sample_prep}\n"
   },
   {
    "args": {
@@ -14789,7 +14789,7 @@
          },
          {
           "t": "str",
-          "v": "s-trap-micro-digestion"
+          "v": "spin-trap-digestion"
          }
         ],
         [
@@ -14809,7 +14809,7 @@
          },
          {
           "t": "str",
-          "v": "S-Trap micro digestion"
+          "v": "Spin trap digestion"
          }
         ],
         [
@@ -14828,7 +14828,7 @@
     },
     "comment": "Protocols used."
    },
-   "result": "notes: []\n\n# Protocols used.\nnotebooks:\n  - {id: s-trap-micro-digestion, version: 3, title: S-Trap micro digestion, step: sample_prep}\n"
+   "result": "notes: []\n\n# Protocols used.\nnotebooks:\n  - {id: spin-trap-digestion, version: 3, title: Spin trap digestion, step: sample_prep}\n"
   },
   {
    "args": {
@@ -14979,7 +14979,7 @@
          },
          {
           "t": "str",
-          "v": "s-trap-micro-digestion"
+          "v": "spin-trap-digestion"
          }
         ],
         [
@@ -14999,7 +14999,7 @@
          },
          {
           "t": "str",
-          "v": "S-Trap micro digestion"
+          "v": "Spin trap digestion"
          }
         ],
         [
@@ -15018,7 +15018,7 @@
     },
     "comment": "Protocols used."
    },
-   "result": "notes: []\n\n# Protocols used.\nprotocols:\n  - {id: s-trap-micro-digestion, version: 3, title: S-Trap micro digestion, step: sample_prep}\n"
+   "result": "notes: []\n\n# Protocols used.\nprotocols:\n  - {id: spin-trap-digestion, version: 3, title: Spin trap digestion, step: sample_prep}\n"
   }
  ],
  "set_wiki": [

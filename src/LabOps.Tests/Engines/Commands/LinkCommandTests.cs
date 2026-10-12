@@ -171,35 +171,35 @@ public sealed class LinkCommandTests
         var experiment = repo.NewExperiment();
         var project = Path.GetDirectoryName(experiment)!;
         var (experimentName, projectName) = (Path.GetFileName(experiment), Path.GetFileName(project));
-        var answer = repo.Ok("link", projectName, "protocol", "s-trap-micro-digestion", "--version", "2", "--step", "sample_prep",
-            "--title", "S-Trap micro digestion");
+        var answer = repo.Ok("link", projectName, "protocol", "spin-trap-digestion", "--version", "2", "--step", "sample_prep",
+            "--title", "Spin trap digestion");
         ShouldBePy(FromJson(answer["project"]!["protocols"]), PyList(
-            new PyDict { ["id"] = "s-trap-micro-digestion", ["version"] = 2, ["title"] = "S-Trap micro digestion", ["step"] = "sample_prep" }));
+            new PyDict { ["id"] = "spin-trap-digestion", ["version"] = 2, ["title"] = "Spin trap digestion", ["step"] = "sample_prep" }));
         var raw = TestRepo.Raw(project);
-        raw.ShouldContain("protocols:\n  - {id: s-trap-micro-digestion, version: 2, title: S-Trap micro digestion, step: sample_prep}\n",
+        raw.ShouldContain("protocols:\n  - {id: spin-trap-digestion, version: 2, title: Spin trap digestion, step: sample_prep}\n",
             Case.Sensitive);
         raw.ShouldContain("# Protocols from LabOps-Protocols", Case.Sensitive);
         // Linking it again for the same step records the newer version, keeping its title.
-        answer = repo.Ok("link", projectName, "protocol", "s-trap-micro-digestion", "--version", "3", "--step", "sample_prep");
+        answer = repo.Ok("link", projectName, "protocol", "spin-trap-digestion", "--version", "3", "--step", "sample_prep");
         ShouldBePy(FromJson(answer["project"]!["protocols"]), PyList(
-            new PyDict { ["id"] = "s-trap-micro-digestion", ["version"] = 3, ["title"] = "S-Trap micro digestion", ["step"] = "sample_prep" }));
+            new PyDict { ["id"] = "spin-trap-digestion", ["version"] = 3, ["title"] = "Spin trap digestion", ["step"] = "sample_prep" }));
         // An experiment records its own; the same protocol can be used for two steps.
-        repo.Ok("link", experimentName, "protocol", "kasil-capillary-frits", "--version", "2", "--step", "data_acquisition");
-        repo.Ok("link", projectName, "protocol", "s-trap-micro-digestion", "--version", "3", "--step", "plate_layout");
+        repo.Ok("link", experimentName, "protocol", "capillary-column-packing", "--version", "2", "--step", "data_acquisition");
+        repo.Ok("link", projectName, "protocol", "spin-trap-digestion", "--version", "3", "--step", "plate_layout");
         Items(TestRepo.Yaml(project)["protocols"]).Count.ShouldBe(2);
         ShouldBePy(TestRepo.Yaml(experiment)["protocols"], PyList(
-            new PyDict { ["id"] = "kasil-capillary-frits", ["version"] = 2, ["step"] = "data_acquisition" }));
+            new PyDict { ["id"] = "capillary-column-packing", ["version"] = 2, ["step"] = "data_acquisition" }));
         repo.Problems().ShouldBeEmpty();
 
-        repo.Ok("unlink", projectName, "protocol", "s-trap-micro-digestion", "--step", "plate_layout");
+        repo.Ok("unlink", projectName, "protocol", "spin-trap-digestion", "--step", "plate_layout");
         Items(TestRepo.Yaml(project)["protocols"]).Select(p => ((PyDict)p!)["step"]).ShouldBe(["sample_prep"]);
         // Without --step, unlink means the link for the item as a whole, and there is none.
-        var error = Error(repo.Fails("unlink", projectName, "protocol", "s-trap-micro-digestion"));
-        error.ShouldContain("has no protocol s-trap-micro-digestion for the item as a whole", Case.Sensitive);
+        var error = Error(repo.Fails("unlink", projectName, "protocol", "spin-trap-digestion"));
+        error.ShouldContain("has no protocol spin-trap-digestion for the item as a whole", Case.Sensitive);
         error.ShouldContain("linked for sample_prep", Case.Sensitive);
-        repo.Ok("unlink", projectName, "protocol", "s-trap-micro-digestion", "--step", "sample_prep");
+        repo.Ok("unlink", projectName, "protocol", "spin-trap-digestion", "--step", "sample_prep");
         ShouldBePy(TestRepo.Yaml(project)["protocols"], PyList());
-        Error(repo.Fails("unlink", projectName, "protocol", "s-trap-micro-digestion", "--all")).ShouldContain("has no protocol", Case.Sensitive);
+        Error(repo.Fails("unlink", projectName, "protocol", "spin-trap-digestion", "--all")).ShouldContain("has no protocol", Case.Sensitive);
     }
 
     [Fact]
@@ -209,11 +209,11 @@ public sealed class LinkCommandTests
         using var repo = TestRepo.Create();
         var project = repo.NewProject();
         var name = Path.GetFileName(project);
-        repo.Ok("link", name, "protocol", "s-trap-micro-digestion", "--version", "1");
-        repo.Ok("link", name, "protocol", "s-trap-micro-digestion", "--version", "2", "--step", "sample_prep");
-        repo.Ok("unlink", name, "protocol", "s-trap-micro-digestion");
+        repo.Ok("link", name, "protocol", "spin-trap-digestion", "--version", "1");
+        repo.Ok("link", name, "protocol", "spin-trap-digestion", "--version", "2", "--step", "sample_prep");
+        repo.Ok("unlink", name, "protocol", "spin-trap-digestion");
         ShouldBePy(TestRepo.Yaml(project)["protocols"], PyList(
-            new PyDict { ["id"] = "s-trap-micro-digestion", ["version"] = 2, ["step"] = "sample_prep" }));
+            new PyDict { ["id"] = "spin-trap-digestion", ["version"] = 2, ["step"] = "sample_prep" }));
     }
 
     [Fact]
@@ -225,15 +225,15 @@ public sealed class LinkCommandTests
         string[][] steps = [[], ["--step", "sample_prep"], ["--step", "plate_layout"]];
         foreach (var step in steps)
         {
-            repo.Ok(["link", name, "protocol", "s-trap-micro-digestion", "--version", "1", .. step]);
+            repo.Ok(["link", name, "protocol", "spin-trap-digestion", "--version", "1", .. step]);
         }
 
-        repo.Ok("link", name, "protocol", "kasil-capillary-frits", "--version", "1");
-        Error(repo.Fails("unlink", name, "protocol", "s-trap-micro-digestion", "--all", "--step", "sample_prep"))
+        repo.Ok("link", name, "protocol", "capillary-column-packing", "--version", "1");
+        Error(repo.Fails("unlink", name, "protocol", "spin-trap-digestion", "--all", "--step", "sample_prep"))
             .ShouldContain("not both", Case.Sensitive);
         Error(repo.Fails("unlink", name, "notebook", "ELN-1", "--all")).ShouldContain("--all is for protocols", Case.Sensitive);
-        repo.Ok("unlink", name, "protocol", "s-trap-micro-digestion", "--all");
-        Items(TestRepo.Yaml(project)["protocols"]).Select(p => ((PyDict)p!)["id"]).ShouldBe(["kasil-capillary-frits"]);
+        repo.Ok("unlink", name, "protocol", "spin-trap-digestion", "--all");
+        Items(TestRepo.Yaml(project)["protocols"]).Select(p => ((PyDict)p!)["id"]).ShouldBe(["capillary-column-packing"]);
     }
 
     [Fact]
@@ -242,12 +242,12 @@ public sealed class LinkCommandTests
         using var repo = TestRepo.Create();
         var project = repo.NewProject();
         var name = Path.GetFileName(project);
-        Error(repo.Fails("link", name, "protocol", "S-Trap", "--version", "1")).ShouldContain("LabOps-Protocols", Case.Sensitive);
-        Error(repo.Fails("link", name, "protocol", "s-trap-micro-digestion")).ShouldContain("give --version", Case.Sensitive);
-        Error(repo.Fails("link", name, "protocol", "s-trap-micro-digestion", "--version", "1", "--step", "digest"))
+        Error(repo.Fails("link", name, "protocol", "Spin trap", "--version", "1")).ShouldContain("LabOps-Protocols", Case.Sensitive);
+        Error(repo.Fails("link", name, "protocol", "spin-trap-digestion")).ShouldContain("give --version", Case.Sensitive);
+        Error(repo.Fails("link", name, "protocol", "spin-trap-digestion", "--version", "1", "--step", "digest"))
             .ShouldContain("has no step 'digest'", Case.Sensitive);
         // Without a step it is the item's as a whole.
-        var answer = repo.Ok("link", name, "protocol", "s-trap-micro-digestion", "--version", "1");
+        var answer = repo.Ok("link", name, "protocol", "spin-trap-digestion", "--version", "1");
         var protocol = answer["project"]!["protocols"]![0]!.AsObject();
         protocol.ContainsKey("step").ShouldBeTrue();
         protocol["step"].ShouldBeNull();
@@ -258,7 +258,7 @@ public sealed class LinkCommandTests
     {
         using var repo = TestRepo.Create();
         var project = repo.NewProject();
-        var raw = TestRepo.Raw(project).Replace("protocols: []", "protocols:\n  - {id: s-trap-micro-digestion, step: digest}", StringComparison.Ordinal);
+        var raw = TestRepo.Raw(project).Replace("protocols: []", "protocols:\n  - {id: spin-trap-digestion, step: digest}", StringComparison.Ordinal);
         TestRepo.WriteRaw(project, raw);
         var warnings = repo.Problems().Where(p => p.Level == "WARN").Select(p => p.Message).ToList();
         warnings.ShouldContain(w => w.Contains("give the version that was used", StringComparison.Ordinal));
@@ -272,10 +272,10 @@ public sealed class LinkCommandTests
         var project = repo.NewProject();
         var raw = TestRepo.Raw(project);
         var start = Index(raw, "\n# Protocols from LabOps-Protocols");
-        var end = Index(raw, "\n", Index(raw, "#  - {id: s-trap-micro-digestion")) + 1;
+        var end = Index(raw, "\n", Index(raw, "#  - {id: spin-trap-digestion")) + 1;
         TestRepo.WriteRaw(project, raw[..start] + "\n" + raw[end..]);
         TestRepo.Raw(project).ShouldNotContain("protocols:", Case.Sensitive);
-        repo.Ok("link", Path.GetFileName(project), "protocol", "s-trap-micro-digestion", "--version", "1", "--step", "sample_prep");
+        repo.Ok("link", Path.GetFileName(project), "protocol", "spin-trap-digestion", "--version", "1", "--step", "sample_prep");
         raw = TestRepo.Raw(project);
         Index(raw, "notebooks: []").ShouldBeLessThan(Index(raw, "protocols:"));
         Index(raw, "protocols:").ShouldBeLessThan(Index(raw, "analysis:"));

@@ -151,7 +151,7 @@ internal static class EdgeCases
             "project: Full-Project\ntitle: 'Full: a project with every field'\nstatus: active\nlab_contact: maccoss\nseries: dog-aging\n"
             + "funding:\n  type: quote\n  quotes: [MacCoss-2026-X, 7]\n  grant: null\nhuman: yes\nspecies: Homo sapiens\nsample_type: plasma\nexpected_samples: '12'\n"
             + "notebooks: [ELN-99, {id: ELN-1-2, url: 'http://x'}]\n"
-            + "protocols:\n  - {id: s-trap-micro, version: 3, title: S-Trap micro, step: sample_prep}\n  - {id: Bad_ID, version: 0}\n  - {id: ok-id, step: nowhere}\n  - plain-protocol\n"
+            + "protocols:\n  - {id: spin-trap, version: 3, title: Spin trap, step: sample_prep}\n  - {id: Bad_ID, version: 0}\n  - {id: ok-id, step: nowhere}\n  - plain-protocol\n"
             + "analysis: {repo: uw-maccosslab/collab-x, folder: 2026-09-X}\n"
             + "layout: {plates: 2, samples: '160', imported: 2026-10-03, octopus_version: 1.4.0}\n"
             + "wiki: {folder: /MacCoss/Collaborations/X/Full, page: Main Page}\n"

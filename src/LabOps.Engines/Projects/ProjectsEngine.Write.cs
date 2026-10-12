@@ -636,7 +636,7 @@ public sealed partial class ProjectsEngine
         var pid = Py.Strip(o.Value ?? "");
         if (!Validation.ProtocolIdPattern().IsMatch(pid))
         {
-            throw new EngineError("give the protocol's ID in LabOps-Protocols, for example s-trap-micro-digestion");
+            throw new EngineError("give the protocol's ID in LabOps-Protocols, for example spin-trap-digestion");
         }
 
         if (o.Version is null or < 1)

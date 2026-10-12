@@ -288,12 +288,12 @@ public sealed partial class WikiCommandTests
         using var repo = TestRepo.Create();
         Otter(repo);
         Text(Str(Page(repo)["html"])).ShouldNotContain("Protocols", Case.Sensitive);              // none yet: no section
-        repo.Ok("link", "Otter-Plasma", "protocol", "sax-kfkf-ev-capture-digestion", "--version", "3", "--step", "sample_prep",
-            "--title", "KingFisher EV capture and digestion");
-        repo.Ok("link", "2026-09-Otter-DIA", "protocol", "kasil-capillary-frits", "--version", "2", "--step", "data_acquisition");
+        repo.Ok("link", "Otter-Plasma", "protocol", "bead-ev-capture-digestion", "--version", "3", "--step", "sample_prep",
+            "--title", "Bead EV capture and digestion");
+        repo.Ok("link", "2026-09-Otter-DIA", "protocol", "capillary-column-packing", "--version", "2", "--step", "data_acquisition");
         var words = Text(Str(Page(repo)["html"]));
-        words.ShouldContain("Protocols Protocol Version Used for KingFisher EV capture and digestion version 3 Sample prep", Case.Sensitive);
-        words.ShouldContain("kasil-capillary-frits version 2 Data acquisition, Test experiment", Case.Sensitive);
+        words.ShouldContain("Protocols Protocol Version Used for Bead EV capture and digestion version 3 Sample prep", Case.Sensitive);
+        words.ShouldContain("capillary-column-packing version 2 Data acquisition, Test experiment", Case.Sensitive);
         words.ShouldContain("Data on Panorama", Case.Sensitive);
         words.IndexOf("Protocols Protocol", StringComparison.Ordinal).ShouldBeLessThan(words.IndexOf("Data on Panorama", StringComparison.Ordinal));
     }

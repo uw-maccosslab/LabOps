@@ -317,7 +317,7 @@ def edit_cases(engine, root: Path) -> dict:
     list_items = [
         [], [{"folder": "/MacCoss/x/@files/RawFiles", "kind": "raw"}, {"folder": "/MacCoss/y", "kind": "results", "note": None}],
         [{"id": "ELN-4485-20230314-179", "url": "https://panoramaweb.org/MacCoss/x.view?id=1", "title": ""}],
-        [{"id": "s-trap-micro-digestion", "version": 3, "title": "S-Trap micro digestion", "step": "sample_prep"}],
+        [{"id": "spin-trap-digestion", "version": 3, "title": "Spin trap digestion", "step": "sample_prep"}],
     ]
     for raw in (experiment, project, "panorama: []\nnotes: []\n", "panorama:\n  - {folder: /a, kind: raw}\n# c\n\nnotes: []\n",
                 "notes: []\n"):

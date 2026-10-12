@@ -9,7 +9,7 @@
                    Text="Claude writes it in the lab's format: from a file you choose (Word, PDF, LaTeX, Markdown or text), or by asking you for the steps. It stays a draft for you to review until someone publishes version 1." />
         <DockPanel Margin="0,0,0,8">
             <TextBlock Text="Title" Width="80" VerticalAlignment="Center" />
-            <TextBox x:Name="TitleBox" ToolTip="The full name, for example S-Trap micro digestion" />
+            <TextBox x:Name="TitleBox" ToolTip="The full name, for example Spin trap digestion" />
         </DockPanel>
         <DockPanel Margin="0,0,0,8">
             <TextBlock Text="Category" Width="80" VerticalAlignment="Center" />
