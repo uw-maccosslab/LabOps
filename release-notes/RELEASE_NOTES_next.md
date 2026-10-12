@@ -15,6 +15,12 @@ the GitHub Release description and fails if it is missing.
   button read **Check for updates**, or **Restart to update** once the update was downloaded
   (`src/LabOps.App/ViewModels/MainViewModel.cs`, `Services/UpdateService.cs`).
 
+- **The app's examples named an invented protocol instead of one of the lab's.** The title box's
+  tooltip in **New protocol**, the message when a replacement protocol is not found, and the
+  engine's error asking for a protocol's ID now give the made-up examples *Spin trap digestion* and
+  `spin-trap-digestion` (`src/LabOps.App/Views/NewProtocolWindow.xaml`,
+  `ViewModels/ProtocolsViewModel.cs`, `src/LabOps.Engines/Projects/ProjectsEngine.Write.cs`).
+
 ## Performance
 
 ## Breaking Changes
