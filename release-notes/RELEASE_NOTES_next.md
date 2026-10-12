@@ -6,6 +6,13 @@ the GitHub Release description and fails if it is missing.
 
 ## New Features
 
+- **A screen capture could be pasted into the Claude pane.** **Ctrl+V** (or **Shift+Insert**) in
+  the message box attached a picture with no text on the clipboard as a PNG named for when it was
+  pasted (`Pasted image 2026-10-12 14.03.27.png`), and files copied in File Explorer as if they
+  had been dropped there; text still pasted as text. In the Projects area a picture was attached
+  only after the person said it held nothing identifying, as for any file the app cannot scan
+  (`src/LabOps.App/Views/ChatPanel.xaml.cs`, `ViewModels/ChatViewModel.cs`).
+
 ## Bug Fixes
 
 - **A protocol's method could be opened from its page.** Clicking a method's name (a KingFisher

@@ -107,6 +107,41 @@ public sealed partial class ChatViewModel : ObservableObject, IClaudeHostUi
     private bool CanAttach() => IsOpen && _repository is not null && _attachmentsFolder is not null;
 
     /// <summary>
+    /// Attaches a picture pasted into the message box (a screen capture) as a PNG named for when it
+    /// was pasted, the way a dropped file is attached.
+    /// </summary>
+    public async Task AttachImageAsync(byte[] png)
+    {
+        if (!CanAttach())
+        {
+            return;
+        }
+
+        var staging = Directory.CreateTempSubdirectory("labops-paste-").FullName;
+        try
+        {
+            var file = Path.Combine(staging, PastedImageName(DateTime.Now));
+            await File.WriteAllBytesAsync(file, png).ConfigureAwait(true);
+            await AddAttachmentsAsync([file]).ConfigureAwait(true);
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(staging, recursive: true);
+            }
+            catch (IOException)
+            {
+                // A temporary folder; Windows clears it in time.
+            }
+        }
+    }
+
+    /// <summary>"Pasted image 2026-10-12 14.03.27.png": a pasted picture's name, which says when.</summary>
+    internal static string PastedImageName(DateTime when) =>
+        $"Pasted image {when.ToString("yyyy-MM-dd HH.mm.ss", System.Globalization.CultureInfo.InvariantCulture)}.png";
+
+    /// <summary>
     /// Copies files (and the files in any folder given) into this conversation's attachments
     /// folder, outside every repository, so nothing attached is ever committed. The copies are made
     /// in the background; a large batch is confirmed first. In the projects, a spreadsheet is
