@@ -19,7 +19,8 @@ the GitHub Release description and fails if it is missing.
   program, an instrument method) on a protocol's page had done nothing; it opened File Explorer
   with the file selected, ready to copy or open. This needed LabOps-Protocols' engine, which links
   each method to its file. The preview also stopped following a link to any other file on the
-  computer (`src/LabOps.App/Views/ProtocolsView.xaml.cs`).
+  computer, or to a page written into the link itself (`src/LabOps.App/Views/ProtocolsView.xaml.cs`,
+  `Services/WebViewGuard.cs`).
 
 - **A copy too old for a lab repository could update from the banner that said so.** The banner
   said to update but offered no way to, and the app looked for updates only every 4 hours, so a
