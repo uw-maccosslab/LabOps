@@ -1,5 +1,6 @@
 using LabOps.App.Services;
 using LabOps.App.ViewModels;
+using LabOps.App.Views;
 using LabOps.Core.Infrastructure;
 using LabOps.Core.Projects;
 using LabOps.Core.Protocols;
@@ -99,5 +100,35 @@ public sealed class AttachmentTests : IDisposable
     {
         ProtocolEngine.IsOlderEngine(error, files).ShouldBe(older);
         ProtocolEngine.OlderEngine.ShouldContain("Choose Sync");
+    }
+
+    /// <summary>
+    /// Ctrl+V in the message box attaches files copied in Explorer, and a picture with no text (a
+    /// screen capture) as a PNG; text pastes as text.
+    /// </summary>
+    [Fact]
+    public void A_paste_attaches_copied_files_or_a_picture_and_leaves_text_to_paste()
+    {
+        var copied = new System.Windows.DataObject();
+        copied.SetData(System.Windows.DataFormats.FileDrop, new[] { @"C:\Data\request.pdf" });
+        ChatPanel.WhatToAttach(copied).Files.ShouldBe([@"C:\Data\request.pdf"]);
+
+        var pixels = new byte[2 * 2 * 4];
+        var picture = System.Windows.Media.Imaging.BitmapSource.Create(2, 2, 96, 96, System.Windows.Media.PixelFormats.Bgra32, null, pixels, 8);
+        var capture = new System.Windows.DataObject();
+        capture.SetData(System.Windows.DataFormats.Bitmap, picture);
+        var png = ChatPanel.WhatToAttach(capture).Png.ShouldNotBeNull();
+        png.Take(8).ShouldBe(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A }, "a PNG file");
+
+        var asPng = new System.Windows.DataObject();
+        asPng.SetData("PNG", new MemoryStream(png));
+        ChatPanel.WhatToAttach(asPng).Png.ShouldBe(png, "a capture's own PNG is kept as it is");
+
+        var text = new System.Windows.DataObject();
+        text.SetData(System.Windows.DataFormats.UnicodeText, "a note");
+        text.SetData(System.Windows.DataFormats.Bitmap, picture);
+        ChatPanel.WhatToAttach(text).ShouldBe((null, null), "text with a picture (from a document) pastes as text");
+
+        ChatViewModel.PastedImageName(new DateTime(2026, 10, 12, 14, 3, 27)).ShouldBe("Pasted image 2026-10-12 14.03.27.png");
     }
 }
