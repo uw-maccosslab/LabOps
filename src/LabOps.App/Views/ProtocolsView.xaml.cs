@@ -59,7 +59,7 @@ public partial class ProtocolsView : UserControl
         {
             // The page is the engine's, with its figures inside it: it needs no scripts and nothing
             // from the web, so a protocol's text can neither run code here nor send anything out.
-            await WebViewGuard.SecureAsync(Preview, App.Services.GetRequiredService<AppPaths>());
+            await WebViewGuard.SecureAsync(Preview, App.Services.GetRequiredService<AppPaths>(), OpenLinkedFile);
             Preview.CoreWebView2.NavigationStarting += OnNavigating;
             _ready = true;
             ShowPage();
@@ -99,15 +99,55 @@ public partial class ProtocolsView : UserControl
         }
     }
 
-    /// <summary>The page itself loads here; its links (a supplier's catalog page) open in the browser.</summary>
+    /// <summary>
+    /// The page itself loads here. A method it links (a KingFisher program) opens in its folder, and
+    /// its web links (a supplier's catalog page) in the browser; no other file is followed.
+    /// </summary>
     private void OnNavigating(object? sender, CoreWebView2NavigationStartingEventArgs e)
     {
-        if (WebViewGuard.IsThePage(e.Uri))
+        if (IsThisPage(e.Uri, _vm?.PreviewFile))
         {
             return;
         }
 
         e.Cancel = true;
-        WebViewGuard.OpenOutside(e.Uri);
+        if (!OpenLinkedFile(e.Uri))
+        {
+            WebViewGuard.OpenOutside(e.Uri);
+        }
+    }
+
+    /// <summary>Shows a file the page links (a method) selected in its folder; false when the link names no such file.</summary>
+    private bool OpenLinkedFile(string uri)
+    {
+        if (LinkedFile(uri, _vm?.ClonePath) is not { } file)
+        {
+            return false;
+        }
+
+        Shell.Reveal(file);
+        return true;
+    }
+
+    /// <summary>The page shown: the protocol's, as rendered to <paramref name="page"/>, or the blank one.</summary>
+    internal static bool IsThisPage(string uri, string? page) =>
+        uri.StartsWith("data:", StringComparison.Ordinal) || uri.StartsWith("about:", StringComparison.Ordinal)
+        || (page is not null && Uri.TryCreate(uri, UriKind.Absolute, out var link) && link.IsFile
+            && string.Equals(Path.GetFullPath(link.LocalPath), Path.GetFullPath(page), StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// The file a link names, when it is one in a protocol's folder of the LabOps-Protocols copy at
+    /// <paramref name="clone"/> (the page links a method by where its file is); null for anything else.
+    /// </summary>
+    internal static string? LinkedFile(string uri, string? clone)
+    {
+        if (clone is null || !Uri.TryCreate(uri, UriKind.Absolute, out var link) || !link.IsFile)
+        {
+            return null;
+        }
+
+        var path = Path.GetFullPath(link.LocalPath);
+        var protocols = Path.GetFullPath(Path.Combine(clone, "protocols")) + Path.DirectorySeparatorChar;
+        return path.StartsWith(protocols, StringComparison.OrdinalIgnoreCase) && File.Exists(path) ? path : null;
     }
 }
