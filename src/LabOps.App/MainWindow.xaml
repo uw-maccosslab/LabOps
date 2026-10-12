@@ -44,16 +44,22 @@
             </DockPanel>
         </Border>
 
-        <!-- Banner -->
+        <!-- Update banner: while the app is too old for a repository, how its update is going, with a
+             button to look for it now or restart into it -->
         <Border DockPanel.Dock="Top" Background="{StaticResource WarnLightBrush}" BorderBrush="#F79009" BorderThickness="0,0,0,1"
-                Padding="12,8" Visibility="{Binding Banner, Converter={StaticResource NullToVisibility}}">
+                Padding="12,8" Visibility="{Binding UpdateBanner, Converter={StaticResource NullToVisibility}}">
             <DockPanel>
-                <!-- While the app is too old for a repository: look for the update now, or restart into it -->
                 <Button DockPanel.Dock="Right" Content="{Binding BannerAction}" Command="{Binding UpdateNowCommand}"
                         Style="{StaticResource PrimaryButton}" Margin="12,0,0,0" VerticalAlignment="Center"
                         Visibility="{Binding BannerAction, Converter={StaticResource NullToVisibility}}" />
-                <TextBlock Text="{Binding Banner}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding UpdateBanner}" TextWrapping="Wrap" VerticalAlignment="Center" />
             </DockPanel>
+        </Border>
+
+        <!-- Banner: a message for the whole window -->
+        <Border DockPanel.Dock="Top" Background="{StaticResource WarnLightBrush}" BorderBrush="#F79009" BorderThickness="0,0,0,1"
+                Padding="12,8" Visibility="{Binding Banner, Converter={StaticResource NullToVisibility}}">
+            <TextBlock Text="{Binding Banner}" TextWrapping="Wrap" />
         </Border>
 
         <!-- Status bar -->

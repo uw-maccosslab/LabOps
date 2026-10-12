@@ -59,6 +59,24 @@ public sealed class AttachmentTests : IDisposable
             .ShouldBe(Path.Combine(folder, "KingFisher Methods", "Apex", "BeadEV_KF1.kfx"));
     }
 
+    /// <summary>
+    /// Files attached at the same moment under the same name (two pictures pasted in one second)
+    /// each get their own copy; none fails or replaces another.
+    /// </summary>
+    [Fact]
+    public void Copies_made_at_once_under_one_name_each_get_their_own()
+    {
+        var picture = Path.Combine(_root, "Pasted image 2026-10-12 14.03.27.png");
+        File.WriteAllText(picture, "png");
+        var folder = Path.Combine(_root, "conversation");
+
+        var copies = new string[16];
+        Parallel.For(0, copies.Length, i => copies[i] = ChatViewModel.CopyInto(folder, picture, Path.GetFileName(picture)));
+
+        copies.Distinct(StringComparer.OrdinalIgnoreCase).Count().ShouldBe(copies.Length);
+        Directory.GetFiles(folder).Length.ShouldBe(copies.Length);
+    }
+
     [Fact]
     public void Attachments_left_by_an_earlier_run_are_cleared_at_startup()
     {

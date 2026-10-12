@@ -91,7 +91,18 @@ public sealed class UpdateService
         status.Stage is not (UpdateStage.Checking or UpdateStage.Downloading or UpdateStage.ReadyToApply or UpdateStage.NotInstalled)
         && (lastChecked is null || now - lastChecked.Value >= interval);
 
-    public async Task<UpdateStatus> CheckAsync(CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Looks for a new release and downloads it. Asked again while a check runs (at startup, by the
+    /// timer, or from the banner's button), it hands back that check: a second one would download
+    /// the same release again, wait on Velopack's update lock, and could report a failure while
+    /// the update was in fact on its way.
+    /// </summary>
+    public Task<UpdateStatus> CheckAsync(CancellationToken cancellationToken = default) =>
+        _check.Run(() => CheckOnceAsync(cancellationToken));
+
+    private readonly OneAtATime<UpdateStatus> _check = new();
+
+    private async Task<UpdateStatus> CheckOnceAsync(CancellationToken cancellationToken)
     {
         if (Status.Stage == UpdateStage.ReadyToApply)
         {

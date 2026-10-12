@@ -73,10 +73,13 @@ public partial class WikiWindow : Window
         }
     }
 
-    /// <summary>Links in the page open in the browser, as they would on Panorama.</summary>
+    /// <summary>
+    /// The page itself loads here; its links open in the browser, as they would on Panorama. A link
+    /// to any other inline page is not followed.
+    /// </summary>
     private void OnNavigating(object? sender, CoreWebView2NavigationStartingEventArgs e)
     {
-        if (e.Uri.StartsWith("data:", StringComparison.Ordinal) || e.Uri.StartsWith("about:", StringComparison.Ordinal))
+        if (WebViewGuard.IsInlinePage(e.Uri, _vm.PreviewHtml))
         {
             return;
         }

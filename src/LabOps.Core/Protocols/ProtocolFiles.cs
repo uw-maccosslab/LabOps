@@ -1,3 +1,5 @@
+using LabOps.Core.Infrastructure;
+
 namespace LabOps.Core.Protocols;
 
 /// <summary>
@@ -23,4 +25,29 @@ public static class ProtocolFiles
         1 => files[0],
         _ => $"{files.Count} files: {string.Join(", ", files.Select(Path.GetFileName))}",
     };
+
+    /// <summary>
+    /// The file a link on a protocol's page names, when it is one in a protocol's folder of the
+    /// LabOps-Protocols copy at <paramref name="clone"/> (the page links a method by where its file
+    /// is); null for anything else.
+    /// </summary>
+    public static string? Linked(string uri, string? clone)
+    {
+        if (clone is null || !Uri.TryCreate(uri, UriKind.Absolute, out var link) || !link.IsFile)
+        {
+            return null;
+        }
+
+        var path = Path.GetFullPath(link.LocalPath);
+        var protocols = Path.Combine(clone, "protocols");
+        // The engine writes the link from where the copy really is (Python's resolve() follows
+        // junctions, links and subst drives, and gives a mapped drive's network path), which can be
+        // spelled differently from the copy's path here. The linked file is not touched until it is
+        // known to be inside, so a link to another computer's share is never opened.
+        var inside = IsUnder(path, Path.GetFullPath(protocols)) || (FinalPath.Of(protocols) is { } real && IsUnder(path, real));
+        return inside && File.Exists(path) ? path : null;
+    }
+
+    private static bool IsUnder(string path, string folder) =>
+        path.StartsWith(Path.TrimEndingDirectorySeparator(folder) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
 }

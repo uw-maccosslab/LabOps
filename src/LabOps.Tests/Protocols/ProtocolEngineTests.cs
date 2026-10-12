@@ -36,18 +36,18 @@ public sealed class ProtocolEngineTests
         packing.Figures.ShouldBe(["foil-1.jpg", "foil-2.jpg", "foil-3.jpg"]);
         packing.Sources.ShouldBe(["Column packing.pdf"]);
 
-        var strap = list.Protocols.Single(p => p.Id == "spin-trap-digestion");
-        strap.IsDraft.ShouldBeTrue();
-        strap.IsPublished.ShouldBeFalse();
-        strap.DraftChanges.ShouldBeTrue();
-        strap.VersionText.ShouldBe("draft");
-        strap.Owner.ShouldBe("maccoss");
-        strap.Tags.ShouldNotBeEmpty();
+        var spinTrap = list.Protocols.Single(p => p.Id == "spin-trap-digestion");
+        spinTrap.IsDraft.ShouldBeTrue();
+        spinTrap.IsPublished.ShouldBeFalse();
+        spinTrap.DraftChanges.ShouldBeTrue();
+        spinTrap.VersionText.ShouldBe("draft");
+        spinTrap.Owner.ShouldBe("maccoss");
+        spinTrap.Tags.ShouldNotBeEmpty();
 
-        var sax = list.Protocols.Single(p => p.Id == "bead-ev-capture-digestion");
-        sax.ShortTitle.ShouldBe("Bead EV capture");
-        sax.AppliesTo.SampleTypes.ShouldContain("plasma");
-        sax.AppliesTo.Instruments.ShouldContain("KingFisher Flex");
+        var beadCapture = list.Protocols.Single(p => p.Id == "bead-ev-capture-digestion");
+        beadCapture.ShortTitle.ShouldBe("Bead EV capture");
+        beadCapture.AppliesTo.SampleTypes.ShouldContain("plasma");
+        beadCapture.AppliesTo.Instruments.ShouldContain("KingFisher Flex");
     }
 
     [Fact]
