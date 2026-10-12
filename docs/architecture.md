@@ -65,7 +65,8 @@ flowchart LR
    repository's checks after every push.
 4. **Panorama** is read to choose an experiment's folders and notebook, and to count the Skyline
    documents in them. The app writes two kinds of page there: each project's wiki page, and the
-   lab-only dashboard of everyone's open work.
+   lab dashboard of everyone's open work, in a folder that should be readable by lab members only
+   (LabOps does not check its permissions).
 
 ### Panorama and PanoramaBridge
 
@@ -87,7 +88,7 @@ flowchart LR
     folder -->|"Skyline documents counted"| wikiBuild["LabOps: Wiki page<br/>the projects engine builds it"]
     wikiBuild -->|"publishes"| wikiPage["Wiki page<br/>.../BioTRACK, page default"]
     creds -.-> wikiBuild
-    overview["LabOps: the overview"] -->|"Publish to Panorama,<br/>then kept up to date"| dashboard["Lab dashboard<br/>a lab-only folder's page"]
+    overview["LabOps: the overview"] -->|"Publish to Panorama,<br/>then kept up to date"| dashboard["Lab dashboard<br/>the configured folder's page"]
     creds -.-> overview
 ```
 
