@@ -49,6 +49,20 @@ public sealed class BatchRowsTests
         group[1].AssignedText.ShouldBeNull();
     }
 
+    [Fact]
+    public void Two_steps_of_one_kind_in_batches_side_by_side_are_two_rows()
+    {
+        var groups = Section(
+                Step("prep_batch1", "sample_prep", 1),
+                Step("prep_batch2", "sample_prep", 2),
+                Step("prep_2_batch1", "sample_prep", 1),
+                Step("prep_2_batch2", "sample_prep", 2))
+            .Rows.OfType<BatchGroupRowViewModel>().ToList();
+
+        groups.Select(g => g.Batches.Select(b => b.Stage).ToList())
+            .ShouldBe([["prep_batch1", "prep_batch2"], ["prep_2_batch1", "prep_2_batch2"]]);
+    }
+
     /// <summary>
     /// The step's links and tools (its notebook, the protocol it followed, Add protocol) are the
     /// same for every batch, so they go on the row above the batches.

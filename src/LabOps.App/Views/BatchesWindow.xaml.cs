@@ -18,8 +18,8 @@ public partial class BatchesWindow : Window
         Message.Text = current is null
             ? "Each batch becomes a step of its own under this one, which is started, finished, assigned and planned on "
               + "its own. What is recorded so far stays: the start with the first batch, the finish with the last."
-            : "More batches are added after the last. Fewer takes away the last ones, which needs nothing to be recorded "
-              + "or planned for them.";
+            : "More batches are added after the last one. Fewer batches remove the last ones, as long as nothing is "
+              + "recorded, planned or linked for them.";
         Ok.Content = current is null ? "Split" : "Change";
         Count.ItemsSource = Enumerable.Range(2, Most - 1).ToList();
         Count.SelectedItem = Math.Clamp(current ?? suggested, 2, Most);

@@ -106,8 +106,8 @@ public sealed class TimelineSection
 
     /// <summary>
     /// The rows shown: each step, except that a step done in batches is one row with its batches
-    /// under it. A step's batches are its kind's steps in a row with batch numbers, as the engine
-    /// groups them.
+    /// under it. A step's batches are its kind's steps in a row with batch numbers, a batch 1
+    /// starting the next step's, as the engine groups them (Steps.BatchGroups).
     /// </summary>
     public IReadOnlyList<object> Rows { get; }
 
@@ -123,7 +123,8 @@ public sealed class TimelineSection
             }
 
             var batches = new List<StageRowViewModel> { stages[i] };
-            while (i + 1 < stages.Count && stages[i + 1].IsBatch && stages[i + 1].Entry.Kind == stages[i].Entry.Kind)
+            while (i + 1 < stages.Count && stages[i + 1].IsBatch && stages[i + 1].Entry.Kind == stages[i].Entry.Kind
+                   && stages[i + 1].Entry.Batch != 1)
             {
                 batches.Add(stages[++i]);
             }

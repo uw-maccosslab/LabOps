@@ -60,16 +60,17 @@ public static partial class Steps
 
     /// <summary>
     /// Which batch a step is (1, 2, ...) when its work is done in batches, such as sample prep of
-    /// three plates; null for a step done all at once.
+    /// three plates; null for a step done all at once, and for a number the app cannot hold.
     /// </summary>
-    public static long? Batch(PyDict step) => step["batch"] is long n && n >= 1 ? n : null;
+    public static long? Batch(PyDict step) => step["batch"] is long n && n is >= 1 and <= int.MaxValue ? n : null;
 
     /// <summary>How a step reads among all of them: "Sample prep, batch 2" for a batch, else its label.</summary>
     public static string Name(PyDict step) => Batch(step) is { } b ? $"{Label(step)}, batch {b}" : Label(step);
 
     /// <summary>
     /// A timeline's batch groups: each run of steps in a row of one kind with a batch number (a
-    /// step's work in batches), as the positions of its steps.
+    /// step's work in batches), as the positions of its steps. A batch 1 starts a group, so two
+    /// steps of one kind split side by side stay two.
     /// </summary>
     public static List<List<int>> BatchGroups(IReadOnlyList<PyDict> steps)
     {
@@ -81,7 +82,7 @@ public static partial class Steps
                 continue;
             }
 
-            if (groups.Count > 0 && groups[^1][^1] == i - 1 && PyText.Eq(steps[i - 1]["kind"], steps[i]["kind"]))
+            if (groups.Count > 0 && groups[^1][^1] == i - 1 && PyText.Eq(steps[i - 1]["kind"], steps[i]["kind"]) && step(i) != 1)
             {
                 groups[^1].Add(i);
             }
