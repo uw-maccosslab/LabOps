@@ -6,8 +6,8 @@ using LabOps.Core.Quotes;
 namespace LabOps.Tests.App;
 
 /// <summary>
-/// What a screen reader (and UI Automation) reads for a row of a list: the row's ToString, which a
-/// record would otherwise make every field and nested list of the row.
+/// What a screen reader (and UI Automation) reads for a row of a list: the row's ToString. A record's
+/// own ToString lists every field, nested lists and all, so each row type gives a short one.
 /// </summary>
 public sealed class RowNameTests
 {
@@ -27,6 +27,8 @@ public sealed class RowNameTests
         new QuoteSummary { QuoteNumber = "MacCoss-2026-ZOO-OT", Title = "Otter plasma proteome" }.ToString()
             .ShouldBe("MacCoss-2026-ZOO-OT, Otter plasma proteome");
         new QuoteSummary { QuoteNumber = "MacCoss-2026-ZOO-OT", Short = "Otter plasma" }.ToString().ShouldBe("MacCoss-2026-ZOO-OT, Otter plasma");
+        new QuoteSummary { QuoteNumber = "MacCoss-2026-ZOO-OT", Title = " ", Short = "Otter plasma" }.ToString()
+            .ShouldBe("MacCoss-2026-ZOO-OT, Otter plasma", "a blank title gives way to the short one");
         new QuoteSummary { QuoteNumber = "MacCoss-2026-ZOO-OT" }.ToString().ShouldBe("MacCoss-2026-ZOO-OT");
     }
 
