@@ -17,6 +17,9 @@ public sealed record ProjectRow(LabSummary Lab, ProjectSummary Project, DateTime
 
     public string Title => Project.Title ?? "";
 
+    // What screen readers and UI Automation read for the row; a record would print every field.
+    public override string ToString() => string.IsNullOrWhiteSpace(Title) ? Name : $"{Name}, {Title}";
+
     /// <summary>The PI when known, else the lab's folder name.</summary>
     public string Collaborator => !string.IsNullOrWhiteSpace(Lab.Pi) ? Lab.Pi! : Lab.Lab;
 

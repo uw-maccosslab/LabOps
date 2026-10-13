@@ -17,6 +17,9 @@ public sealed record QuoteSummary
 {
     public string QuoteNumber { get; init; } = "";
 
+    // What screen readers and UI Automation read for the quotes list's row; a record would print every field.
+    public override string ToString() => (Title ?? Short) is { Length: > 0 } title ? $"{QuoteNumber}, {title}" : QuoteNumber;
+
     /// <summary>Folder relative to the repository root, with forward slashes.</summary>
     public string Folder { get; init; } = "";
 

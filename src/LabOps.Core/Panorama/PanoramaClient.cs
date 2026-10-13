@@ -25,6 +25,9 @@ public sealed record PanoramaNotebook(
     public string ModifiedText => Modified?.ToLocalTime().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "";
 
     public string Url(Uri? server = null) => PanoramaPaths.NotebookUrl(RowId, server);
+
+    // What screen readers and UI Automation read for the notebook picker's row; a record would print every field.
+    public override string ToString() => string.IsNullOrWhiteSpace(Title) ? Id : $"{Id}, {Title}";
 }
 
 /// <summary>A listing failed; the message is written for the person using the app.</summary>
