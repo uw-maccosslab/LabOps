@@ -507,13 +507,17 @@ public sealed partial class ProjectsEngine
         }
         else
         {
+            // A batch goes only while nothing is recorded, planned or linked for it: a protocol
+            // recorded for it would be left naming a step that is gone.
+            var (record, _) = Records.Parse(raw, Path.GetFileName(t.Path));
+            var linked = Values.ListOf(record, "protocols", Values.ProtocolFields).Select(p => PyText.Str(p["step"])).ToHashSet(StringComparer.Ordinal);
             var gone = group.Skip(batches).Select(i => t.Steps[i]).ToList();
-            if (gone.FirstOrDefault(s => Steps.Status(s) != "pending"
+            if (gone.FirstOrDefault(s => Steps.Status(s) != "pending" || linked.Contains(PyText.Str(s["id"]))
                     || ((string[])["started", "finished", "by", "note", "planned_start", "planned_finish"]).Any(k => PyText.Truthy(s[k])))
                 is { } kept)
             {
-                throw new EngineError($"batch {Steps.Batch(kept)} of {label} ({PyText.Str(kept["id"])}) has a record or a plan, so "
-                                      + $"{label} cannot go down to {batches} batches");
+                throw new EngineError($"batch {Steps.Batch(kept)} of {label} ({PyText.Str(kept["id"])}) has a record, a plan or a "
+                                      + $"protocol, so {label} cannot go down to {batches} batches");
             }
 
             steps = [.. t.Steps.Where(s => !gone.Contains(s))];

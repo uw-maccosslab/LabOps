@@ -96,7 +96,7 @@ public sealed class BatchTests
 
         repo.Ok("stage", "Pilot-Project", "sample_prep_batch3", "start");
         Error(repo.Fails("split", "Pilot-Project", "sample_prep_batch2", "--batches", "2"))
-            .ShouldBe("batch 3 of Sample prep (sample_prep_batch3) has a record or a plan, so Sample prep cannot go down to 2 batches");
+            .ShouldBe("batch 3 of Sample prep (sample_prep_batch3) has a record, a plan or a protocol, so Sample prep cannot go down to 2 batches");
         repo.RunText("split", "Pilot-Project", "sample_prep_batch2", "--batches", "3").Stdout
             .ShouldStartWith("Pilot-Project: Sample prep in 3 batches, removed sample_prep_batch4", Case.Sensitive);
         repo.RunText("split", "Pilot-Project", "sample_prep_batch2", "--batches", "3").Stdout
@@ -121,6 +121,41 @@ public sealed class BatchTests
         repo.Problems().Where(p => p.Level == "ERROR").ShouldBeEmpty();
     }
 
+    /// <summary>A protocol recorded for a batch keeps it: the protocol would name a step that is gone.</summary>
+    [Fact]
+    public void A_batch_with_a_protocol_recorded_for_it_is_not_taken_away()
+    {
+        using var repo = TestRepo.Create();
+        repo.NewProject("Pilot-Project");
+        repo.Ok("split", "Pilot-Project", "sample_prep", "--batches", "3");
+        repo.Ok("link", "Pilot-Project", "protocol", "spin-trap-digestion", "--version", "2", "--step", "sample_prep_batch3");
+
+        Error(repo.Fails("split", "Pilot-Project", "sample_prep_batch1", "--batches", "2"))
+            .ShouldBe("batch 3 of Sample prep (sample_prep_batch3) has a record, a plan or a protocol, so Sample prep cannot go down to 2 batches");
+    }
+
+    /// <summary>
+    /// Two steps of one kind, each split into batches, side by side (a second shipment prepared in
+    /// batches of its own) stay two: a batch 1 starts the next step's batches.
+    /// </summary>
+    [Fact]
+    public void Two_steps_of_one_kind_in_batches_side_by_side_stay_two()
+    {
+        using var repo = TestRepo.Create();
+        var project = repo.NewProject("Pilot-Project");
+        repo.Ok("add-step", "Pilot-Project", "sample_prep", "--after", "sample_prep");
+        repo.Ok("split", "Pilot-Project", "sample_prep", "--batches", "2");
+        repo.Ok("split", "Pilot-Project", "sample_prep_2", "--batches", "2");
+
+        repo.RunText("split", "Pilot-Project", "sample_prep_2_batch1", "--batches", "3").Stdout
+            .ShouldStartWith("Pilot-Project: Sample prep in 3 batches, added sample_prep_2_batch3", Case.Sensitive);
+        repo.RunText("split", "Pilot-Project", "sample_prep_batch1", "--batches", "2").Stdout
+            .ShouldStartWith("Pilot-Project: Sample prep is in 2 batches already", Case.Sensitive);
+        TestRepo.Steps(project).Keys.Where(k => k.StartsWith("sample_prep", StringComparison.Ordinal))
+            .ShouldBe(["sample_prep_batch1", "sample_prep_batch2", "sample_prep_2_batch1", "sample_prep_2_batch2", "sample_prep_2_batch3"]);
+        repo.Problems().Where(p => p.Message.Contains("numbered", StringComparison.Ordinal)).ShouldBeEmpty();
+    }
+
     [Fact]
     public void Check_says_when_batches_written_by_hand_are_not_numbered_in_a_row()
     {
@@ -132,7 +167,8 @@ public sealed class BatchTests
             "  - {id: prep_a, kind: sample_prep, batch: 1, status: done}\n"
             + "  - {id: prep_b, kind: sample_prep, batch: 3, status: done}\n"
             + "  - {id: lone, kind: data_acquisition, batch: 1, status: pending}\n"
-            + "  - {id: odd, kind: other, label: Odd, batch: zero, status: pending}\n",
+            + "  - {id: odd, kind: other, label: Odd, batch: zero, status: pending}\n"
+            + "  - {id: huge, kind: other, label: Huge, batch: 2147483648, status: pending}\n",
             StringComparison.Ordinal));
 
         var problems = repo.Problems();
@@ -140,6 +176,10 @@ public sealed class BatchTests
         problems.ShouldContain(("WARN", "Pilot-Project: steps prep_a to prep_b: the batches of Sample prep are numbered 1 to 2 in order"));
         problems.ShouldContain(("WARN", "Pilot-Project: step lone is the only batch of Data acquisition; a step done all at once needs no batch number"));
         problems.ShouldContain(("ERROR", "Pilot-Project: step odd: batch is the batch's number, 1 or more"));
+        // A number the app cannot hold is refused, and the list leaves it out rather than fail to load.
+        problems.ShouldContain(("ERROR", "Pilot-Project: step huge: batch is the batch's number, 1 or more"));
+        repo.Ok("list")["labs"]![0]!["projects"]![0]!["stages"]!.AsArray()
+            .Single(s => s!["stage"]!.GetValue<string>() == "huge")!.AsObject().ContainsKey("batch").ShouldBeFalse();
         // Done batches with no finished date at all: said once, on the last.
         problems.Where(p => p.Message.EndsWith("is done but has no finished date", StringComparison.Ordinal)).Select(p => p.Message)
             .ShouldBe(["Pilot-Project: step prep_b is done but has no finished date"]);
