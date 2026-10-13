@@ -104,6 +104,55 @@ public sealed class TimelineSection
         _links = [.. links];
         Issues = [.. issues];
         Stages = [.. timeline.Stages.Select(s => new StageRowViewModel(this, s, s.Stage == timeline.CurrentStage))];
+        Rows = RowsOf(Stages);
+    }
+
+    /// <summary>
+    /// The rows shown: each step, except that a step done in batches is one row with its batches
+    /// under it. A step's batches are its kind's steps in a row with batch numbers, as the engine
+    /// groups them.
+    /// </summary>
+    public IReadOnlyList<object> Rows { get; }
+
+    private IReadOnlyList<object> RowsOf(IReadOnlyList<StageRowViewModel> stages)
+    {
+        var rows = new List<object>();
+        for (var i = 0; i < stages.Count; i++)
+        {
+            if (!stages[i].IsBatch)
+            {
+                rows.Add(stages[i]);
+                continue;
+            }
+
+            var batches = new List<StageRowViewModel> { stages[i] };
+            while (i + 1 < stages.Count && stages[i + 1].IsBatch && stages[i + 1].Entry.Kind == stages[i].Entry.Kind)
+            {
+                batches.Add(stages[++i]);
+            }
+
+            var group = new BatchGroupRowViewModel(this, batches);
+            rows.Add(group);
+            rows.AddRange(batches);
+        }
+
+        return rows;
+    }
+
+    /// <summary>The row a step's links and tools go on: its batches' row for a batch, else its own.</summary>
+    private BatchGroupRowViewModel? GroupOf(StageRowViewModel step) =>
+        Rows.OfType<BatchGroupRowViewModel>().FirstOrDefault(g => g.Batches.Contains(step));
+
+    private void AddLinkTo(StageRowViewModel step, LinkItem link)
+    {
+        if (GroupOf(step) is { } group)
+        {
+            group.AddLink(link);
+        }
+        else
+        {
+            step.AddLink(link);
+        }
     }
 
     /// <summary>The project or experiment, by name, which the engine's commands take.</summary>
@@ -147,7 +196,7 @@ public sealed class TimelineSection
     {
         if (Home(kinds) is { } step)
         {
-            step.AddLink(link);
+            AddLinkTo(step, link);
         }
         else
         {
@@ -160,7 +209,7 @@ public sealed class TimelineSection
     {
         if (stepId is not null && Stages.FirstOrDefault(s => s.Stage == stepId) is { } step)
         {
-            step.AddLink(link);
+            AddLinkTo(step, link);
         }
         else
         {
@@ -171,13 +220,17 @@ public sealed class TimelineSection
     /// <summary>Offers a tool on its step, or on the section when the timeline has no such step.</summary>
     public void Place(StepTool tool, IReadOnlyList<string> kinds)
     {
-        if (Home(kinds) is { } step)
+        if (Home(kinds) is not { } step)
         {
-            step.AddTool(tool);
+            _tools.Add(tool);
+        }
+        else if (GroupOf(step) is { } group)
+        {
+            group.AddTool(tool);
         }
         else
         {
-            _tools.Add(tool);
+            step.AddTool(tool);
         }
     }
 }
@@ -240,7 +293,17 @@ public sealed class StageRowViewModel(TimelineSection section, StageEntry entry,
     /// <summary>The step's id.</summary>
     public string Stage => Entry.Stage;
 
+    /// <summary>"Sample prep, batch 2": the step's name in messages and dialogs.</summary>
     public string Label => Entry.DisplayLabel;
+
+    /// <summary>"Batch 2" for a batch, shown under its step's row; else the step's name.</summary>
+    public string RowLabel => Entry.Batch is { } batch ? $"Batch {batch}" : Label;
+
+    /// <summary>One batch of a step done in batches, shown indented under that step.</summary>
+    public bool IsBatch => Entry.Batch is not null;
+
+    /// <summary>Sample prep and data acquisition can be done in batches (a plate at a time).</summary>
+    public bool CanSplit => !IsBatch && !Entry.IsSkipped && (Entry.Kind ?? Stage) is "sample_prep" or "data_acquisition";
 
     public string Status => Entry.Status;
 
@@ -315,8 +378,11 @@ public sealed class StageRowViewModel(TimelineSection section, StageEntry entry,
     /// <summary>Its planned finish (or, not yet started, its planned start) has passed.</summary>
     public bool IsLate => Entry.IsLate(Today());
 
-    /// <summary>Only a step with nothing recorded can go; anything else is skipped instead.</summary>
-    public bool CanRemove => Entry.IsPending && Entry.Started is null && Entry.Finished is null && Entry.By is null
+    /// <summary>
+    /// Only a step with nothing recorded can go; anything else is skipped instead. A batch goes by
+    /// changing how many batches its step has.
+    /// </summary>
+    public bool CanRemove => !IsBatch && Entry.IsPending && Entry.Started is null && Entry.Finished is null && Entry.By is null
         && string.IsNullOrWhiteSpace(Entry.Note) && Section.Stages.Count > 1;
 
     /// <summary>What was recorded for this step: its notebook, its Panorama folder.</summary>
@@ -325,6 +391,90 @@ public sealed class StageRowViewModel(TimelineSection section, StageEntry entry,
     public bool HasLinks => _links.Count > 0;
 
     /// <summary>The buttons that do this step's work.</summary>
+    public IReadOnlyList<StepTool> Tools => _tools;
+
+    public bool HasTools => _tools.Count > 0;
+
+    internal void AddLink(LinkItem link) => _links.Add(link);
+
+    internal void AddTool(StepTool tool) => _tools.Add(tool);
+}
+
+/// <summary>
+/// A step done in batches, as the row above its batches: how far the batches have got, and the
+/// step's links and tools (its notebook, the protocol it followed), which are the same for every
+/// batch. Its own record is its batches'; it has none of its own.
+/// </summary>
+public sealed class BatchGroupRowViewModel
+{
+    private readonly List<LinkItem> _links = [];
+    private readonly List<StepTool> _tools = [];
+
+    internal BatchGroupRowViewModel(TimelineSection section, IReadOnlyList<StageRowViewModel> batches)
+    {
+        Section = section;
+        Batches = batches;
+    }
+
+    public TimelineSection Section { get; }
+
+    public IReadOnlyList<StageRowViewModel> Batches { get; }
+
+    /// <summary>A batch's id, which the commands about the batches as a whole take.</summary>
+    public string Stage => Batches[0].Stage;
+
+    /// <summary>"Sample prep".</summary>
+    public string Label => Batches[0].Entry.BaseLabel;
+
+    /// <summary>"3 batches".</summary>
+    public string CountText => $"{Batches.Count} batches";
+
+    /// <summary>done once every batch is done or skipped, in_progress once any has begun, else pending.</summary>
+    public string Status =>
+        Batches.All(b => b.Entry.IsDone || b.Entry.IsSkipped) ? "done"
+        : Batches.Any(b => b.Entry.IsInProgress || b.Entry.IsDone) ? "in_progress"
+        : "pending";
+
+    public System.Windows.Media.Brush PhaseBrush => Batches[0].PhaseBrush;
+
+    public string PhaseName => Batches[0].PhaseName;
+
+    /// <summary>The first step not yet done is one of its batches.</summary>
+    public bool IsCurrent => Batches.Any(b => b.IsCurrent);
+
+    /// <summary>"2 of 3 done", and the dates the batches give: from the first start to the last finish.</summary>
+    public string StatusText
+    {
+        get
+        {
+            var done = Batches.Count(b => b.Entry.IsDone || b.Entry.IsSkipped);
+            var text = $"{done} of {Batches.Count} done";
+            var started = Batches.Select(b => b.Entry.Started).Where(d => d is not null).Min(StringComparer.Ordinal);
+            var finished = done == Batches.Count ? Batches.Select(b => b.Entry.Finished).Where(d => d is not null).Max(StringComparer.Ordinal) : null;
+            return (started, finished) switch
+            {
+                ({ } s, { } f) => $"{text}, {s} to {f}",
+                ({ } s, null) => $"{text}, since {s}",
+                (null, { } f) => $"{text}, finished {f}",
+                _ => text,
+            };
+        }
+    }
+
+    /// <summary>"Assigned to Michael MacCoss" when one person has every batch still to do.</summary>
+    public string? AssignedText
+    {
+        get
+        {
+            var open = Batches.Where(b => b.Entry.IsPending || b.Entry.IsInProgress).Select(b => b.Entry.Assigned).Distinct().ToList();
+            return open is [{ } who] ? $"Assigned to {Section.NameOf(who)}" : null;
+        }
+    }
+
+    public IReadOnlyList<LinkItem> Links => _links;
+
+    public bool HasLinks => _links.Count > 0;
+
     public IReadOnlyList<StepTool> Tools => _tools;
 
     public bool HasTools => _tools.Count > 0;

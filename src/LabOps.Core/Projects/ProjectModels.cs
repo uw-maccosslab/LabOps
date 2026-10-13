@@ -63,7 +63,17 @@ public sealed record StageEntry
 
     public string? Note { get; init; }
 
-    public string DisplayLabel => Label ?? StageNames.Label(Kind ?? Stage);
+    /// <summary>
+    /// Which batch it is (1, 2, ...) when the step's work is done in batches, such as sample prep of
+    /// three plates; null for a step done all at once (labops projects split).
+    /// </summary>
+    public int? Batch { get; init; }
+
+    /// <summary>"Sample prep": how the step reads, whichever batch it is.</summary>
+    public string BaseLabel => Label ?? StageNames.Label(Kind ?? Stage);
+
+    /// <summary>"Sample prep, batch 2" for a batch; how the step reads in any list of steps.</summary>
+    public string DisplayLabel => Batch is { } batch ? $"{BaseLabel}, batch {batch}" : BaseLabel;
 
     /// <summary>The phase the step's kind belongs to; null for a step of kind other.</summary>
     public Phases.Phase? Phase => Phases.Of(Kind ?? Stage);

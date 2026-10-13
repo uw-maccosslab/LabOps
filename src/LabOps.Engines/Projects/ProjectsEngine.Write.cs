@@ -297,7 +297,7 @@ public sealed partial class ProjectsEngine
         }
 
         YamlText.WriteText(t.Path, RecordEdits.WriteSteps(t.Raw, t.Steps));
-        return Report(t.Kind, t.Folder, t.Path, $"{Path.GetFileName(t.Folder)}: {Steps.Label(step)} {PyText.Str(step["status"]).Replace('_', ' ')}");
+        return Report(t.Kind, t.Folder, t.Path, $"{Path.GetFileName(t.Folder)}: {Steps.Name(step)} {PyText.Str(step["status"]).Replace('_', ' ')}");
     }
 
     /// <summary>assign &lt;item&gt; &lt;step&gt;... (--to LOGIN | --nobody).</summary>
@@ -428,6 +428,12 @@ public sealed partial class ProjectsEngine
     {
         var t = ReadTimeline(item);
         var step = Steps.Find(t.Steps, stepId);
+        if (Steps.Batch(step) is { } batch)
+        {
+            throw new EngineError($"step {stepId} is batch {batch} of {Steps.Label(step)}; change the number of batches with "
+                                  + $"split {Path.GetFileName(t.Folder)} {stepId} --batches N");
+        }
+
         if (Steps.Status(step) != "pending" || ((string[])["started", "finished", "by", "note"]).Any(k => PyText.Truthy(step[k])))
         {
             throw new EngineError($"step {stepId} has been started or has a record; skip it instead of removing it");
@@ -440,6 +446,132 @@ public sealed partial class ProjectsEngine
 
         YamlText.WriteText(t.Path, RecordEdits.WriteSteps(t.Raw, t.Steps.Where(s => !ReferenceEquals(s, step))));
         return Report(t.Kind, t.Folder, t.Path, $"{Path.GetFileName(t.Folder)}: removed step {stepId}");
+    }
+
+    /// <summary>The most batches a step is split into: a run of 96-well plates is rarely more than a dozen.</summary>
+    public const int MaxBatches = 48;
+
+    /// <summary>
+    /// split &lt;item&gt; &lt;step&gt; --batches N: a step's work in N batches (sample prep of three plates),
+    /// each a step of its own numbered 1 to N, which starts, finishes, is assigned and planned on its
+    /// own. A step already in batches gets more (after its last) or fewer (its last ones go, when
+    /// nothing is recorded or planned for them).
+    /// </summary>
+    public CommandResult Split(string item, string stepId, int batches)
+    {
+        if (batches is < 2 or > MaxBatches)
+        {
+            throw new EngineError($"give --batches from 2 to {MaxBatches}; a step done all at once needs no batches");
+        }
+
+        var t = ReadTimeline(item);
+        var step = Steps.Find(t.Steps, stepId);
+        var at = t.Steps.FindIndex(s => ReferenceEquals(s, step));
+        var name = Path.GetFileName(t.Folder);
+        var label = Steps.Label(step);
+        var raw = t.Raw;
+        var steps = t.Steps;
+        string text;
+        if (Steps.BatchGroups(t.Steps).FirstOrDefault(g => g.Contains(at)) is not { } group)
+        {
+            if (Steps.Status(step) == "skipped")
+            {
+                throw new EngineError($"step {stepId} was skipped, so there is no work to split into batches");
+            }
+
+            var made = Batches(t.Steps, step, batches, null);
+            steps = [.. t.Steps[..at], .. made, .. t.Steps[(at + 1)..]];
+            raw = MoveProtocols(raw, Path.GetFileName(t.Path), stepId, PyText.Str(made[0]["id"]));
+            text = $"{name}: {label} in {batches} batches ({string.Join(", ", made.Select(s => PyText.Str(s["id"])))})";
+        }
+        else if (group.Count == batches)
+        {
+            return Report(t.Kind, t.Folder, t.Path, $"{name}: {label} is in {batches} batches already");
+        }
+        else if (batches > group.Count)
+        {
+            var last = t.Steps[group[^1]];
+            var baseId = Steps.BatchBase(PyText.Str(t.Steps[group[0]]["id"]));
+            var added = new List<PyDict>();
+            for (var b = group.Count + 1; b <= batches; b++)
+            {
+                added.Add(new PyDict
+                {
+                    ["id"] = Steps.NewId([.. t.Steps, .. added], $"{baseId}_batch{b}"),
+                    ["kind"] = last["kind"], ["label"] = last["label"], ["batch"] = (long)b, ["assigned"] = last["assigned"],
+                });
+            }
+
+            steps = [.. t.Steps[..(group[^1] + 1)], .. added, .. t.Steps[(group[^1] + 1)..]];
+            text = $"{name}: {label} in {batches} batches, added {string.Join(", ", added.Select(s => PyText.Str(s["id"])))}";
+        }
+        else
+        {
+            var gone = group.Skip(batches).Select(i => t.Steps[i]).ToList();
+            if (gone.FirstOrDefault(s => Steps.Status(s) != "pending"
+                    || ((string[])["started", "finished", "by", "note", "planned_start", "planned_finish"]).Any(k => PyText.Truthy(s[k])))
+                is { } kept)
+            {
+                throw new EngineError($"batch {Steps.Batch(kept)} of {label} ({PyText.Str(kept["id"])}) has a record or a plan, so "
+                                      + $"{label} cannot go down to {batches} batches");
+            }
+
+            steps = [.. t.Steps.Where(s => !gone.Contains(s))];
+            text = $"{name}: {label} in {batches} batches, removed {string.Join(", ", gone.Select(s => PyText.Str(s["id"])))}";
+        }
+
+        YamlText.WriteText(t.Path, RecordEdits.WriteSteps(raw, steps));
+        return Report(t.Kind, t.Folder, t.Path, text);
+    }
+
+    /// <summary>
+    /// A step as <paramref name="count"/> batches. What is known of the whole goes where it is
+    /// known to be true: its start (and planned start) on the first batch, its finish (and planned
+    /// finish) on the last, the work under way on the first, and done on every batch. Each batch's
+    /// note is the one given (a plate's samples), else the step's note on the first.
+    /// </summary>
+    private static List<PyDict> Batches(List<PyDict> steps, PyDict step, int count, IReadOnlyList<string>? notes)
+    {
+        var id = PyText.Str(step["id"]);
+        var status = Steps.Status(step);
+        var others = steps.Where(s => !ReferenceEquals(s, step)).ToList();
+        var made = new List<PyDict>();
+        for (var b = 1; b <= count; b++)
+        {
+            var first = b == 1;
+            var last = b == count;
+            made.Add(new PyDict
+            {
+                ["id"] = Steps.NewId([.. others, .. made], $"{id}_batch{b}"),
+                ["kind"] = step["kind"],
+                ["label"] = step["label"],
+                ["batch"] = (long)b,
+                ["status"] = status switch { "done" => "done", "in_progress" when first => "in_progress", _ => "pending" },
+                ["assigned"] = step["assigned"],
+                ["planned_start"] = first ? step["planned_start"] : null,
+                ["planned_finish"] = last ? step["planned_finish"] : null,
+                ["started"] = first && status is "done" or "in_progress" ? step["started"] : null,
+                ["finished"] = last && status == "done" ? step["finished"] : null,
+                ["by"] = status == "done" || (first && status == "in_progress") ? step["by"] : null,
+                ["note"] = notes is not null ? notes[b - 1] : first ? step["note"] : null,
+            });
+        }
+
+        return made;
+    }
+
+    /// <summary>The protocols recorded for a step that is now in batches, recorded for its first batch.</summary>
+    private static string MoveProtocols(string raw, string file, string from, string to)
+    {
+        var (d, problem) = Records.Parse(raw, file);
+        var items = problem is null ? Values.ListOf(d, "protocols", Values.ProtocolFields) : [];
+        var moved = items.Where(i => PyText.Eq(i["step"], from)).ToList();
+        foreach (var i in moved)
+        {
+            i["step"] = to;
+        }
+
+        return moved.Count > 0 ? RecordEdits.SetList(raw, "protocols", items, Links.ProtocolComment) : raw;
     }
 
     private (string Kind, string Folder, string Path, string Raw, PyDict Record) LinkTarget(string item, string what)
@@ -979,8 +1111,42 @@ public sealed partial class ProjectsEngine
             target["by"] = by;
         }
 
+        var withLayout = YamlText.SetFields(t.Raw, [new("layout", record)], after: "expected_samples");
+        var lines = new List<string>
+        {
+            $"{Path.GetFileName(folder)}: imported {samples.Count} samples on {PyText.Str(plates)} plate(s); {PyText.Str(target["id"])} done",
+        };
+
+        // Octopus balances the samples across plates, and each plate is prepared as a batch: sample
+        // prep becomes one batch per plate, when it is one step not yet begun.
+        var perPlate = samples.Select(s => s is PyDict sd ? sd["plate"] : null).Where(p => p is not null)
+            .GroupBy(p => p, new PyEquality())
+            .OrderBy(g => g.Key is long n ? n : long.MaxValue).ThenBy(g => PyText.Str(g.Key), StringComparer.Ordinal)
+            .Select(g => (Plate: PyText.Str(g.Key), Count: g.Count())).ToList();
+        if (perPlate.Count >= 2 && t.Steps.FirstOrDefault(s => Equals(s["kind"], "sample_prep")) is { } prep)
+        {
+            var prepId = PyText.Str(prep["id"]);
+            var at = t.Steps.FindIndex(s => ReferenceEquals(s, prep));
+            if (Steps.BatchGroups(t.Steps).FirstOrDefault(g => g.Contains(at)) is { } group)
+            {
+                if (group.Count != perPlate.Count)
+                {
+                    lines.Add($"    WARN: {Steps.Label(prep)} is in {group.Count} batches but the layout has {perPlate.Count} plates; "
+                              + $"change it with split {Path.GetFileName(folder)} {prepId} --batches {perPlate.Count}");
+                }
+            }
+            else if (Steps.Status(prep) == "pending" && !((string[])["started", "finished", "by", "note"]).Any(k => PyText.Truthy(prep[k])))
+            {
+                var made = Batches(t.Steps, prep, perPlate.Count, [.. perPlate.Select(p => $"Plate {p.Plate}: {p.Count} samples")]);
+                t.Steps.RemoveAt(at);
+                t.Steps.InsertRange(at, made);
+                withLayout = MoveProtocols(withLayout, Path.GetFileName(t.Path), prepId, PyText.Str(made[0]["id"]));
+                lines.Add($"    {prepId} is now {perPlate.Count} batches, one per plate");
+            }
+        }
+
         // Every change is made before anything is written, so a failure leaves no layout without its record.
-        var raw = RecordEdits.WriteSteps(YamlText.SetFields(t.Raw, [new("layout", record)], after: "expected_samples"), t.Steps);
+        var raw = RecordEdits.WriteSteps(withLayout, t.Steps);
         YamlText.WriteText(Path.Combine(layoutDir, "octopus-layout.json"), PyJson.DumpsIndented(layout) + "\n");
         YamlText.WriteText(Path.Combine(layoutDir, "octopus-input.csv"),
             Sheets.DecodeText(File.ReadAllBytes(source), Path.GetFileName(source)).Replace("\r\n", "\n", StringComparison.Ordinal));
@@ -988,8 +1154,7 @@ public sealed partial class ProjectsEngine
 
         var (p, problem) = Summaries.LoadRecord(t.Path);
         var issues = problem is not null ? [("ERROR", problem)] : Validation.ValidateProject(Repository, t.Path, Repository.People(), p);
-        return new CommandResult(new JsonObject { ["ok"] = true, ["project"] = Summaries.Project(Repository, folder, issues, [], p) },
-            [$"{Path.GetFileName(folder)}: imported {samples.Count} samples on {PyText.Str(plates)} plate(s); {PyText.Str(target["id"])} done"]);
+        return new CommandResult(new JsonObject { ["ok"] = true, ["project"] = Summaries.Project(Repository, folder, issues, [], p) }, lines);
     }
 
     /// <summary>Python's == and hash, for distinct values.</summary>

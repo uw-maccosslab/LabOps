@@ -45,6 +45,8 @@ analysis:
 # done | skipped), assigned (the GitHub login of who does it), started and finished dates, by
 # (who recorded it) and a note. Steps repeat and go anywhere, for example a second shipment: add
 # them with `labops projects add-step`, or ask Claude. Assign them with `labops projects assign`.
+# A step done in batches (a plate at a time) is one step per batch, numbered with `batch: 1`,
+# `batch: 2`, ...: make them with `labops projects split`.
 steps:
   - {id: samples_received, kind: samples_received, status: pending}
   - {id: metadata_organized, kind: metadata_organized, status: pending}

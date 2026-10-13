@@ -314,7 +314,7 @@ public static partial class WikiPage
         {
             // project.py stopped on a status it did not know; show it as it is written.
             var (label, colors) = StepBadges.TryGetValue(Steps.Status(s), out var badge) ? badge : (Steps.Status(s), Gray);
-            yield return $"<tr><td style=\"{S["td"]};font-weight:500\">{Swatch(PhaseColor(s))}{Escape(Steps.Label(s))}</td>"
+            yield return $"<tr><td style=\"{S["td"]};font-weight:500\">{Swatch(PhaseColor(s))}{Escape(Steps.Name(s))}</td>"
                          + $"<td style=\"{S["td"]}\">{Badge(label, colors)}</td>"
                          + $"<td style=\"{S["td"]};white-space:nowrap\">{Escape(StepDates(s))}</td>"
                          + $"<td style=\"{S["td"]};white-space:nowrap\">{Escape(StepWho(s, names))}</td>"
@@ -490,7 +490,7 @@ public static partial class WikiPage
         if (now.Step is { } current)
         {
             var started = Date(current["started"]);
-            cards.Add((Steps.Label(current), $"current step{(now.Group == "Samples" ? "" : $" of {now.Group}")}"
+            cards.Add((Steps.Name(current), $"current step{(now.Group == "Samples" ? "" : $" of {now.Group}")}"
                                              + (started is not null ? $", started {FormatDate(started)}" : ""), PhaseColor(current)));
         }
         else

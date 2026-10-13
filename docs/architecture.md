@@ -208,6 +208,7 @@ flowchart LR
 | Start, Done, Skip, Reopen a step | `labops projects stage <item> <step> start\|done\|skip` | `<item>: <step> done` |
 | Assign | `labops projects assign <item> <steps> --to <login>` | `<item>: <step> assigned to <login>` |
 | Add a step, Remove a step | `labops projects add-step`, `remove-step` | `<item>: added step ...` |
+| Batches | `labops projects split <item> <step> --batches <n>` | `<item>: sample prep in 3 batches` |
 | Add notebook, Add raw data folder, Add results folder, Remove a link | `labops projects link`, `unlink` | `<item>: raw data on Panorama` |
 | Organize with Claude | `labops projects scan <file>`, then Claude | `<project>: updated with Claude` |
 | Wiki page (the first time: where it goes) | `labops projects link <project> wiki <folder> --page <name>` | `<project>: wiki page on Panorama` |

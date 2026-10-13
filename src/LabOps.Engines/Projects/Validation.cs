@@ -53,10 +53,22 @@ public static partial class Validation
             output.Add(("ERROR", "there are no steps"));
         }
 
+        // A step done in batches may know only when its first batch started and its last finished
+        // (a step split after it was done), so a batch with no finished date is reported only when
+        // no batch of its group has one, and then once, on the last.
+        var groups = Steps.BatchGroups(steps);
+        var undatedOk = new HashSet<int>();
+        foreach (var g in groups)
+        {
+            undatedOk.UnionWith(g.Any(i => PyText.Truthy(steps[i]["finished"])) ? g : g.SkipLast(1));
+        }
+
         var seen = new HashSet<string>(StringComparer.Ordinal);
         string? reached = null;
+        var index = -1;
         foreach (var s in steps)
         {
+            index++;
             var sid = PyText.Truthy(s["id"]) ? PyText.Str(s["id"]) : "";
             var name = $"step {(sid.Length > 0 ? sid : "(no id)")}";
             if (Steps.IsInvalid(s))
@@ -85,6 +97,11 @@ public static partial class Validation
                 output.Add(("ERROR", $"{name}: a step of kind other needs a label"));
             }
 
+            if (s["batch"] is not null && Steps.Batch(s) is null)
+            {
+                output.Add(("ERROR", $"{name}: batch is the batch's number, 1 or more"));
+            }
+
             var status = Steps.Status(s);
             if (!Steps.Statuses.Contains(status))
             {
@@ -107,7 +124,7 @@ public static partial class Validation
                 output.Add(("ERROR", $"{name}: finished before it started"));
             }
 
-            if (status == "done" && !PyText.Truthy(finished))
+            if (status == "done" && !PyText.Truthy(finished) && !undatedOk.Contains(index))
             {
                 output.Add(("WARN", $"{name} is done but has no finished date"));
             }
@@ -154,6 +171,22 @@ public static partial class Validation
             if (status == "pending" && reached is null)
             {
                 reached = sid;
+            }
+        }
+
+        // A step's batches are steps in a row of its kind, numbered 1, 2, ... (labops projects split).
+        foreach (var g in groups)
+        {
+            var first = steps[g[0]];
+            if (g.Count == 1)
+            {
+                output.Add(("WARN", $"step {PyText.Str(first["id"])} is the only batch of {Steps.Label(first)}; "
+                                    + "a step done all at once needs no batch number"));
+            }
+            else if (g.Where((i, n) => Steps.Batch(steps[i]) != n + 1).Any())
+            {
+                output.Add(("WARN", $"steps {PyText.Str(first["id"])} to {PyText.Str(steps[g[^1]]["id"])}: "
+                                    + $"the batches of {Steps.Label(first)} are numbered 1 to {g.Count} in order"));
             }
         }
 

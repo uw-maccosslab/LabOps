@@ -257,6 +257,16 @@ public sealed class ProjectEngine : IPreCommitCheck
         using var doc = await RunAsync(["remove-step", item, stage], cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Has a step's work done in <paramref name="batches"/> batches, or changes how many batches a
+    /// step in batches has (<paramref name="stage"/> is then any of them).
+    /// </summary>
+    public async Task SplitAsync(string item, string stage, int batches, CancellationToken cancellationToken = default)
+    {
+        using var doc = await RunAsync(["split", item, stage, "--batches", batches.ToString(System.Globalization.CultureInfo.InvariantCulture)],
+            cancellationToken).ConfigureAwait(false);
+    }
+
     /// <summary>The files <see cref="ScanAsync"/> reads: spreadsheets and CSV.</summary>
     public static bool CanScan(string path) =>
         new[] { ".xlsx", ".xlsm", ".csv" }.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase);

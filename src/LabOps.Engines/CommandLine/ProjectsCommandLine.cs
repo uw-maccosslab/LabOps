@@ -43,6 +43,8 @@ public static class ProjectsCommandLine
         new("add-step", [new("item"), new("kind")], [new("--label"), new("--after"), new("--before"), new("--id"), new("--assigned")],
             (e, a) => e.AddStep(a.Get("item")!, a.Get("kind")!, a.Get("label"), a.Get("after"), a.Get("before"), a.Get("id"), a.Get("assigned"))),
         new("remove-step", [new("item"), new("step")], [], (e, a) => e.RemoveStep(a.Get("item")!, a.Get("step")!)),
+        new("split", [new("item"), new("step")], [new("--batches", Integer: true, Required: true)],
+            (e, a) => e.Split(a.Get("item")!, a.Get("step")!, (int)Math.Clamp(a.Int("batches")!.Value, int.MinValue, int.MaxValue))),
         new("link", [new("item"), new("what", Choices: ["panorama", "notebook", "wiki", "protocol"]), new("value", '?')],
             [new("--kind", Choices: ["qc", "raw", "results"]), new("--id"), new("--page"), new("--version", Integer: true), new("--step"), new("--title")],
             (e, a) => e.Link(a.Get("item")!, a.Get("what")!, new LinkOptions(a.Get("value"), a.Get("kind"), a.Get("id"), a.Get("page"),
