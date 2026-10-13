@@ -129,6 +129,12 @@ and note that go with it: started, finished, by, assigned, and the planned start
 project starts with the sample steps and a new experiment with the measurement steps; `add-step`
 adds any kind anywhere (a second shipment, assay development, a second analysis).
 
+A step done in batches, such as sample prep a plate at a time, is one step per batch, in a row and
+numbered with `batch: 1`, `batch: 2`, and so on. Each batch starts, finishes, is assigned and is
+planned on its own. `split` makes them, or changes how many there are, and `import-layout` makes
+sample prep one batch per plate. A step split after it was done keeps what is known: its start on
+the first batch and its finish on the last.
+
 The kinds fall into five phases, each with one color wherever a step is shown (defined in
 `LabOps.Engines/Projects/Phases.cs`):
 
@@ -167,7 +173,7 @@ work is gray, and late work has a red ring.
 flowchart TB
     subgraph commands["Commands (ProjectsEngine)"]
         read["Read<br/>list, check, scan, sheet,<br/>wiki, index"]
-        write["Write<br/>new-lab, new-project, new-experiment,<br/>stage, assign, plan, add-step, remove-step,<br/>link, unlink, review,<br/>octopus-input, import-layout"]
+        write["Write<br/>new-lab, new-project, new-experiment,<br/>stage, assign, plan, add-step, remove-step, split,<br/>link, unlink, review,<br/>octopus-input, import-layout"]
     end
 
     subgraph rules["Rules"]

@@ -52,6 +52,7 @@ Each step has buttons for what can be done with it:
 | **Start**, **Done**, **Skip**, **Reopen** | Records the step's progress, with a date, who, and a note |
 | **Assign** | Gives the step to a lab member |
 | **Plan** | Sets when the step should start and finish; the overview shows the plan, and the step as late once it passes |
+| **Batches** | On sample prep and data acquisition: does the step's work in batches, such as a plate at a time. Each batch is a step of its own, indented under the step, with its own buttons; the step's row says how many are done, and keeps its tools |
 | **Add a step**, **Remove** | Adds a step of any kind anywhere (a second shipment, a second analysis); removes one added by mistake |
 
 And some steps have the tools for their work:
@@ -59,7 +60,7 @@ And some steps have the tools for their work:
 | On the step | Tool | What it does |
 |---|---|---|
 | Metadata organized | **Organize with Claude**, **View samples** | Scans a collaborator's sheet for identifiers, then has Claude build the sample table; shows the table |
-| Plate layout | **Open in Octopus**, **Import layout** | Writes the input for Octopus, the plate layout tool; keeps the layout it exports |
+| Plate layout | **Open in Octopus**, **Import layout** | Writes the input for Octopus, the plate layout tool; keeps the layout it exports, and makes sample prep one batch per plate |
 | Sample prep, and the bench steps | **Add protocol**, **Add notebook** | Records the protocol version followed, and the ELN notebook |
 | Data deposited, data acquisition | **Add raw data folder**, **Add process control folder** | Records where the raw files and the system suitability runs are on Panorama |
 | Signal processing | **Add results folder** | Records the Panorama folder with the Skyline documents |

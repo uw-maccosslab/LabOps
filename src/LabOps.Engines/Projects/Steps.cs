@@ -58,6 +58,50 @@ public static partial class Steps
 
     public static string Status(PyDict step) => Values.Text(step["status"]) ?? "pending";
 
+    /// <summary>
+    /// Which batch a step is (1, 2, ...) when its work is done in batches, such as sample prep of
+    /// three plates; null for a step done all at once.
+    /// </summary>
+    public static long? Batch(PyDict step) => step["batch"] is long n && n >= 1 ? n : null;
+
+    /// <summary>How a step reads among all of them: "Sample prep, batch 2" for a batch, else its label.</summary>
+    public static string Name(PyDict step) => Batch(step) is { } b ? $"{Label(step)}, batch {b}" : Label(step);
+
+    /// <summary>
+    /// A timeline's batch groups: each run of steps in a row of one kind with a batch number (a
+    /// step's work in batches), as the positions of its steps.
+    /// </summary>
+    public static List<List<int>> BatchGroups(IReadOnlyList<PyDict> steps)
+    {
+        var groups = new List<List<int>>();
+        for (var i = 0; i < steps.Count; i++)
+        {
+            if (step(i) is null)
+            {
+                continue;
+            }
+
+            if (groups.Count > 0 && groups[^1][^1] == i - 1 && PyText.Eq(steps[i - 1]["kind"], steps[i]["kind"]))
+            {
+                groups[^1].Add(i);
+            }
+            else
+            {
+                groups.Add([i]);
+            }
+        }
+
+        return groups;
+
+        long? step(int i) => IsInvalid(steps[i]) ? null : Batch(steps[i]);
+    }
+
+    /// <summary>The id a step's batches are named from: sample_prep for sample_prep_batch2.</summary>
+    public static string BatchBase(string id) => BatchSuffix().Replace(id, "");
+
+    [GeneratedRegex("_batch[0-9]+$")]
+    private static partial Regex BatchSuffix();
+
     /// <summary>The first step that is neither done nor skipped (null when all are).</summary>
     public static PyDict? Current(IEnumerable<PyDict> steps) => steps.FirstOrDefault(s => Status(s) is not ("done" or "skipped"));
 
@@ -105,21 +149,30 @@ public static partial class Steps
         return [.. steps[..at], .. added, .. steps[at..]];
     }
 
-    /// <summary>_step_json: one step as the JSON gives it.</summary>
-    public static JsonObject Json(PyDict s) => new()
+    /// <summary>_step_json: one step as the JSON gives it, with its batch only when it is one.</summary>
+    public static JsonObject Json(PyDict s)
     {
-        ["stage"] = Values.Json(Values.Text(s["id"])),
-        ["kind"] = Values.Json(Values.Text(s["kind"])),
-        ["label"] = Label(s),
-        ["status"] = Status(s),
-        ["assigned"] = Values.Json(Values.Text(s["assigned"])),
-        ["planned_start"] = Values.Json(Values.Text(s["planned_start"])),
-        ["planned_finish"] = Values.Json(Values.Text(s["planned_finish"])),
-        ["started"] = Values.Json(Values.Text(s["started"])),
-        ["finished"] = Values.Json(Values.Text(s["finished"])),
-        ["by"] = Values.Json(Values.Text(s["by"])),
-        ["note"] = Values.Json(Values.Text(s["note"])),
-    };
+        var json = new JsonObject
+        {
+            ["stage"] = Values.Json(Values.Text(s["id"])),
+            ["kind"] = Values.Json(Values.Text(s["kind"])),
+            ["label"] = Label(s),
+            ["status"] = Status(s),
+            ["assigned"] = Values.Json(Values.Text(s["assigned"])),
+            ["planned_start"] = Values.Json(Values.Text(s["planned_start"])),
+            ["planned_finish"] = Values.Json(Values.Text(s["planned_finish"])),
+            ["started"] = Values.Json(Values.Text(s["started"])),
+            ["finished"] = Values.Json(Values.Text(s["finished"])),
+            ["by"] = Values.Json(Values.Text(s["by"])),
+            ["note"] = Values.Json(Values.Text(s["note"])),
+        };
+        if (Batch(s) is { } batch)
+        {
+            json["batch"] = batch;
+        }
+
+        return json;
+    }
 
     /// <summary>_timeline_json: the current step's id and every step.</summary>
     public static (JsonNode? Current, JsonArray Stages) Timeline(PyDict record)

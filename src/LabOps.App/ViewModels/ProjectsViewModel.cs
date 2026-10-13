@@ -675,6 +675,42 @@ public sealed partial class ProjectsViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Has a step's work done in batches (sample prep a plate at a time), or changes how many
+    /// batches a step in batches has. The count offered first for sample prep is the layout's
+    /// plates; for an acquisition, the batches its samples were prepared in.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanSplitStep))]
+    private async Task SplitStepAsync(object? row)
+    {
+        var (section, stage, label, current, kind) = row switch
+        {
+            BatchGroupRowViewModel g => (g.Section, g.Stage, g.Label, (int?)g.Batches.Count, g.Batches[0].Entry.Kind),
+            StageRowViewModel s => (s.Section, s.Stage, s.Label, null, s.Entry.Kind),
+            _ => throw new ArgumentException("not a step", nameof(row)),
+        };
+        var project = Selected!.Name;
+        var plates = Selected.Project.Layout?.Plates;
+        var prepared = Sections.FirstOrDefault()?.Rows.OfType<BatchGroupRowViewModel>()
+            .FirstOrDefault(g => g.Batches[0].Entry.Kind == "sample_prep")?.Batches.Count;
+        var suggested = (kind == "data_acquisition" ? prepared ?? plates : plates ?? prepared) ?? 2;
+        var count = BatchesWindow.Ask(Application.Current.MainWindow, $"{label} in batches: {Where(section)}", current, suggested);
+        if (count is not { } batches || batches == current)
+        {
+            return;
+        }
+
+        await _work.RunAsync("Splitting into batches...", async () =>
+        {
+            await PullFirstAsync().ConfigureAwait(true);
+            await _engine.SplitAsync(section.Item, stage, batches).ConfigureAwait(true);
+            await SaveAsync([section.Folder], $"{section.Item}: {label.ToLowerInvariant()} in {batches} batches").ConfigureAwait(true);
+        }).ConfigureAwait(true);
+        await ReloadAsync(project).ConfigureAwait(true);
+    }
+
+    private bool CanSplitStep(object? row) => CanEditSelected() && row is StageRowViewModel or BatchGroupRowViewModel;
+
+    /// <summary>
     /// Records a Panorama folder (raw data or results) on an experiment, or a notebook on the
     /// project or an experiment.
     /// </summary>
@@ -1053,7 +1089,7 @@ public sealed partial class ProjectsViewModel : ObservableObject
         foreach (var command in new IRelayCommand[]
                  {
                      NewProjectCommand, NewExperimentCommand, AskClaudeCommand, StartStageCommand, FinishStageCommand,
-                     SkipStageCommand, ReopenStageCommand, AssignCommand, PlanCommand, AddStepCommand, RemoveStepCommand,
+                     SkipStageCommand, ReopenStageCommand, AssignCommand, PlanCommand, SplitStepCommand, AddStepCommand, RemoveStepCommand,
                      AddLinkCommand, RemoveLinkCommand, AddProtocolCommand, OrganizeMetadataCommand,
                      OpenInOctopusCommand, ImportLayoutCommand, OpenFolderCommand, OpenOnGitHubCommand, ViewSamplesCommand, ViewWikiCommand,
                  })

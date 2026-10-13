@@ -85,6 +85,33 @@ public sealed class OctopusCommandTests
         repo.Problems("--staged").Where(p => p.Level == "ERROR").Select(p => p.Message).ShouldBeEmpty();
     }
 
+    /// <summary>
+    /// Octopus balances the samples across plates, and each plate is prepared as a batch: sample
+    /// prep becomes a batch per plate, saying how many samples it has.
+    /// </summary>
+    [Fact]
+    public void Import_layout_prepares_each_plate_as_a_batch_of_sample_prep()
+    {
+        using var repo = TestRepo.Create();
+        var folder = repo.NewProject();
+        var name = Path.GetFileName(folder);
+        var (layout, _) = ImportExample(repo, folder, perPlate: 6);
+
+        repo.RunText("import-layout", name, layout).Stdout.ShouldContain("    sample_prep is now 2 batches, one per plate", Case.Sensitive);
+
+        var steps = TestRepo.Steps(folder);
+        steps.ShouldNotContainKey("sample_prep");
+        (steps["sample_prep_batch1"]["batch"], steps["sample_prep_batch1"]["note"]).ShouldBe((1L, "Plate 1: 6 samples"));
+        (steps["sample_prep_batch2"]["batch"], steps["sample_prep_batch2"]["note"]).ShouldBe((2L, "Plate 2: 4 samples"));
+
+        // The same layout again finds its batches there already, and a step of more batches is told it differs.
+        repo.RunText("import-layout", name, layout).Stdout.ShouldNotContain("batches", Case.Sensitive);
+        repo.Ok("split", name, "sample_prep_batch1", "--batches", "3");
+        repo.RunText("import-layout", name, layout).Stdout.ShouldContain(
+            $"    WARN: Sample prep is in 3 batches but the layout has 2 plates; change it with split {name} sample_prep_batch1 --batches 2",
+            Case.Sensitive);
+    }
+
     [Fact]
     public void Import_layout_refuses_a_layout_that_does_not_match()
     {
