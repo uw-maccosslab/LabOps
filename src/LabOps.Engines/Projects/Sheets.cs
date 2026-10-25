@@ -8,7 +8,7 @@ namespace LabOps.Engines.Projects;
 /// Python's csv module and openpyxl: the same text decoding, the same CSV quoting rules, and the
 /// same cell values, so the identifier check sees exactly what it saw before.
 /// </summary>
-public static class Sheets
+public static partial class Sheets
 {
     public sealed record Sheet(string Name, IReadOnlyList<string> Headers, IReadOnlyList<IReadOnlyList<object?>> Rows);
 
@@ -19,14 +19,14 @@ public static class Sheets
         var suffix = Path.GetExtension(path).ToLowerInvariant();
         if (suffix == ".csv")
         {
-            var (headers, rows) = CsvTable(DecodeText(File.ReadAllBytes(path), name), name);
+            var (headers, rows) = CsvTable(DecodeText(File.ReadAllBytes(path), name), name, titles: true);
             return [new Sheet(name, headers, rows)];
         }
 
         if (suffix is ".xlsx" or ".xlsm")
         {
             return [.. Workbook.Read(path, name).Where(s => sheet is null || sheet.Length == 0 || s.Name == sheet)
-                .Select(s => { var (h, r) = SplitRows(s.Rows); return new Sheet(s.Name, h, r); })];
+                .Select(s => { var (h, r) = SplitRows(s.Rows, titles: true); return new Sheet(s.Name, h, r); })];
         }
 
         throw new EngineError($"{name}: only .csv and .xlsx sheets can be read");
@@ -90,11 +90,11 @@ public static class Sheets
         return text.ToString();
     }
 
-    public static (IReadOnlyList<string> Headers, IReadOnlyList<IReadOnlyList<object?>> Rows) CsvTable(string text, string name)
+    public static (IReadOnlyList<string> Headers, IReadOnlyList<IReadOnlyList<object?>> Rows) CsvTable(string text, string name, bool titles = false)
     {
         try
         {
-            return SplitRows([.. CsvReader.Parse(text).Select(r => (IReadOnlyList<object?>)[.. r])]);
+            return SplitRows([.. CsvReader.Parse(text).Select(r => (IReadOnlyList<object?>)[.. r])], titles);
         }
         catch (CsvReader.CsvError ex)
         {
@@ -104,14 +104,20 @@ public static class Sheets
 
     /// <summary>
     /// _split_rows: empty rows go, the first row left is the headers (as stripped text), and every
-    /// row is padded to the widest.
+    /// row is padded to the widest. `titles` first drops title rows above the headers (TitleRows),
+    /// for a collaborator's sheet; a file being committed keeps its first row as the headers.
     /// </summary>
-    public static (IReadOnlyList<string> Headers, IReadOnlyList<IReadOnlyList<object?>> Rows) SplitRows(IReadOnlyList<IReadOnlyList<object?>> all)
+    public static (IReadOnlyList<string> Headers, IReadOnlyList<IReadOnlyList<object?>> Rows) SplitRows(IReadOnlyList<IReadOnlyList<object?>> all, bool titles = false)
     {
         var rows = all.Where(r => r.Any(c => c is not (null or ""))).ToList();
         if (rows.Count == 0)
         {
             return ([], []);
+        }
+
+        if (titles)
+        {
+            rows = rows[TitleRows(rows)..];
         }
 
         var width = rows.Max(r => r.Count);
@@ -120,6 +126,60 @@ public static class Sheets
         var body = rows.Skip(1).Select(r => (IReadOnlyList<object?>)[.. r, .. Enumerable.Repeat<object?>(null, width - r.Count)]).ToList();
         return (headers, body);
     }
+
+    /// <summary>
+    /// How many rows at the top are titles over the headers, such as a merged "Plasma samples" or
+    /// "Meta Data" above the columns it groups. Read as the headers, a title row leaves every column
+    /// but a few without one, and the check refuses the sheet. A row is a title only when the row
+    /// under it is plainly the headers: at least twice as many cells, covering every cell the title
+    /// fills, all distinct words rather than numbers or dates, and over at least one column that is
+    /// mostly numbers or dates. The last condition is what keeps a first row of data under a mostly
+    /// blank header row from being taken for the headers, which would let a column of names through
+    /// under a name for a header: data rows hold numbers where headers hold words. A file being
+    /// committed does not get this at all (SplitRows), so git history's guard does not rest on it.
+    /// </summary>
+    private static int TitleRows(IReadOnlyList<IReadOnlyList<object?>> rows)
+    {
+        static bool Filled(object? c) => c is not (null or "") && (c is not string s || s.Trim().Length > 0);
+        static bool NumberOrDate(object? c) => c switch
+        {
+            string s => double.TryParse(s, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out _)
+                        || DateText().IsMatch(s.Trim()),
+            null or bool => false,
+            _ => true,
+        };
+
+        static bool MostlyNumbers(IEnumerable<object?> column)
+        {
+            var values = column.Where(Filled).ToList();
+            return values.Count > 0 && values.Count(NumberOrDate) * 2 > values.Count;
+        }
+
+        var skip = 0;
+        while (skip < 3 && skip + 2 < rows.Count)
+        {
+            var (title, headers) = (rows[skip], rows[skip + 1]);
+            var titled = Enumerable.Range(0, title.Count).Where(i => Filled(title[i])).ToList();
+            var named = Enumerable.Range(0, headers.Count).Where(i => Filled(headers[i])).ToList();
+            var words = named.Select(i => headers[i]).ToList();
+            var isTitle = named.Count >= 2 * titled.Count && named.Count >= 2
+                          && titled.All(named.Contains)
+                          && words.All(w => w is string && !NumberOrDate(w))
+                          && words.Select(w => Py.Strip((string)w!)).Distinct(StringComparer.Ordinal).Count() == words.Count
+                          && named.Any(i => MostlyNumbers(rows.Skip(skip + 2).Select(r => i < r.Count ? r[i] : null)));
+            if (!isTitle)
+            {
+                break;
+            }
+
+            skip++;
+        }
+
+        return skip;
+    }
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"^\d{1,4}[-/.]\d{1,2}[-/.]\d{1,4}$")]
+    private static partial System.Text.RegularExpressions.Regex DateText();
 
     /// <summary>A cell as text: a date as YYYY-MM-DD, a whole float without .0, the rest as str().</summary>
     public static string CellText(object? v) => v switch

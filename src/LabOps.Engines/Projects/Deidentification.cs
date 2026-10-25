@@ -100,6 +100,13 @@ public static partial class Deidentification
     public const string Unheaded = "has values but no header, so the check cannot tell what it holds; give it a header that says what "
                                    + "it is, or remove it (if the sheet has a title row above its headers, delete that row)";
 
+    // Before Claude reads a collaborator's file, a column without a header is only a warning: Mike's
+    // decision of 2026-10-25, after a sheet of animal IDs, dates and an unlabeled plate map beside
+    // them was refused. Identifiers are fine and names are not, and a header that names one still
+    // refuses the file. Nothing is committed with a column the check cannot name (Unheaded).
+    public const string UnheadedToRead = "has values but no header, so the check cannot tell what it holds; check it for names "
+                                         + "before using it, and give it a header if it is kept";
+
     public const string SharedPage = "has an email address or phone number; the wiki page is shared with the collaborators, so leave "
                                      + "contact details out";
 
@@ -227,11 +234,14 @@ public static partial class Deidentification
     }
 
     /// <summary>Findings for one sheet.</summary>
-    public static List<Finding> SheetFindings(IReadOnlyList<string> headers, IReadOnlyList<IReadOnlyList<object?>> rows, string source) =>
-        ColumnFindings([.. headers.Select((h, i) => (h, (IReadOnlyList<object?>)[.. rows.Select(r => r[i])]))], source);
+    public static List<Finding> SheetFindings(IReadOnlyList<string> headers, IReadOnlyList<IReadOnlyList<object?>> rows, string source, bool toRead = false) =>
+        ColumnFindings([.. headers.Select((h, i) => (h, (IReadOnlyList<object?>)[.. rows.Select(r => r[i])]))], source, toRead: toRead);
 
-    /// <summary>Findings for (header, values) columns, from a sheet or from structured data.</summary>
-    public static List<Finding> ColumnFindings(IReadOnlyList<(string Header, IReadOnlyList<object?> Values)> columns, string source, bool repeatedHeaders = true)
+    /// <summary>
+    /// Findings for (header, values) columns, from a sheet or from structured data. `toRead` is a
+    /// collaborator's file about to be read, not committed: a column without a header only warns.
+    /// </summary>
+    public static List<Finding> ColumnFindings(IReadOnlyList<(string Header, IReadOnlyList<object?> Values)> columns, string source, bool repeatedHeaders = true, bool toRead = false)
     {
         var found = new List<Finding>();
         var seen = new List<(string Header, int Count)>();
@@ -240,11 +250,12 @@ public static partial class Deidentification
             var (h, values) = columns[i];
             if (h.Length == 0)
             {
-                // A column the check cannot name is one it cannot clear. A title row above the headers
-                // leaves every column but the first without one.
+                // A column the check cannot name is one it cannot clear, so it is never committed.
+                // A title row above the headers leaves every column but the first without one;
+                // a collaborator's sheet has its title rows dropped first (Sheets.TitleRows).
                 if (values.Any(v => v is not (null or "")))
                 {
-                    found.Add(new Finding("ERROR", source, $"column {i + 1}", Unheaded));
+                    found.Add(toRead ? new Finding("WARN", source, $"column {i + 1}", UnheadedToRead) : new Finding("ERROR", source, $"column {i + 1}", Unheaded));
                 }
 
                 continue;

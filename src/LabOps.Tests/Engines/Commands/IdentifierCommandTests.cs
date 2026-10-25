@@ -46,7 +46,16 @@ public sealed class IdentifierCommandTests
     }
 
     [Fact]
-    public void A_title_row_above_the_headers_is_an_error()
+    public void A_column_without_a_header_only_warns_before_Claude_reads_the_file()
+    {
+        // Mike's decision: identifiers are fine and names are not. An unlabeled plate map beside the
+        // samples no longer keeps a sheet from Claude, but a header that names a person still does.
+        var found = Deidentification.SheetFindings(["Sample_ID", "", "Last Name"], [["S1", "A1", "Doe"]], "test.csv", toRead: true);
+        found.Select(f => (f.Level, f.Column)).ShouldBe([("WARN", "column 2"), ("ERROR", "Last Name")], ignoreOrder: true);
+    }
+
+    [Fact]
+    public void A_title_row_above_the_headers_is_an_error_in_a_file_being_committed()
     {
         // The title row is read as the header row, so every column but the first has no header.
         var (headers, rows) = Sheets.SplitRows([["BioTRACK plasma manifest", "", ""], ["Sample_ID", "Last Name", "MRN"],
@@ -54,6 +63,33 @@ public sealed class IdentifierCommandTests
         var found = Findings(headers, rows);
         found.ShouldContain(("ERROR", "column 2", "has values but no header"));
         found.ShouldContain(("ERROR", "column 3", "has values but no header"));
+    }
+
+    [Fact]
+    public void A_collaborators_sheet_is_checked_under_its_title_rows()
+    {
+        // The mink metadata's layout: merged group titles over the headers. The headers under them
+        // are the ones checked, so a name column under a title is caught.
+        var (headers, rows) = Sheets.SplitRows([["BioTRACK plasma manifest", "", "", "Meta Data"],
+                                                ["Sample_ID", "Last Name", "MRN", "Volume"], ["S1", "Doe", "12345678", 50.0]], titles: true);
+        headers.ShouldBe(["Sample_ID", "Last Name", "MRN", "Volume"]);
+        rows.Count.ShouldBe(1);
+        var found = Findings(headers, rows);
+        found.ShouldContain(("ERROR", "Last Name", "looks like a person's name"));
+        found.ShouldContain(("ERROR", "MRN", "looks like a medical record number"));
+    }
+
+    [Fact]
+    public void A_first_row_of_data_under_a_mostly_blank_header_row_is_not_taken_for_headers()
+    {
+        // Taken for headers, "Pat Smith" would be a header the check passes, over a column of names.
+        // Data rows hold numbers where headers hold words, and these hold none in a column of them.
+        IReadOnlyList<IReadOnlyList<object?>> words = [["Sample_ID", "", ""], ["S1", "Pat Smith", "F"], ["S2", "Lee Wong", "M"]];
+        Sheets.SplitRows(words, titles: true).Headers.ShouldBe(["Sample_ID", "", ""]);
+        IReadOnlyList<IReadOnlyList<object?>> numbers = [["Sample_ID", "", ""], ["S1", "Pat Smith", "54"], ["S2", "Lee Wong", "61"]];
+        Sheets.SplitRows(numbers, titles: true).Headers.ShouldBe(["Sample_ID", "", ""]);
+        IReadOnlyList<IReadOnlyList<object?>> mixed = [["Sample_ID", "", ""], ["S1", "Pat Smith", "F"], ["S2", "Lee Wong", "M"], ["S3", "Kim", 54.0]];
+        Sheets.SplitRows(mixed, titles: true).Headers.ShouldBe(["Sample_ID", "", ""]);
     }
 
     [Theory]

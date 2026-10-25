@@ -137,7 +137,7 @@ public sealed partial class ProjectsEngine(ProjectRepository repo)
         var name = Path.GetFileName(path);
         foreach (var (sheet, headers, rows) in sheets)
         {
-            findings.AddRange(Deidentification.SheetFindings(headers, rows, sheets.Count > 1 ? $"{name}:{sheet}" : name));
+            findings.AddRange(Deidentification.SheetFindings(headers, rows, sheets.Count > 1 ? $"{name}:{sheet}" : name, toRead: true));
             summary.Add((JsonNode)new JsonObject
             {
                 ["sheet"] = sheet, ["rows"] = rows.Count, ["columns"] = new JsonArray([.. headers.Select(h => (JsonNode?)h)]),
