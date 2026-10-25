@@ -29,9 +29,10 @@ notebooks: []
 #    url: https://panoramaweb.org/MacCoss/...
 
 # Protocols from LabOps-Protocols, each at the version used and for its step
-# (labops projects link <item> protocol <id> --version N --step STEP).
+# (labops projects link <item> protocol <id> --version N --step STEP). Deviations are what this
+# work did differently from that version, one change each (--deviation TEXT, repeated).
 protocols: []
-#  - {id: spin-trap-digestion, version: 3, title: Spin trap digestion, step: sample_prep}
+#  - {id: spin-trap-digestion, version: 3, title: Spin trap digestion, step: sample_prep, deviations: [50 µL of plasma instead of 100 µL]}
 
 # Where the project's analyses live, if not per experiment.
 analysis:

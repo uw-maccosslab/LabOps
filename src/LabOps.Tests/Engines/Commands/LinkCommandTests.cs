@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using LabOps.Core.Projects;
 using LabOps.Engines.Projects;
 using LabOps.Engines.Python;
 
@@ -174,7 +175,7 @@ public sealed class LinkCommandTests
         var answer = repo.Ok("link", projectName, "protocol", "spin-trap-digestion", "--version", "2", "--step", "sample_prep",
             "--title", "Spin trap digestion");
         ShouldBePy(FromJson(answer["project"]!["protocols"]), PyList(
-            new PyDict { ["id"] = "spin-trap-digestion", ["version"] = 2, ["title"] = "Spin trap digestion", ["step"] = "sample_prep" }));
+            new PyDict { ["id"] = "spin-trap-digestion", ["version"] = 2, ["title"] = "Spin trap digestion", ["step"] = "sample_prep", ["deviations"] = PyList() }));
         var raw = TestRepo.Raw(project);
         raw.ShouldContain("protocols:\n  - {id: spin-trap-digestion, version: 2, title: Spin trap digestion, step: sample_prep}\n",
             Case.Sensitive);
@@ -182,7 +183,7 @@ public sealed class LinkCommandTests
         // Linking it again for the same step records the newer version, keeping its title.
         answer = repo.Ok("link", projectName, "protocol", "spin-trap-digestion", "--version", "3", "--step", "sample_prep");
         ShouldBePy(FromJson(answer["project"]!["protocols"]), PyList(
-            new PyDict { ["id"] = "spin-trap-digestion", ["version"] = 3, ["title"] = "Spin trap digestion", ["step"] = "sample_prep" }));
+            new PyDict { ["id"] = "spin-trap-digestion", ["version"] = 3, ["title"] = "Spin trap digestion", ["step"] = "sample_prep", ["deviations"] = PyList() }));
         // An experiment records its own; the same protocol can be used for two steps.
         repo.Ok("link", experimentName, "protocol", "capillary-column-packing", "--version", "2", "--step", "data_acquisition");
         repo.Ok("link", projectName, "protocol", "spin-trap-digestion", "--version", "3", "--step", "plate_layout");
@@ -200,6 +201,70 @@ public sealed class LinkCommandTests
         repo.Ok("unlink", projectName, "protocol", "spin-trap-digestion", "--step", "sample_prep");
         ShouldBePy(TestRepo.Yaml(project)["protocols"], PyList());
         Error(repo.Fails("unlink", projectName, "protocol", "spin-trap-digestion", "--all")).ShouldContain("has no protocol", Case.Sensitive);
+    }
+
+    [Fact]
+    public void A_protocol_link_records_what_was_done_differently_from_its_version()
+    {
+        // Most experiments follow a version with a few small changes; they go on the link, so the
+        // protocol does not grow a version for every experiment.
+        using var repo = TestRepo.Create();
+        var project = repo.NewProject();
+        var name = Path.GetFileName(project);
+        var answer = repo.Ok("link", name, "protocol", "spin-trap-digestion", "--version", "3", "--step", "sample_prep",
+            "--deviation", "50 µL of plasma instead of 100 µL", "--deviation", "Digested 2 h, not overnight: a trial");
+        ShouldBePy(FromJson(answer["project"]!["protocols"]![0]!["deviations"]),
+            PyList("50 µL of plasma instead of 100 µL", "Digested 2 h, not overnight: a trial"));
+        TestRepo.Raw(project).ShouldContain(
+            "  - {id: spin-trap-digestion, version: 3, step: sample_prep, deviations: [50 µL of plasma instead of 100 µL, "
+            + "'Digested 2 h, not overnight: a trial']}\n", Case.Sensitive);
+        repo.Problems().ShouldBeEmpty();
+
+        // Recording a newer version keeps them; --deviation replaces them; --no-deviations clears them.
+        repo.Ok("link", name, "protocol", "spin-trap-digestion", "--version", "4", "--step", "sample_prep");
+        ShouldBePy(((PyDict)Items(TestRepo.Yaml(project)["protocols"])[0]!)["deviations"],
+            PyList("50 µL of plasma instead of 100 µL", "Digested 2 h, not overnight: a trial"));
+        repo.Ok("link", name, "protocol", "spin-trap-digestion", "--version", "4", "--step", "sample_prep", "--deviation", "  One change  ");
+        ShouldBePy(((PyDict)Items(TestRepo.Yaml(project)["protocols"])[0]!)["deviations"], PyList("One change"));
+        repo.Ok("link", name, "protocol", "spin-trap-digestion", "--version", "4", "--step", "sample_prep", "--no-deviations");
+        TestRepo.Raw(project).ShouldContain("\n  - {id: spin-trap-digestion, version: 4, step: sample_prep}\n", Case.Sensitive);
+
+        // The wiki page shows them to the collaborators, so no contact details.
+        Error(repo.Fails("link", name, "protocol", "spin-trap-digestion", "--version", "4", "--step", "sample_prep",
+            "--deviation", "ask pat@example.org")).ShouldContain("a deviation has an email address", Case.Sensitive);
+    }
+
+    [Fact]
+    public void Check_warns_about_deviations_that_are_not_a_list_of_sentences()
+    {
+        using var repo = TestRepo.Create();
+        var project = repo.NewProject();
+        TestRepo.WriteRaw(project, TestRepo.Raw(project).Replace("protocols: []",
+            "protocols:\n  - {id: spin-trap-digestion, version: 1, deviations: {volume: 50}}", StringComparison.Ordinal));
+        repo.Problems().ShouldContain(p => p.Level == "WARN" && p.Message.Contains("deviations should be a list", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Uses_lists_every_link_to_a_protocol_closed_projects_too()
+    {
+        using var repo = TestRepo.Create();
+        var experiment = repo.NewExperiment();
+        var project = Path.GetDirectoryName(experiment)!;
+        var (experimentName, projectName) = (Path.GetFileName(experiment), Path.GetFileName(project));
+        repo.Ok("link", projectName, "protocol", "spin-trap-digestion", "--version", "2", "--step", "sample_prep", "--deviation", "Half volume");
+        repo.Ok("link", experimentName, "protocol", "spin-trap-digestion", "--version", "3");
+        repo.Ok("link", experimentName, "protocol", "capillary-column-packing", "--version", "1", "--step", "data_acquisition");
+        TestRepo.WriteRaw(project, TestRepo.Raw(project).Replace("status: active", "status: closed", StringComparison.Ordinal));
+
+        // Read the way the Protocols area reads it.
+        using var doc = ProjectEngine.Answer(repo.Ok("uses", "spin-trap-digestion").ToJsonString());
+        var uses = ProjectEngine.ReadUses(doc.RootElement);
+        uses.Select(u => u.Text).ShouldBe([$"{projectName}, Sample prep: version 2, with 1 change (closed)", $"{experimentName}: version 3"],
+            ignoreOrder: true);
+        uses.Single(u => u.Experiment is null).Detail.ShouldBe("Changed: Half volume");
+        uses.Single(u => u.Experiment is not null).Project.ShouldBe(projectName);
+        ((JsonArray)repo.Ok("uses")["uses"]!).Count.ShouldBe(3);
+        ((JsonArray)repo.Ok("uses", "s-trap-micro-digestion")["uses"]!).ShouldBeEmpty();
     }
 
     [Fact]

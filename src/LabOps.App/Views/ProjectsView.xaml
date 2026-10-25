@@ -54,7 +54,9 @@
 
         <!-- A link (a button) or, without a URL, plain text -->
         <DataTemplate x:Key="LinkTemplate">
-            <StackPanel Orientation="Horizontal" Margin="0,0,0,3">
+            <StackPanel Margin="0,0,0,3">
+            <!-- Wraps, so a protocol's long title does not push Remove and Edit out of view -->
+            <WrapPanel>
                 <Grid>
                     <Button Style="{StaticResource LinkButton}" Content="{Binding Label}" CommandParameter="{Binding}"
                             Command="{Binding DataContext.OpenLinkCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -67,6 +69,14 @@
                         Command="{Binding DataContext.RemoveLinkCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                         Visibility="{Binding CanRemove, Converter={StaticResource BoolToVisibility}}"
                         ToolTip="Stop listing this here. Nothing changes on Panorama." />
+                <Button Style="{StaticResource LinkButton}" Content="Edit" CommandParameter="{Binding Edit}" Margin="10,0,0,0"
+                        Foreground="{StaticResource MutedBrush}" FontSize="11" VerticalAlignment="Center"
+                        Command="{Binding DataContext.AddProtocolCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                        Visibility="{Binding CanEdit, Converter={StaticResource BoolToVisibility}}"
+                        ToolTip="Change the version recorded, or what this work did differently from it." />
+            </WrapPanel>
+            <TextBlock Text="{Binding Detail}" Style="{StaticResource Muted}" FontSize="11" TextWrapping="Wrap" MaxWidth="520"
+                       HorizontalAlignment="Left" Margin="0,1,0,0" Visibility="{Binding Detail, Converter={StaticResource NullToVisibility}}" />
             </StackPanel>
         </DataTemplate>
 

@@ -71,6 +71,24 @@ public sealed class ProtocolRow : ObservableObject
     /// <summary>When the current version was published.</summary>
     public string Published => Protocol.LatestDate ?? "";
 
+    private int _usedBy;
+
+    /// <summary>How many projects and experiments record following it, at any version.</summary>
+    public int UsedBy
+    {
+        get => _usedBy;
+        set
+        {
+            if (SetProperty(ref _usedBy, value))
+            {
+                OnPropertyChanged(nameof(UsedByText));
+            }
+        }
+    }
+
+    /// <summary>The count for the list, blank for none.</summary>
+    public string UsedByText => UsedBy == 0 ? "" : UsedBy.ToString(System.Globalization.CultureInfo.CurrentCulture);
+
     public string Status => Protocol.Status ?? "";
 
     public bool IsRetired => Protocol.IsRetired;

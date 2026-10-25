@@ -144,10 +144,45 @@ public sealed record AnalysisLocation(string? Repo, string? Folder);
 /// <param name="Version">The published version followed; null when it was not recorded.</param>
 /// <param name="Title">Its title, as recorded when it was linked.</param>
 /// <param name="Step">The step's id; null when it belongs to the item as a whole.</param>
-public sealed record ProtocolLink(string? Id, int? Version, string? Title, string? Step)
+/// <param name="Deviations">What this work did differently from that version, one change each.</param>
+public sealed record ProtocolLink(string? Id, int? Version, string? Title, string? Step, IReadOnlyList<string>? Deviations = null)
 {
-    /// <summary>"Spin trap digestion, version 3".</summary>
-    public string Text => $"{(string.IsNullOrWhiteSpace(Title) ? Id : Title)}{(Version is { } v ? $", version {v}" : "")}";
+    public IReadOnlyList<string> Changes => Deviations ?? [];
+
+    /// <summary>"Spin trap digestion, version 3", and "with 2 changes" when there are any.</summary>
+    public string Text => $"{(string.IsNullOrWhiteSpace(Title) ? Id : Title)}{(Version is { } v ? $", version {v}" : "")}"
+                          + ProtocolUse.ChangesText(Changes.Count);
+}
+
+/// <summary>Where a protocol was followed: one link to it from a project's or an experiment's step.</summary>
+/// <param name="Protocol">The protocol's ID.</param>
+/// <param name="Version">The version followed; null when it was not recorded.</param>
+/// <param name="Project">The project, or the project the experiment belongs to.</param>
+/// <param name="Experiment">The experiment; null for the project's own sample steps.</param>
+/// <param name="Title">The project's or experiment's title.</param>
+/// <param name="Status">active, on_hold or closed.</param>
+/// <param name="StepLabel">The step as people read it, for example Sample prep; null for the item as a whole.</param>
+/// <param name="Deviations">What was done differently from that version.</param>
+public sealed record ProtocolUse(
+    string Protocol, int? Version, string Project, string? Experiment, string? Title, string? Status, string? Step, string? StepLabel,
+    IReadOnlyList<string>? Deviations = null)
+{
+    public IReadOnlyList<string> Changes => Deviations ?? [];
+
+    /// <summary>The project or experiment, by name.</summary>
+    public string Item => Experiment ?? Project;
+
+    public bool IsClosed => Status == "closed";
+
+    /// <summary>"Changed: 50 µL of plasma instead of 100 µL; ..."; null when the version was followed as written.</summary>
+    public string? Detail => Changes.Count == 0 ? null : $"Changed: {string.Join("; ", Changes)}";
+
+    /// <summary>"CZBG-Mink-EV, Sample prep: version 3, with 2 changes".</summary>
+    public string Text => $"{Item}{(StepLabel is null ? "" : $", {StepLabel}")}: {(Version is { } v ? $"version {v}" : "version not recorded")}"
+                          + ChangesText(Changes.Count) + (IsClosed ? " (closed)" : "");
+
+    /// <summary>", with 1 change" or ", with 3 changes"; empty for none.</summary>
+    public static string ChangesText(int count) => count switch { 0 => "", 1 => ", with 1 change", _ => $", with {count} changes" };
 }
 
 /// <summary>The plate layout imported from Octopus.</summary>

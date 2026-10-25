@@ -468,7 +468,7 @@ public sealed partial class ProjectsViewModel : ObservableObject
         foreach (var link in protocols.Where(l => !string.IsNullOrWhiteSpace(l.Id)))
         {
             section.PlaceOnStep(new LinkItem($"Protocol: {link.Text}", LinkItem.ProtocolUrl(link.Id!, link.Version),
-                section.Item, "protocol", link.Id, folder, link.Step), link.Step);
+                section.Item, "protocol", link.Id, folder, link.Step, new ProtocolRequest(section, link.Step, link)), link.Step);
         }
 
         var home = section.Home(StepHomes.Protocol);
@@ -771,12 +771,13 @@ public sealed partial class ProjectsViewModel : ObservableObject
             return;
         }
 
-        // Start from what the step records now, so recording a newer version is one click.
+        // Start from the link being edited, else what the step records now, so recording a newer
+        // version is one click and keeps the changes recorded with it.
         var step = request.Section.Stages.FirstOrDefault(s => s.Stage == request.Step);
-        var current = LinkItem.ParseProtocolUrl((step?.Links ?? request.Section.Links).FirstOrDefault(l => l.What == "protocol")?.Url);
+        var current = request.Current ?? (step?.Links ?? request.Section.Links).FirstOrDefault(l => l.What == "protocol")?.Edit?.Current;
         var answer = ChooseProtocolWindow.Ask(Application.Current.MainWindow,
             $"Protocol for {(step is null ? Where(request.Section) : $"{step.Label}: {Where(request.Section)}")}", protocols,
-            current?.Id, current?.Version);
+            current?.Id, current?.Version, current?.Changes);
         if (answer is null)
         {
             return;
@@ -786,9 +787,9 @@ public sealed partial class ProjectsViewModel : ObservableObject
         await _work.RunAsync("Recording the protocol...", async () =>
         {
             await PullFirstAsync().ConfigureAwait(true);
-            await _engine.LinkProtocolAsync(item, p.Id, answer.Version, request.Step, p.Title).ConfigureAwait(true);
+            await _engine.LinkProtocolAsync(item, p.Id, answer.Version, request.Step, p.Title, answer.Deviations).ConfigureAwait(true);
             await SaveAsync([folder], $"{item}: protocol {p.Id} version {answer.Version}"
-                + (step is null ? "" : $" for {step.Label.ToLowerInvariant()}")).ConfigureAwait(true);
+                + (step is null ? "" : $" for {step.Label.ToLowerInvariant()}") + ProtocolUse.ChangesText(answer.Deviations.Count)).ConfigureAwait(true);
         }).ConfigureAwait(true);
         await ReloadAsync(project).ConfigureAwait(true);
     }

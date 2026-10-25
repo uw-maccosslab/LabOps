@@ -141,7 +141,10 @@ dotnet test --project src/LabOps.Tests/LabOps.Tests.csproj
   of `%LOCALAPPDATA%\LabOps`. Put a `settings.json` with `ProjectsRepositoryPath` (and
   `RepositoryPath` for quotes) pointing at scratch clones there to try the app without touching
   your own setup. It runs beside your installed copy: the single-instance lock is per data folder. A scratch clone still
-  pushes to GitHub; repoint its `origin` to a local bare repository for anything that saves.
+  pushes to GitHub; repoint its `origin` to a local bare repository for anything that saves. It also
+  publishes to Panorama with your sign-in: startup updates the lab dashboard, and saving a change to
+  a project with a wiki page updates that page. Set `LABOPS_PANORAMA` to a stand-in as well. A
+  Debug build finds uv and gh on PATH (an installed copy carries its own in `tools/`).
 - `LABOPS_PANORAMA=<server>` points Panorama browsing at another server, for example a local
   stand-in; sign-ins are kept per server, so a test server never sees the real one's.
 - Screenshot the running app with `PrintWindow(hwnd, hdc, PW_RENDERFULLCONTENT)`; a plain screen

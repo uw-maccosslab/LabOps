@@ -294,6 +294,14 @@ public static partial class Validation
                 output.Add(("WARN", $"protocol {PyText.Str(p.Id)}: there is no step {PyText.ReprString(p.Step)}"));
             }
         }
+
+        foreach (var e in Values.ListOf(d, "protocols", Values.ProtocolFields))
+        {
+            if (e["deviations"] is not (null or List<object?>) || (e["deviations"] is List<object?> list && list.Any(v => v is PyDict or List<object?>)))
+            {
+                output.Add(("WARN", $"protocol {PyText.Str(e["id"])}: deviations should be a list of short sentences, one change each"));
+            }
+        }
     }
 
     /// <summary>lab.yaml's own rules: what the file says, and its folder's name.</summary>

@@ -296,6 +296,11 @@ public sealed partial class WikiCommandTests
         words.ShouldContain("capillary-column-packing version 2 Data acquisition, Test experiment", Case.Sensitive);
         words.ShouldContain("Data on Panorama", Case.Sensitive);
         words.IndexOf("Protocols Protocol", StringComparison.Ordinal).ShouldBeLessThan(words.IndexOf("Data on Panorama", StringComparison.Ordinal));
+
+        // What the work did differently from the version is under its title.
+        repo.Ok("link", "Otter-Plasma", "protocol", "bead-ev-capture-digestion", "--version", "3", "--step", "sample_prep",
+            "--deviation", "50 µL of plasma", "--deviation", "Digested 2 h");
+        Text(Str(Page(repo)["html"])).ShouldContain("Bead EV capture and digestion Changed: 50 µL of plasma; Digested 2 h version 3", Case.Sensitive);
     }
 
     [Fact]

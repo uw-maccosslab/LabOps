@@ -222,7 +222,8 @@ flowchart LR
 | New protocol (from a file), Update from a file | `protocol.py import <file>`, then Claude (format-protocol, revise-protocol) | `<id>: added with Claude` |
 | Publish version N | `protocol.py publish <id> --summary ... --by <login>` | `<id>: version N` |
 | Retire, Make active | `protocol.py status <id> retired\|active` | `<id>: retired` |
-| Add protocol (on a step) | `labops projects link <item> protocol <id> --version N --step <step>` | `<item>: protocol <id> version N for <step>` |
+| Add protocol, Edit (on a step) | `labops projects link <item> protocol <id> --version N --step <step> [--deviation TEXT ...\| --no-deviations]` | `<item>: protocol <id> version N for <step>[, with N changes]` |
+| Used by (Protocols area) | `labops projects uses` | nothing |
 | Every commit in LabOps-Protocols | `protocol.py check --staged` | refuses a change to a published version |
 | Send, PO received, Invoiced, Declined | `quote.py send`, `quote.py status` | `<number>: sent` |
 | Make a revision | `quote.py revise` | `<revision>: revision of <number>` |

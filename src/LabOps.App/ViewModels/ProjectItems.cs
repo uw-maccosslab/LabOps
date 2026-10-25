@@ -278,7 +278,8 @@ public sealed record LinkRequest(TimelineSection Section, string Kind);
 
 /// <summary>What Add protocol records a protocol for: a timeline, and the step that followed it.</summary>
 /// <param name="Step">The step's id; null for the timeline as a whole.</param>
-public sealed record ProtocolRequest(TimelineSection Section, string? Step);
+/// <param name="Current">The link being edited, with its version and changes; null to add one.</param>
+public sealed record ProtocolRequest(TimelineSection Section, string? Step, ProtocolLink? Current = null);
 
 /// <summary>One step of a timeline, with the buttons that apply to it.</summary>
 public sealed class StageRowViewModel(TimelineSection section, StageEntry entry, bool isCurrent)
@@ -491,9 +492,16 @@ public sealed class BatchGroupRowViewModel
 /// <param name="Value">What unlink takes: the folder, the notebook's ID or link, or the protocol's ID.</param>
 /// <param name="Folder">The folder to save after removing it.</param>
 /// <param name="Step">For a protocol: the step it is recorded for.</param>
+/// <param name="Edit">For a protocol: what its Edit button opens, the link with its version and changes.</param>
 public sealed record LinkItem(
-    string Label, string? Url, string? Item = null, string? What = null, string? Value = null, string? Folder = null, string? Step = null)
+    string Label, string? Url, string? Item = null, string? What = null, string? Value = null, string? Folder = null, string? Step = null,
+    ProtocolRequest? Edit = null)
 {
+    /// <summary>For a protocol: what this work did differently from the version, under the link.</summary>
+    public string? Detail => Edit?.Current is { Changes.Count: > 0 } link ? $"Changed: {string.Join("; ", link.Changes)}" : null;
+
+    public bool CanEdit => Edit is not null;
+
     /// <summary>The address of a protocol version in the app's own Protocols area.</summary>
     public const string ProtocolScheme = "labops-protocol:";
 

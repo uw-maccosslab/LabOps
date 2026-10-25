@@ -83,6 +83,11 @@ public sealed partial class MainViewModel : ObservableObject
             Area = AppArea.Protocols;
             await Protocols.ShowAsync(id, version).ConfigureAwait(true);
         });
+        Protocols.ProjectRequested += item =>
+        {
+            Area = AppArea.Projects;
+            Projects.ShowItem(item);
+        };
 
         // The chat says so when the person looks at something other than what it is about.
         PropertyChanged += (_, e) =>
@@ -90,6 +95,12 @@ public sealed partial class MainViewModel : ObservableObject
             if (e.PropertyName is nameof(Area) or nameof(Selected))
             {
                 CheckConversation();
+            }
+
+            // A step may have recorded a protocol since the area was last open.
+            if (e.PropertyName is nameof(Area) && Area == AppArea.Protocols)
+            {
+                _ = Protocols.RefreshUsesAsync();
             }
         };
         Projects.PropertyChanged += (_, e) =>
@@ -527,6 +538,7 @@ public sealed partial class MainViewModel : ObservableObject
         {
             case RepositoryKind.Projects:
                 await Projects.ReloadAsync().ConfigureAwait(true);
+                await Protocols.RefreshUsesAsync().ConfigureAwait(true);
                 ShowTooOld();
                 break;
             case RepositoryKind.Protocols:

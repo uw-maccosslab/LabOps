@@ -592,7 +592,10 @@ public static partial class WikiPage
                 var step = labels.TryGetValue(x.Step ?? "", out var l) ? l : x.Step;
                 var used = string.Join(", ", new[] { step, group == "Samples" ? null : group }.Where(v => !string.IsNullOrEmpty(v)));
                 var version = x.Version is not null && PyText.Truthy(x.Version) ? $"version {PyText.Str(x.Version)}" : "";
-                protocolRows.Add($"<tr><td style=\"{S["td"]};font-weight:500\">{Esc(x.Title ?? x.Id)}</td>"
+                // What this work did differently from the version, under its title.
+                var changes = x.Deviations.Count == 0 ? ""
+                    : $"<div style=\"font-weight:400;font-size:12px;margin-top:2px\">Changed: {Escape(string.Join("; ", x.Deviations))}</div>";
+                protocolRows.Add($"<tr><td style=\"{S["td"]};font-weight:500\">{Esc(x.Title ?? x.Id)}{changes}</td>"
                                  + $"<td style=\"{S["td"]};white-space:nowrap\">{Escape(version)}</td>"
                                  + $"<td style=\"{S["td"]}\">{Escape(used)}</td></tr>");
             }

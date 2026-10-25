@@ -78,6 +78,61 @@ public sealed partial class ProjectsEngine(ProjectRepository repo)
         return new CommandResult(payload, lines);
     }
 
+    /// <summary>
+    /// uses [protocol]: every link to a protocol (or to every protocol) from every project and
+    /// experiment, closed ones too, for LabOps-Protocols to say where each was followed. It reads
+    /// the records only: list checks and summarizes everything, which this does not need.
+    /// </summary>
+    public CommandResult Uses(string? protocol = null)
+    {
+        var uses = new JsonArray();
+        var lines = new List<string>();
+        void Add(PyDict record, string project, string? experiment)
+        {
+            var labels = Steps.Read(record).Where(s => !Steps.IsInvalid(s)).ToDictionary(s => PyText.Str(s["id"]), Steps.Label, StringComparer.Ordinal);
+            foreach (var p in Values.Protocols(record).Where(p => p.Id is not null && (protocol is null || p.Id == protocol)))
+            {
+                var stepLabel = p.Step is not null && labels.TryGetValue(p.Step, out var label) ? label : p.Step;
+                uses.Add((JsonNode)new JsonObject
+                {
+                    ["protocol"] = p.Id, ["version"] = Values.JsonInt(p.Version), ["project"] = project, ["experiment"] = Values.Json(experiment),
+                    ["title"] = Values.Json(Values.Text(record["title"])), ["status"] = Values.Json(Values.Text(record["status"])),
+                    ["step"] = Values.Json(p.Step), ["step_label"] = Values.Json(stepLabel),
+                    ["deviations"] = new JsonArray([.. p.Deviations.Select(s => (JsonNode?)s)]),
+                });
+                lines.Add($"{p.Id} v{PyText.Str(p.Version)}: {experiment ?? project}" + (stepLabel is null ? "" : $", {stepLabel}")
+                          + (p.Deviations.Count > 0 ? $" ({p.Deviations.Count} deviation(s))" : ""));
+            }
+        }
+
+        foreach (var lf in Repository.LabFiles())
+        {
+            foreach (var pf in ProjectRepository.Records(Path.GetDirectoryName(lf)!, 1, "project.yaml"))
+            {
+                var project = Path.GetFileName(Path.GetDirectoryName(pf)!);
+                if (Summaries.LoadRecord(pf) is (var p, null))
+                {
+                    Add(p, project, null);
+                }
+
+                foreach (var ef in ProjectRepository.Records(Path.GetDirectoryName(pf)!, 1, "experiment.yaml"))
+                {
+                    if (Summaries.LoadRecord(ef) is (var e, null))
+                    {
+                        Add(e, project, Path.GetFileName(Path.GetDirectoryName(ef)!));
+                    }
+                }
+            }
+        }
+
+        if (lines.Count == 0)
+        {
+            lines.Add(protocol is null ? "no project records a protocol" : $"no project records {protocol}");
+        }
+
+        return new CommandResult(new JsonObject { ["ok"] = true, ["uses"] = uses }, lines);
+    }
+
     /// <summary>check [--staged]: validate everything, or (the pre-commit check) every staged file.</summary>
     public CommandResult Check(bool staged = false)
     {

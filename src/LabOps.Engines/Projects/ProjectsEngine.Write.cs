@@ -17,8 +17,10 @@ public sealed record NewExperimentOptions(
     IReadOnlyList<string>? WithSteps = null, string? LabContact = null);
 
 /// <summary>What link takes: the value, and the options of its kind of link.</summary>
+/// <param name="Deviations">For a protocol: what was done differently from the version, replacing what the link records; null keeps it, empty clears it.</param>
 public sealed record LinkOptions(
-    string? Value, string? Kind = null, string? Id = null, string? Page = null, long? Version = null, string? Step = null, string? Title = null);
+    string? Value, string? Kind = null, string? Id = null, string? Page = null, long? Version = null, string? Step = null, string? Title = null,
+    IReadOnlyList<string>? Deviations = null);
 
 // The commands that change records. Each edits the record's text line by line (keeping its
 // comments), writes it, and answers with the item's summary as list gives it.
@@ -796,7 +798,19 @@ public sealed partial class ProjectsEngine
             RefuseContactDetails(PyText.Str(title), "the title");
         }
 
-        var entry = new PyDict { ["id"] = pid, ["version"] = o.Version.Value, ["title"] = title, ["step"] = step };
+        // The deviations given, else the ones recorded before: what was done differently does not
+        // go away because the title or version was corrected.
+        var deviations = o.Deviations is { } listed ? Values.Deviations(new List<object?>(listed)) : Values.Deviations(found?["deviations"]);
+        foreach (var deviation in deviations)
+        {
+            RefuseContactDetails(deviation, "a deviation");
+        }
+
+        var entry = new PyDict
+        {
+            ["id"] = pid, ["version"] = o.Version.Value, ["title"] = title, ["step"] = step,
+            ["deviations"] = deviations.Count > 0 ? new List<object?>(deviations) : null,
+        };
         if (found is not null)
         {
             foreach (var key in found.Keys.ToList())
@@ -815,7 +829,8 @@ public sealed partial class ProjectsEngine
         }
 
         YamlText.WriteText(path, RecordEdits.SetList(raw, "protocols", items, Links.ProtocolComment));
-        return Report(kind, folder, path, $"{name}: protocol {pid} version {o.Version.Value}" + (step is not null ? $" for {step}" : ""));
+        return Report(kind, folder, path, $"{name}: protocol {pid} version {o.Version.Value}" + (step is not null ? $" for {step}" : "")
+                                          + (deviations.Count > 0 ? $", with {deviations.Count} deviation(s)" : ""));
     }
 
     /// <summary>unlink &lt;item&gt; panorama|notebook|wiki|protocol [value] [--step STEP | --all].</summary>

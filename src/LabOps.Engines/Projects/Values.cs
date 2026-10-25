@@ -72,11 +72,21 @@ public static class Values
     public static List<PyDict> ListOf(PyDict d, string key, string[] fields) =>
         d[key] is List<object?> items ? [.. items.Where(i => i is not null).Select(i => Entry(i, fields))] : [];
 
-    public sealed record Protocol(string? Id, object? Version, string? Title, string? Step);
+    /// <summary>A protocol an item used. Deviations are what this item did differently from that version.</summary>
+    public sealed record Protocol(string? Id, object? Version, string? Title, string? Step, List<string> Deviations);
 
     /// <summary>_protocols_json: the protocols an item used, each at its version and for one of its steps.</summary>
     public static List<Protocol> Protocols(PyDict d) =>
-        [.. ListOf(d, "protocols", ProtocolFields).Select(e => new Protocol(Text(e["id"]), Int(e["version"]), Text(e["title"]), Text(e["step"])))];
+        [.. ListOf(d, "protocols", ProtocolFields).Select(e => new Protocol(Text(e["id"]), Int(e["version"]), Text(e["title"]), Text(e["step"]),
+            Deviations(e["deviations"])))];
+
+    /// <summary>
+    /// A link's deviations as text: a list's items, or one written on its own. An experiment usually
+    /// follows a published version with a few small changes; recording them on the link keeps the
+    /// protocol from growing a version for every experiment.
+    /// </summary>
+    public static List<string> Deviations(object? v) =>
+        [.. (v is List<object?> list ? list : v is null ? [] : [v]).Select(Text).OfType<string>().Select(Py.Strip).Where(s => s.Length > 0)];
 
     public sealed record Funding(string? Type, List<string> Quotes, string? Grant);
 
@@ -115,6 +125,7 @@ public static class Values
         [.. protocols.Select(p => (JsonNode?)new JsonObject
         {
             ["id"] = Json(p.Id), ["version"] = JsonInt(p.Version), ["title"] = Json(p.Title), ["step"] = Json(p.Step),
+            ["deviations"] = new JsonArray([.. p.Deviations.Select(s => (JsonNode?)s)]),
         })];
 
     /// <summary>_analysis_json.</summary>

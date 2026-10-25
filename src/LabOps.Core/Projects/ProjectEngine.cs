@@ -176,8 +176,10 @@ public sealed class ProjectEngine : IPreCommitCheck
     /// <param name="version">The published version followed.</param>
     /// <param name="step">The step's id, or null for the item as a whole.</param>
     /// <param name="title">The protocol's title, shown on the wiki page.</param>
+    /// <param name="deviations">What was done differently from that version, replacing what was recorded; null keeps it, empty clears it.</param>
     public async Task LinkProtocolAsync(
-        string item, string protocol, int version, string? step, string? title, CancellationToken cancellationToken = default)
+        string item, string protocol, int version, string? step, string? title, IReadOnlyList<string>? deviations = null,
+        CancellationToken cancellationToken = default)
     {
         var args = new List<string> { "link", item, "protocol", protocol, "--version", version.ToString(System.Globalization.CultureInfo.InvariantCulture) };
         if (!string.IsNullOrWhiteSpace(step))
@@ -190,8 +192,28 @@ public sealed class ProjectEngine : IPreCommitCheck
             args.AddRange(["--title", title.Trim()]);
         }
 
+        if (deviations is not null)
+        {
+            var given = deviations.Select(d => d.Trim()).Where(d => d.Length > 0).ToList();
+            args.AddRange(given.Count == 0 ? ["--no-deviations"] : given.SelectMany(d => new[] { "--deviation", d }));
+        }
+
         using var doc = await RunAsync(args, cancellationToken).ConfigureAwait(false);
     }
+
+    /// <summary>
+    /// Every link to a protocol from every project and experiment, closed ones too: where each
+    /// protocol was followed, at which version, and with what changes.
+    /// </summary>
+    public async Task<IReadOnlyList<ProtocolUse>> ProtocolUsesAsync(CancellationToken cancellationToken = default)
+    {
+        using var doc = await RunAsync(["uses"], cancellationToken).ConfigureAwait(false);
+        return ReadUses(doc.RootElement);
+    }
+
+    internal static IReadOnlyList<ProtocolUse> ReadUses(JsonElement root) =>
+        EngineJson.Read(Name, m => new EngineException(m), () =>
+            root.TryGetProperty("uses", out var uses) ? uses.Deserialize<List<ProtocolUse>>(EngineJson.Options) ?? [] : []);
 
     /// <summary>Removes a Panorama folder, a notebook or a protocol.</summary>
     /// <param name="what">panorama, notebook or protocol.</param>

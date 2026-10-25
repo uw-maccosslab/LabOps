@@ -249,13 +249,19 @@ sequenceDiagram
     You->>App: review it (Ask Claude to change it), then Publish version 1
     App->>Engine: publish: versions/v1.md, its fingerprint, the summary
     App->>App: check --staged, commit, push
-    You->>App: Add protocol, on a project's Sample prep
-    App->>Projects: link <project> protocol <id> --version 1 --step sample_prep
-    Note over App,Projects: the step shows "Protocol: ..., version 1", and clicking it opens that version
+    You->>App: Add protocol, on a project's Sample prep, with any changes from that version
+    App->>Projects: link <project> protocol <id> --version 1 --step sample_prep [--deviation ...]
+    Note over App,Projects: the step shows "Protocol: ..., version 1" and what was changed, and clicking it opens that version
+    You->>App: the Protocols area, the protocol selected
+    App->>Projects: uses
+    Note over App,Projects: Used by lists every project and experiment that followed it, at which version, with what changes
 ```
 
 A later change goes in the draft, never in a published version: Publish makes version 2, and a
-project that recorded version 1 still opens exactly what it followed. The pre-commit check and the
+project that recorded version 1 still opens exactly what it followed. A small change one
+experiment made (half the plasma, a shorter digestion) is recorded on its link as a deviation
+rather than published as a version, so the protocol keeps a few versions instead of one per
+experiment; a change that keeps coming back belongs in the next version. The pre-commit check and the
 `check` workflow refuse any change to a published version.
 
 ## First-run setup

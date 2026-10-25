@@ -32,6 +32,7 @@ public sealed partial class ProtocolsViewModel : ObservableObject
 
     private readonly Workspace _workspace;
     private readonly ProtocolEngine _engine;
+    private readonly ProjectEngine _projects;
     private readonly WorkTracker _work;
     private readonly AppPaths _paths;
     private readonly ILogger<ProtocolsViewModel> _log;
@@ -46,12 +47,16 @@ public sealed partial class ProtocolsViewModel : ObservableObject
     private bool _settingVersions;
     // The version to show when a reload selects the protocol again.
     private VersionChoice? _restoreVersion;
+    // Where each protocol was followed, from the projects' records.
+    private ILookup<string, ProtocolUse> _uses = Array.Empty<ProtocolUse>().ToLookup(u => u.Protocol, StringComparer.Ordinal);
 
     public ProtocolsViewModel(
-        Workspace workspace, ProtocolEngine engine, WorkTracker work, ChatViewModel chat, AppPaths paths, ILogger<ProtocolsViewModel> log)
+        Workspace workspace, ProtocolEngine engine, ProjectEngine projects, WorkTracker work, ChatViewModel chat, AppPaths paths,
+        ILogger<ProtocolsViewModel> log)
     {
         _workspace = workspace;
         _engine = engine;
+        _projects = projects;
         _work = work;
         _paths = paths;
         _log = log;
@@ -62,6 +67,9 @@ public sealed partial class ProtocolsViewModel : ObservableObject
     }
 
     public ChatViewModel Chat { get; }
+
+    /// <summary>Someone opened a project or experiment that followed the protocol: show it in the Projects area.</summary>
+    public event Action<string>? ProjectRequested;
 
     public ObservableCollection<ProtocolRow> Protocols { get; } = [];
 
@@ -78,7 +86,7 @@ public sealed partial class ProtocolsViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasSelection), nameof(SelectedTitle), nameof(SelectedDetail), nameof(SelectedIssues),
-        nameof(IsRetiredSelected), nameof(PublishText))]
+        nameof(IsRetiredSelected), nameof(PublishText), nameof(SelectedUses), nameof(UsesHeading))]
     public partial ProtocolRow? Selected { get; set; }
 
     [ObservableProperty] public partial VersionChoice? SelectedVersion { get; set; }
@@ -133,6 +141,23 @@ public sealed partial class ProtocolsViewModel : ObservableObject
     }
 
     public IReadOnlyList<string> SelectedIssues => Selected is null ? [] : [.. Selected.Protocol.Issues.Select(i => i.ToString())];
+
+    /// <summary>
+    /// The projects and experiments that record following the selected protocol, open ones first,
+    /// newest version first, so a mistake found in a version shows at once whose work used it.
+    /// </summary>
+    public IReadOnlyList<ProtocolUse> SelectedUses => Selected is null ? [] :
+        [.. _uses[Selected.Id].OrderBy(u => u.IsClosed).ThenByDescending(u => u.Version ?? 0)
+            .ThenBy(u => u.Item, StringComparer.CurrentCultureIgnoreCase)];
+
+    /// <summary>"Used by 3 projects and experiments", or why there is no list.</summary>
+    public string UsesHeading => _workspace.Projects is null ? "The lab projects are not on this computer, so where it was used is not shown."
+        : SelectedUses.Select(u => u.Item).Distinct(StringComparer.Ordinal).Count() switch
+        {
+            0 => "No project or experiment records following it yet.",
+            1 => "Used by 1 project or experiment:",
+            var n => $"Used by {n} projects and experiments:",
+        };
 
     private Repository? Repository => _workspace.Protocols;
 
@@ -229,7 +254,55 @@ public sealed partial class ProtocolsViewModel : ObservableObject
             }
         }
 
+        ShowUses();
         RefreshCommands();
+        await RefreshUsesAsync().ConfigureAwait(true);
+    }
+
+    /// <summary>
+    /// Re-reads where each protocol was followed from the projects' records: after either
+    /// repository changes, and when the area is opened, since a project's step may have recorded one
+    /// meanwhile. Without the lab projects on this computer the list is empty and says why.
+    /// </summary>
+    public async Task RefreshUsesAsync()
+    {
+        IReadOnlyList<ProtocolUse> uses = [];
+        if (_workspace.Projects is not null)
+        {
+            try
+            {
+                uses = await _projects.ProtocolUsesAsync().ConfigureAwait(true);
+            }
+            catch (Exception ex) when (ex is EngineException or ToolMissingException)
+            {
+                // The Projects area reports a repository it cannot read; here the list just stays empty.
+                _log.LogWarning("Could not read where the protocols were used: {Error}", ex.Message);
+            }
+        }
+
+        _uses = uses.ToLookup(u => u.Protocol, StringComparer.Ordinal);
+        ShowUses();
+    }
+
+    private void ShowUses()
+    {
+        foreach (var row in _all)
+        {
+            row.UsedBy = _uses[row.Id].Select(u => u.Item).Distinct(StringComparer.Ordinal).Count();
+        }
+
+        OnPropertyChanged(nameof(SelectedUses));
+        OnPropertyChanged(nameof(UsesHeading));
+    }
+
+    /// <summary>Opens a project or experiment that followed the protocol, in the Projects area.</summary>
+    [RelayCommand]
+    private void OpenUse(ProtocolUse? use)
+    {
+        if (use is not null)
+        {
+            ProjectRequested?.Invoke(use.Item);
+        }
     }
 
     /// <summary>Shows a protocol at a version, for example one a project's step links to.</summary>
@@ -298,7 +371,7 @@ public sealed partial class ProtocolsViewModel : ObservableObject
     private void ShowSelectedDetails()
     {
         foreach (var name in new[] { nameof(SelectedTitle), nameof(SelectedDetail), nameof(SelectedIssues), nameof(IsRetiredSelected),
-                     nameof(PublishText), nameof(HasSelection) })
+                     nameof(PublishText), nameof(HasSelection), nameof(SelectedUses), nameof(UsesHeading) })
         {
             OnPropertyChanged(name);
         }

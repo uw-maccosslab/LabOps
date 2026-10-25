@@ -55,6 +55,7 @@
                                 <GridViewColumn Header="Version" Width="75" DisplayMemberBinding="{Binding Version}" app:GridViewSort.Property="VersionRank" />
                                 <GridViewColumn Header="Published" Width="80" DisplayMemberBinding="{Binding Published}" app:GridViewSort.Property="Published" />
                                 <GridViewColumn Header="Owner" Width="110" DisplayMemberBinding="{Binding OwnerName}" app:GridViewSort.Property="OwnerName" />
+                                <GridViewColumn Header="Used by" Width="65" DisplayMemberBinding="{Binding UsedByText}" app:GridViewSort.Property="UsedBy" />
                             </GridView>
                         </ListView.View>
                     </ListView>
@@ -70,6 +71,23 @@
                     <StackPanel DockPanel.Dock="Top" Visibility="{Binding HasSelection, Converter={StaticResource BoolToVisibility}}">
                         <TextBlock Text="{Binding SelectedTitle}" Style="{StaticResource Heading}" TextWrapping="Wrap" />
                         <TextBlock Text="{Binding SelectedDetail}" Style="{StaticResource Muted}" Margin="0,4,0,8" TextWrapping="Wrap" />
+                        <!-- Where it was followed: each project or experiment opens in the Projects area -->
+                        <TextBlock Text="{Binding UsesHeading}" FontWeight="SemiBold" Margin="0,0,0,2" TextWrapping="Wrap" />
+                        <ScrollViewer MaxHeight="120" VerticalScrollBarVisibility="Auto" Margin="0,0,0,8">
+                            <ItemsControl ItemsSource="{Binding SelectedUses}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Margin="0,0,0,3">
+                                            <Button Style="{StaticResource LinkButton}" Content="{Binding Text}" CommandParameter="{Binding}" HorizontalAlignment="Left"
+                                                    Command="{Binding DataContext.OpenUseCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    ToolTip="{Binding Title}" />
+                                            <TextBlock Text="{Binding Detail}" Style="{StaticResource Muted}" FontSize="11" TextWrapping="Wrap"
+                                                       Visibility="{Binding Detail, Converter={StaticResource NullToVisibility}}" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
                         <ItemsControl ItemsSource="{Binding SelectedIssues}" ItemTemplate="{StaticResource IssueTemplate}" Margin="0,0,0,8" />
                         <WrapPanel>
                             <Button Content="Ask Claude to change it" Command="{Binding AskClaudeCommand}" Style="{StaticResource PrimaryButton}"
