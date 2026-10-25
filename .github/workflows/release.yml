@@ -30,10 +30,8 @@ jobs:
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v5
-        # The SDK global.json pins, as in ci.yml: the newest 10.0.x can be listed before its
-        # download works.
         with:
-          global-json-file: global.json
+          dotnet-version: 10.0.x
 
       # The version lives in one place, Directory.Build.props, and a tagged build must agree
       # with it. A tag containing "beta" publishes to the beta channel only. LabOps has its own
