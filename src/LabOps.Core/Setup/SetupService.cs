@@ -97,9 +97,7 @@ public sealed class SetupService
 
         var signedIn = gh is not null && await _gh.IsSignedInAsync(cancellationToken).ConfigureAwait(false);
         var user = signedIn ? await _gh.GetUserAsync(cancellationToken).ConfigureAwait(false) : null;
-        items.Add(new(SetupStep.GitHubSignIn, "GitHub sign-in", signedIn,
-            signedIn ? $"Signed in as {user?.Login}." : "Sign in with the GitHub account you use for the lab.",
-            gh is null ? null : "Sign in"));
+        items.Add(GitHubSignInItem(gh is not null, signedIn, user?.Login, GitHubCli.TokenVariable(Environment.GetEnvironmentVariable)));
 
         var claude = _tools.Find(Tool.Claude);
         items.Add(new(SetupStep.Claude, "Claude Code", claude is not null,
@@ -174,11 +172,37 @@ public sealed class SetupService
         }
 
         var named = clones.Count > 0 && identities.Count == clones.Count;
+        // Offered once done too: after switching GitHub accounts, the name already set is the
+        // other account's, and this is how to replace it.
+        var useGitHubName = clones.Count > 0 && signedIn ? "Use my GitHub name" : null;
         items.Add(new(SetupStep.GitIdentity, "Git identity", named,
             named ? $"Changes are recorded as {identities[0]}." : "Your name on the changes you save.",
-            clones.Count > 0 && signedIn ? "Use my GitHub name" : null));
+            useGitHubName, named ? useGitHubName : null));
 
         return items;
+    }
+
+    /// <summary>The GitHub sign-in step.</summary>
+    /// <remarks>
+    /// The app signs in through gh, so on a computer where gh was already signed in, setup finds
+    /// that account done before the user has chosen anything. A second button keeps a different
+    /// account within reach. A token in GH_TOKEN or GITHUB_TOKEN overrides every gh sign-in, so
+    /// there the button would only appear to work; the step says what to change instead.
+    /// </remarks>
+    internal static SetupItem GitHubSignInItem(bool ghInstalled, bool signedIn, string? login, string? tokenVariable)
+    {
+        if (!signedIn)
+        {
+            return new(SetupStep.GitHubSignIn, "GitHub sign-in", false,
+                "Sign in with the GitHub account you use for the lab.", ghInstalled ? "Sign in" : null);
+        }
+
+        return tokenVariable is not null
+            ? new(SetupStep.GitHubSignIn, "GitHub sign-in", true,
+                $"Signed in as {login}, from the {tokenVariable} environment variable. To use a different account, "
+                + "remove that variable in Windows' environment variable settings, then restart LabOps.", null)
+            : new(SetupStep.GitHubSignIn, "GitHub sign-in", true, $"Signed in as {login}.", "Sign in",
+                "Use a different account");
     }
 
     private static SetupItem EngineItem(SetupStep step, string title, string script, string? clone)
@@ -209,7 +233,8 @@ public sealed class SetupService
             $"& {Quote(_tools.Require(Tool.GitHubCli))} auth login --hostname github.com --web --git-protocol https; "
                 + $"if ($?) {{ & {Quote(_tools.Require(Tool.GitHubCli))} auth setup-git }}",
             "A console window opens and shows a one-time code. Your browser opens GitHub: enter the code "
-            + "and approve. Then close the console window."),
+            + "and approve. If GitHub shows an account that is not yours, sign out of GitHub in the browser and "
+            + "sign in as yourself first. Then close the console window."),
         SetupStep.Claude => PowerShell(
             "irm https://claude.ai/install.ps1 | iex",
             "A console window runs Anthropic's official Claude Code installer. Close it when it says the install finished."),
