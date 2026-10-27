@@ -194,31 +194,18 @@ public sealed partial class SetupViewModel : ObservableObject
     private bool CanFix(SetupRowViewModel? row) => !IsWorking && row is { CanFix: true };
 
     /// <summary>
-    /// The second button on a row: on a repository, use a copy the user already has; on the Claude
-    /// sign-in, sign in again (an expired session still reports as signed in).
+    /// The second button on a row: on a repository, use a copy the user already has. On the
+    /// GitHub and Claude sign-ins and the git identity, it does the step again once it is done:
+    /// sign in with a different GitHub account (gh adds it and makes it the one in use), sign in
+    /// to Claude again (an expired session still reports as signed in), or take the name from the
+    /// GitHub account now signed in.
     /// </summary>
     [RelayCommand(CanExecute = nameof(CanAlternate))]
     private async Task AlternateAsync(SetupRowViewModel row)
     {
-        if (row.Item.Step == SetupStep.ClaudeSignIn)
+        if (row.Item.Step is SetupStep.GitHubSignIn or SetupStep.ClaudeSignIn or SetupStep.GitIdentity)
         {
-            IsWorking = true;
-            try
-            {
-                await SignInToClaudeAsync().ConfigureAwait(true);
-            }
-            catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception
-                or Core.Processes.ToolMissingException)
-            {
-                System.Windows.MessageBox.Show(ex.Message, AppInfo.ProductName, System.Windows.MessageBoxButton.OK,
-                    System.Windows.MessageBoxImage.Warning);
-            }
-            finally
-            {
-                IsWorking = false;
-            }
-
-            await RefreshAsync().ConfigureAwait(true);
+            await FixAsync(row).ConfigureAwait(true);
             return;
         }
 

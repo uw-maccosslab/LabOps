@@ -118,6 +118,45 @@ public sealed class ToolOutputParsingTests
     }
 
     [Fact]
+    public void A_github_account_found_signed_in_can_still_be_changed()
+    {
+        // On a computer where gh was already signed in, setup finds someone's account done.
+        var item = SetupService.GitHubSignInItem(ghInstalled: true, signedIn: true, login: "someone-else", tokenVariable: null);
+
+        item.Done.ShouldBeTrue();
+        item.Detail.ShouldBe("Signed in as someone-else.");
+        item.HasAlternate.ShouldBeTrue();
+        item.AlternateLabel.ShouldBe("Use a different account");
+    }
+
+    [Fact]
+    public void A_github_token_in_the_environment_is_named_instead_of_offering_a_sign_in_that_cannot_win()
+    {
+        var item = SetupService.GitHubSignInItem(ghInstalled: true, signedIn: true, login: "lab-bot", tokenVariable: "GH_TOKEN");
+
+        item.Done.ShouldBeTrue();
+        item.HasAlternate.ShouldBeFalse();
+        item.Detail.ShouldContain("GH_TOKEN environment variable");
+    }
+
+    [Fact]
+    public void Not_signed_in_offers_sign_in_only_when_gh_is_installed()
+    {
+        SetupService.GitHubSignInItem(true, false, null, null).CanFix.ShouldBeTrue();
+        SetupService.GitHubSignInItem(false, false, null, null).CanFix.ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData("tok", null, "GH_TOKEN")]
+    [InlineData(null, "tok", "GITHUB_TOKEN")]
+    [InlineData("tok", "tok", "GH_TOKEN")]
+    [InlineData(" ", null, null)]
+    [InlineData(null, null, null)]
+    public void The_token_variable_gh_would_use_is_found(string? ghToken, string? githubToken, string? expected) =>
+        GitHubCli.TokenVariable(name => name switch { "GH_TOKEN" => ghToken, "GITHUB_TOKEN" => githubToken, _ => null })
+            .ShouldBe(expected);
+
+    [Fact]
     public void Commit_email_is_the_github_noreply_address() =>
         new GitHubUser("maccoss", "Mike MacCoss", 40654111).NoReplyEmail.ShouldBe("40654111+maccoss@users.noreply.github.com");
 }

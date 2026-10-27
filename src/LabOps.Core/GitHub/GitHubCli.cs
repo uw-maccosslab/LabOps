@@ -124,6 +124,13 @@ public sealed class GitHubCli
             timeout: TimeSpan.FromMinutes(10),
             cancellationToken: cancellationToken).ConfigureAwait(false);
 
+    /// <summary>
+    /// The environment variable gh takes its token from instead of its own sign-ins, if one is set.
+    /// gh prefers GH_TOKEN, then GITHUB_TOKEN, over any account it holds.
+    /// </summary>
+    internal static string? TokenVariable(Func<string, string?> getVariable) =>
+        new[] { "GH_TOKEN", "GITHUB_TOKEN" }.FirstOrDefault(name => !string.IsNullOrWhiteSpace(getVariable(name)));
+
     internal static CheckRun? ParseCheckRun(string json)
     {
         using var doc = JsonDocument.Parse(json);
