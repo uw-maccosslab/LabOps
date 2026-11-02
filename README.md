@@ -30,6 +30,19 @@ administrator rights are needed. The first time it starts, Setup walks through:
 4. Downloading the lab projects to a folder you choose, or using a copy you already have, then
    the lab protocols, and the quotes too if your account has access to them.
 5. Preparing the engines (downloads Python once; nothing to install yourself).
+6. Putting the name from your GitHub account on the changes you save.
+
+**Setup** (top right) opens the same list later. A step that is done keeps a button to do it
+again:
+
+- **GitHub sign-in: Use a different account.** On a computer where GitHub was already signed in
+  before LabOps was installed, Setup takes that account as done, even when it is someone else's.
+  This signs in with yours in the browser (if GitHub shows the wrong account there, sign out of
+  GitHub in the browser first). Then click **Use my GitHub name** on Git identity, so the changes
+  you save carry your name rather than the other account's. When a `GH_TOKEN` or `GITHUB_TOKEN`
+  environment variable is set, it picks the account over any sign-in; the step names the variable
+  to remove instead.
+- **Claude sign-in: Sign in again**, for a Claude session that has expired.
 
 The app updates itself: when a new version is ready it shows "Update ready: restart to install".
 
@@ -97,8 +110,12 @@ Projects:
 - **New project:** describe the work or paste an email; Claude sets up the lab, the project and
   its experiments. **New experiment** on a project adds another measurement of its samples.
 - **Start / Done / Skip** on each step of the samples' or an experiment's timeline, with a date
-  and a note. **Assign** gives a step to a person; **Add a step** covers anything the timeline does
-  not show yet.
+  and a note. **Assign** gives a step to a person; **Plan** sets when it should start and finish,
+  and a step past its plan shows as late; **Add a step** covers anything the timeline does not
+  show yet.
+- **Batches** splits sample prep or data acquisition into batches, each a step of its own under
+  it, started, finished, assigned and planned on its own. Importing an Octopus layout makes one
+  sample prep batch per plate.
 - Each step has the buttons for its work, and shows what was recorded for it. They work whatever
   the step's status, so a Panorama folder or a notebook can be recorded before the work starts:
   - **Metadata organized:** **Organize with Claude** (choose the collaborator's sample sheet; it
@@ -109,8 +126,9 @@ Projects:
     and keep the layout.
   - **Sample prep** (or an experiment's assay development or data acquisition): **Add notebook**,
     the ELN notebook on Panorama, and **Add protocol**, the protocol the work followed at the
-    published version used. The protocol then shows on the step; clicking it opens that version
-    in the Protocols area, and the project's wiki page lists it.
+    published version used, with **Changes from this version** for anything the work did
+    differently (one change per line). The protocol then shows on the step with its changes;
+    clicking it opens that version in the Protocols area, and the project's wiki page lists it.
   - **Data deposited to Panorama:** **Add raw data folder**, where PanoramaBridge uploads.
   - **Signal processing:** **Add results folder**, with the Skyline documents.
   - **Browse...** finds folders and notebooks on Panorama, signed in the way PanoramaBridge is. A
@@ -120,13 +138,22 @@ Projects:
   have Claude write its summary, plan and description of the samples, and publish it; after that
   the app republishes it after every change. The collaborators who can open the folder read it.
 - The list shows active and on-hold projects; **Show closed** adds the closed ones.
+- **Overview** (beside **List**) shows the open work five ways: **Needs attention** (late steps,
+  steps due in the next 7 days, records with errors), **Board**, **Timeline**, **Calendar** and
+  **Instruments** (each instrument's bookings, with overlaps in red). **Whose** and **Lab** narrow it
+  to one person or one lab. When the projects repository names a dashboard folder, **Publish to
+  Panorama** puts a summary of every lab's open work there, and LabOps keeps it up to date.
 
 Protocols:
 
 - The list shows every protocol by category, with its current version and when it was published;
   **Show retired** adds the retired ones. **Showing** picks any version ever published, or the
   draft, and shows it as the printable page; **Print** opens it in the browser to print or save
-  as a PDF.
+  as a PDF. A method named on the page (a KingFisher program, an instrument method) opens in File
+  Explorer when clicked.
+- **Used by** counts the projects and experiments that followed each protocol; the selected
+  protocol lists each one with its step, the version followed and any changes, so a mistake found
+  in a version shows at once whose work used it.
 - **New protocol:** give a title and a category, and choose the original if there is one (Word,
   PDF, LaTeX, Markdown or text). Claude writes it in the lab's format, lists every correction and
   question for you to check, and it stays a draft.
@@ -145,6 +172,10 @@ Quotes:
 - **Send / PO received / Invoiced / Declined / Make a revision:** one button each. Send is shown
   only to the approvers listed in the quotes repository.
 - Everything you do is saved to GitHub right away, and other people's work arrives on its own.
+
+In the Claude pane, **Ctrl+V** attaches a screen capture or files copied in File Explorer, as
+dropping them there does. In the Projects area you confirm a picture holds nothing identifying
+before Claude sees it.
 
 ## Developing
 
