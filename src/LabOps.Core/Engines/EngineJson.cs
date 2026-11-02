@@ -90,12 +90,23 @@ public static class EngineJson
         }
     }
 
-    /// <summary>Prepares the Python environment (the first run downloads it). Safe to repeat.</summary>
+    /// <summary>
+    /// Prepares the Python environment (the first run downloads it). Safe to repeat.
+    /// <paramref name="progress"/> gets each stage uv reports, in words (<see cref="UvProgress"/>).
+    /// </summary>
     public static async Task EnsureEnvironmentAsync(
-        IProcessRunner runner, ToolLocator tools, string repository, Func<string, Exception> error, CancellationToken cancellationToken)
+        IProcessRunner runner, ToolLocator tools, string repository, Func<string, Exception> error,
+        IProgress<string>? progress, CancellationToken cancellationToken)
     {
         var result = await runner.RunAsync(
-            tools.Require(Tool.Uv), ["sync", "--frozen"], repository, timeout: Timeout, cancellationToken: cancellationToken)
+            tools.Require(Tool.Uv), ["sync", "--frozen"], repository, timeout: Timeout, cancellationToken: cancellationToken,
+            onLine: line =>
+            {
+                if (UvProgress.Describe(line) is { } stage)
+                {
+                    progress?.Report(stage);
+                }
+            })
             .ConfigureAwait(false);
         if (!result.Succeeded)
         {

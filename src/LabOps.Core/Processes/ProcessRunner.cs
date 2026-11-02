@@ -21,7 +21,8 @@ public interface IProcessRunner
         string? workingDirectory = null,
         IReadOnlyDictionary<string, string?>? environment = null,
         TimeSpan? timeout = null,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        Action<string>? onLine = null);
 }
 
 /// <summary>
@@ -46,15 +47,18 @@ public sealed class ProcessRunner : IProcessRunner
         string? workingDirectory = null,
         IReadOnlyDictionary<string, string?>? environment = null,
         TimeSpan? timeout = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        Action<string>? onLine = null)
     {
         var info = CreateStartInfo(fileName, arguments, workingDirectory, environment);
 
         using var process = new Process { StartInfo = info };
         var stdout = new StringBuilder();
         var stderr = new StringBuilder();
-        process.OutputDataReceived += (_, e) => { if (e.Data is not null) { lock (stdout) { stdout.AppendLine(e.Data); } } };
-        process.ErrorDataReceived += (_, e) => { if (e.Data is not null) { lock (stderr) { stderr.AppendLine(e.Data); } } };
+        // onLine sees each line as it is written, from either stream (uv writes its progress to
+        // stderr), on a thread-pool thread.
+        process.OutputDataReceived += (_, e) => { if (e.Data is not null) { lock (stdout) { stdout.AppendLine(e.Data); } onLine?.Invoke(e.Data); } };
+        process.ErrorDataReceived += (_, e) => { if (e.Data is not null) { lock (stderr) { stderr.AppendLine(e.Data); } onLine?.Invoke(e.Data); } };
 
         try
         {

@@ -118,8 +118,8 @@ public sealed class QuoteEngine
     }
 
     /// <summary>Prepares the Python environment (first run downloads it). Safe to repeat.</summary>
-    public Task EnsureEnvironmentAsync(CancellationToken cancellationToken = default) =>
-        EngineJson.EnsureEnvironmentAsync(_runner, _tools, RequireRepository(), m => new QuoteEngineException(m), cancellationToken);
+    public Task EnsureEnvironmentAsync(IProgress<string>? progress = null, CancellationToken cancellationToken = default) =>
+        EngineJson.EnsureEnvironmentAsync(_runner, _tools, RequireRepository(), m => new QuoteEngineException(m), progress, cancellationToken);
 
     internal static IReadOnlyList<QuoteSummary> ReadQuotes(JsonElement root) =>
         EngineJson.Read<IReadOnlyList<QuoteSummary>>("quote engine", m => new QuoteEngineException(m),

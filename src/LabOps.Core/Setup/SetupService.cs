@@ -224,6 +224,16 @@ public sealed class SetupService
     /// <summary>Whether the app can be used: every step done except the optional ones.</summary>
     public static bool AllDone(IEnumerable<SetupItem> items) => items.Where(i => !i.Optional).All(i => i.Done);
 
+    /// <summary>The line under the checklist.</summary>
+    /// <remarks>
+    /// "Everything is ready" while an optional step was still open read as permission to close
+    /// Setup, and the quotes then had to be found again; it is said only when nothing is left.
+    /// </remarks>
+    public static string Summary(IReadOnlyCollection<SetupItem> items) =>
+        !AllDone(items) ? "Work down the list; each button opens what it needs."
+        : items.All(i => i.Done) ? "Everything is ready."
+        : "Everything LabOps needs is ready. The steps still open are optional.";
+
     /// <summary>The console command that fixes a step, or null for steps the app does itself.</summary>
     /// <remarks>
     /// Everything runs through PowerShell with single-quoted paths. cmd.exe strips the first and

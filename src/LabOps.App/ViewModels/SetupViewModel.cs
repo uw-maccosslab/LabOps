@@ -65,7 +65,14 @@ public sealed partial class SetupViewModel : ObservableObject
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(FixCommand))]
     [NotifyCanExecuteChangedFor(nameof(AlternateCommand))]
+    [NotifyPropertyChangedFor(nameof(CanClose))]
     public partial bool IsWorking { get; set; }
+
+    /// <summary>
+    /// Done waits for the step under way: closed partway, Setup left that step and the ones after
+    /// it for the person to find again. The window's close box still closes it.
+    /// </summary>
+    public bool CanClose => !IsWorking;
 
     /// <summary>Waiting for the person to finish signing in to Claude in the browser.</summary>
     [ObservableProperty]
@@ -129,11 +136,52 @@ public sealed partial class SetupViewModel : ObservableObject
             }
 
             AllDone = SetupService.AllDone(items);
-            Status = AllDone ? "Everything is ready." : "Work down the list; each button opens what it needs.";
+            Status = SetupService.Summary(items);
+            Checked = true;
         }
         finally
         {
             IsWorking = false;
+        }
+    }
+
+    /// <summary>
+    /// The first check has finished. Until then the checklist is empty, and the Claude settings
+    /// under it were all the window showed, for the seconds the sign-ins take to check.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool Checked { get; set; }
+
+    /// <summary>Prepares an engine, showing each stage uv reports and how long it has taken.</summary>
+    /// <remarks>
+    /// The first time downloads Python and every package, which on a new computer can take
+    /// minutes; a status line that never changed looked stuck, and Setup was closed before the
+    /// steps after it. The clock moves even while uv is quiet in the middle of a download.
+    /// </remarks>
+    private async Task PrepareEngineAsync(string name, Func<IProgress<string>, Task> prepare)
+    {
+        var stage = "starting";
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        void Show() => Status = $"Preparing the {name} ({clock.Elapsed:m\\:ss}): {stage}. The first time downloads Python "
+            + "and its packages, which can take a few minutes. Leave this window open.";
+
+        // Progress<T> reports on the thread it was made on, this one, so Status is set on the UI thread.
+        var progress = new Progress<string>(reported =>
+        {
+            stage = reported;
+            Show();
+        });
+        var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        timer.Tick += (_, _) => Show();
+        Show();
+        timer.Start();
+        try
+        {
+            await prepare(progress).ConfigureAwait(true);
+        }
+        finally
+        {
+            timer.Stop();
         }
     }
 
@@ -157,15 +205,13 @@ public sealed partial class SetupViewModel : ObservableObject
 
                     break;
                 case SetupStep.ProtocolsEngine:
-                    Status = "Preparing the protocol engine. The first time downloads its packages, which takes a minute...";
-                    await _protocolEngine.EnsureEnvironmentAsync().ConfigureAwait(true);
+                    await PrepareEngineAsync("protocol engine", p => _protocolEngine.EnsureEnvironmentAsync(p)).ConfigureAwait(true);
                     break;
                 case SetupStep.ClaudeSignIn:
                     await SignInToClaudeAsync().ConfigureAwait(true);
                     break;
                 case SetupStep.QuotesEngine:
-                    Status = "Preparing the quote engine. The first time downloads Python, which takes a minute or two...";
-                    await _quoteEngine.EnsureEnvironmentAsync().ConfigureAwait(true);
+                    await PrepareEngineAsync("quote engine", p => _quoteEngine.EnsureEnvironmentAsync(p)).ConfigureAwait(true);
                     break;
                 default:
                     if (_setup.ConsoleFix(row.Item.Step) is { } command)

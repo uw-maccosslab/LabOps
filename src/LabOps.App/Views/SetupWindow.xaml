@@ -10,7 +10,8 @@
                        Text="The app needs a few tools, sign-ins, and a copy of the lab projects. Each button does one step; sign-ins open your browser. You only do this once. The quotes are optional, for the people who prepare them." />
         </StackPanel>
         <DockPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
-            <Button DockPanel.Dock="Right" Content="Done" IsDefault="True" Click="OnDone" Style="{StaticResource PrimaryButton}" Margin="0" />
+            <Button DockPanel.Dock="Right" Content="Done" IsDefault="True" Click="OnDone" Style="{StaticResource PrimaryButton}" Margin="0"
+                    IsEnabled="{Binding CanClose}" />
             <Button DockPanel.Dock="Right" Content="Stop waiting" Command="{Binding StopWaitingCommand}" Margin="0,0,8,0"
                     ToolTip="Stop waiting for the sign-in in the browser."
                     Visibility="{Binding IsWaiting, Converter={StaticResource BoolToVisibility}}" />
@@ -18,6 +19,9 @@
         </DockPanel>
         <ScrollViewer VerticalScrollBarVisibility="Auto">
             <StackPanel>
+                <TextBlock Text="Checking what is installed and signed in. This takes a few seconds."
+                           Style="{StaticResource Muted}" Margin="0,10"
+                           Visibility="{Binding Checked, Converter={StaticResource InverseBoolToVisibility}}" />
                 <ItemsControl ItemsSource="{Binding Rows}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
@@ -56,7 +60,8 @@
                 </ItemsControl>
 
                 <!-- How Claude runs in LabOps: each person's choice, since it uses their own Claude plan -->
-                <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="28,12,0,12" DataContext="{Binding Claude}">
+                <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="28,12,0,12" DataContext="{Binding Claude}"
+                        Visibility="{Binding DataContext.Checked, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVisibility}}">
                     <StackPanel>
                         <TextBlock Text="Claude in LabOps" FontWeight="SemiBold" />
                         <TextBlock Style="{StaticResource Muted}" Margin="0,0,0,8"
