@@ -187,10 +187,19 @@ public sealed class SetupService
     /// The app signs in through gh, so on a computer where gh was already signed in, setup finds
     /// that account done before the user has chosen anything. A second button keeps a different
     /// account within reach. A token in GH_TOKEN or GITHUB_TOKEN overrides every gh sign-in, so
-    /// there the button would only appear to work; the step says what to change instead.
+    /// there a sign-in would only appear to work; the step says what to change instead. That holds
+    /// when the token has expired or been revoked too, which gh reports as not signed in.
     /// </remarks>
     internal static SetupItem GitHubSignInItem(bool ghInstalled, bool signedIn, string? login, string? tokenVariable)
     {
+        if (!signedIn && tokenVariable is not null)
+        {
+            return new(SetupStep.GitHubSignIn, "GitHub sign-in", false,
+                $"GitHub does not accept the token in the {tokenVariable} environment variable, and it overrides any "
+                + "sign-in. Remove that variable in Windows' environment variable settings, then restart LabOps and sign in.",
+                null);
+        }
+
         if (!signedIn)
         {
             return new(SetupStep.GitHubSignIn, "GitHub sign-in", false,
