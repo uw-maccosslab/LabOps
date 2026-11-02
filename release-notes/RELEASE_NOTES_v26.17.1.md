@@ -10,4 +10,5 @@ after those steps are done.
   was someone else's. The GitHub sign-in step now keeps a **Use a different account** button after
   it is done, and the Git identity step keeps **Use my GitHub name**, so the changes you save carry
   your name after switching. When a GH_TOKEN or GITHUB_TOKEN environment variable picks the
-  account, which no sign-in can override, the step says so and names the variable to remove.
+  account, which no sign-in can override, the step says so and names the variable to remove, also
+  when GitHub no longer accepts that token.

@@ -140,6 +140,18 @@ public sealed class ToolOutputParsingTests
     }
 
     [Fact]
+    public void An_expired_github_token_in_the_environment_is_named_instead_of_offering_a_sign_in()
+    {
+        // gh auth status fails with a revoked or expired GH_TOKEN, and signing in cannot override it.
+        var item = SetupService.GitHubSignInItem(ghInstalled: true, signedIn: false, login: null, tokenVariable: "GITHUB_TOKEN");
+
+        item.Done.ShouldBeFalse();
+        item.CanFix.ShouldBeFalse();
+        item.HasAlternate.ShouldBeFalse();
+        item.Detail.ShouldContain("GITHUB_TOKEN environment variable");
+    }
+
+    [Fact]
     public void Not_signed_in_offers_sign_in_only_when_gh_is_installed()
     {
         SetupService.GitHubSignInItem(true, false, null, null).CanFix.ShouldBeTrue();
