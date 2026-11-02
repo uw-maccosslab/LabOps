@@ -103,6 +103,20 @@ public sealed class ToolOutputParsingTests
     }
 
     [Fact]
+    public void Setup_says_ready_only_when_nothing_is_left()
+    {
+        SetupItem Item(SetupStep step, bool done, bool optional = false) => new(step, step.ToString(), done, "", null, Optional: optional);
+
+        // An optional step still open (an engine being prepared, the quotes) is not "ready".
+        SetupService.Summary([Item(SetupStep.ProjectsRepository, true), Item(SetupStep.ProtocolsEngine, true, optional: true)])
+            .ShouldBe("Everything is ready.");
+        SetupService.Summary([Item(SetupStep.ProjectsRepository, true), Item(SetupStep.ProtocolsEngine, false, optional: true)])
+            .ShouldBe("Everything LabOps needs is ready. The steps still open are optional.");
+        SetupService.Summary([Item(SetupStep.ProjectsRepository, false), Item(SetupStep.ProtocolsEngine, true, optional: true)])
+            .ShouldBe("Work down the list; each button opens what it needs.");
+    }
+
+    [Fact]
     public void An_existing_clone_is_found_by_its_contents_not_its_name()
     {
         // The projects engine moved into the app, so a projects clone is known by its template.

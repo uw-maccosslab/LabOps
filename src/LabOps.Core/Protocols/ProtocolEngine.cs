@@ -148,8 +148,8 @@ public sealed class ProtocolEngine : IPreCommitCheck
         return ReadProblems(doc.RootElement).Select(p => new CommitProblem(p.Level, p.Message)).ToList();
     }
 
-    public Task EnsureEnvironmentAsync(CancellationToken cancellationToken = default) =>
-        EngineJson.EnsureEnvironmentAsync(_runner, _tools, RequireRepository(), m => new EngineException(m), cancellationToken);
+    public Task EnsureEnvironmentAsync(IProgress<string>? progress = null, CancellationToken cancellationToken = default) =>
+        EngineJson.EnsureEnvironmentAsync(_runner, _tools, RequireRepository(), m => new EngineException(m), progress, cancellationToken);
 
     internal static ProtocolList ReadList(JsonElement root)
     {
