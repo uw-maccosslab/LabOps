@@ -82,6 +82,8 @@ public sealed class SyncParsingTests
         SyncService.Friendly("fatal: unable to access 'https://github.com/x/': Could not resolve host: github.com")
             .ShouldStartWith("GitHub cannot be reached.");
         SyncService.Friendly("fatal: Authentication failed for 'https://github.com/x'")
-            .ShouldContain("sign in to GitHub again");
+            .ShouldContain("Open Setup and complete the GitHub step");
+        SyncService.Friendly("fatal: could not read Username for 'https://github.com': terminal prompts disabled")
+            .ShouldStartWith("GitHub did not accept your sign-in.");
     }
 }

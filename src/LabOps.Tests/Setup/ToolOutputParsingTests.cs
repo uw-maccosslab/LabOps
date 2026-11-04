@@ -166,6 +166,19 @@ public sealed class ToolOutputParsingTests
     }
 
     [Fact]
+    public void Git_turned_away_by_github_is_not_done_even_when_gh_is_signed_in()
+    {
+        // gh signed in before Setup ran, so its Sign in button, which also connects git, was never pressed.
+        var item = SetupService.GitHubForGitItem(rejected: true);
+
+        item.Done.ShouldBeFalse();
+        item.CanFix.ShouldBeTrue();
+        item.FixLabel.ShouldBe("Connect");
+        SetupService.AllDone([item]).ShouldBeFalse();
+        SetupService.GitHubForGitItem(rejected: false).Done.ShouldBeTrue();
+    }
+
+    [Fact]
     public void Not_signed_in_offers_sign_in_only_when_gh_is_installed()
     {
         SetupService.GitHubSignInItem(true, false, null, null).CanFix.ShouldBeTrue();
