@@ -76,6 +76,19 @@ public sealed class GitHubCli
         return result.Succeeded ? result.StandardOutput.Trim() : null;
     }
 
+    /// <summary>
+    /// Makes gh git's credential helper for GitHub, so git's pulls and pushes use gh's sign-in.
+    /// It asks nothing, so it needs no console window.
+    /// </summary>
+    public async Task SetUpGitAsync(CancellationToken cancellationToken = default)
+    {
+        var result = await RunAsync(["auth", "setup-git", "--hostname", "github.com"], cancellationToken).ConfigureAwait(false);
+        if (!result.Succeeded)
+        {
+            throw new InvalidOperationException($"Git could not be connected to your GitHub sign-in: {result.ErrorText}");
+        }
+    }
+
     /// <summary>Whether the signed-in account can read <paramref name="repository"/> (owner/name).</summary>
     /// <returns>True or false, or null when GitHub could not be asked (offline, signed out).</returns>
     public async Task<bool?> CanAccessRepositoryAsync(string repository, CancellationToken cancellationToken = default)

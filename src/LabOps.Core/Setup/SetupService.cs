@@ -3,6 +3,7 @@ using LabOps.Core.GitHub;
 using LabOps.Core.Processes;
 using LabOps.Core.Projects;
 using LabOps.Core.Repositories;
+using LabOps.Core.Sync;
 
 namespace LabOps.Core.Setup;
 
@@ -12,6 +13,7 @@ public enum SetupStep
     Git,
     GitHubCli,
     GitHubSignIn,
+    GitHubForGit,
     Claude,
     ClaudeSignIn,
     ProjectsRepository,
@@ -98,6 +100,12 @@ public sealed class SetupService
         var signedIn = gh is not null && await _gh.IsSignedInAsync(cancellationToken).ConfigureAwait(false);
         var user = signedIn ? await _gh.GetUserAsync(cancellationToken).ConfigureAwait(false) : null;
         items.Add(GitHubSignInItem(gh is not null, signedIn, user?.Login, GitHubCli.TokenVariable(Environment.GetEnvironmentVariable)));
+        if (signedIn && git is not null)
+        {
+            var clone = new[] { projectsPath, protocolsPath, quotesPath }
+                .FirstOrDefault(p => p is not null && Directory.Exists(Path.Combine(p, ".git")));
+            items.Add(GitHubForGitItem(await GitRejectsSignInAsync(git, clone, cancellationToken).ConfigureAwait(false)));
+        }
 
         var claude = _tools.Find(Tool.Claude);
         items.Add(new(SetupStep.Claude, "Claude Code", claude is not null,
@@ -213,6 +221,38 @@ public sealed class SetupService
             : new(SetupStep.GitHubSignIn, "GitHub sign-in", true, $"Signed in as {login}.", "Sign in",
                 "Use a different account");
     }
+
+    /// <summary>The step that has git sync with gh's sign-in.</summary>
+    /// <remarks>
+    /// gh being signed in does not mean git is: git uses its own credential helper until
+    /// <c>gh auth setup-git</c> makes gh that helper, which the Sign in button does after signing
+    /// in. On a computer where gh was already signed in, the sign-in step was found done, its
+    /// button was never pressed, and every sync then said GitHub did not accept the sign-in while
+    /// Setup said everything was ready.
+    /// </remarks>
+    internal static SetupItem GitHubForGitItem(bool rejected) => rejected
+        ? new(SetupStep.GitHubForGit, "Syncing with GitHub", false,
+            "Git, which syncs the lab's copies, is not using your GitHub sign-in, so syncing fails. Connect fixes that.",
+            "Connect")
+        : new(SetupStep.GitHubForGit, "Syncing with GitHub", true, "Git uses your GitHub sign-in.", null);
+
+    /// <summary>
+    /// Whether GitHub turns git away for want of a sign-in, asked the way a sync asks: through a
+    /// clone's origin, or the projects repository itself before there is a clone.
+    /// </summary>
+    /// <remarks>Any other failure, such as being offline, is not this step's to report.</remarks>
+    private async Task<bool> GitRejectsSignInAsync(string git, string? clone, CancellationToken cancellationToken)
+    {
+        string[] arguments = clone is not null
+            ? ["ls-remote", "--quiet", "origin", "HEAD"]
+            : ["ls-remote", "--quiet", $"https://github.com/{RepositoryProfile.Projects.GitHubName}.git", "HEAD"];
+        var result = await _runner.RunAsync(git, arguments, clone, timeout: TimeSpan.FromSeconds(30),
+            cancellationToken: cancellationToken).ConfigureAwait(false);
+        return !result.Succeeded && SyncService.IsSignInRejected(result.ErrorText);
+    }
+
+    /// <summary>Makes gh git's credential helper, the fix for <see cref="SetupStep.GitHubForGit"/>.</summary>
+    public Task ConnectGitToGitHubAsync(CancellationToken cancellationToken = default) => _gh.SetUpGitAsync(cancellationToken);
 
     private static SetupItem EngineItem(SetupStep step, string title, string script, string? clone)
     {

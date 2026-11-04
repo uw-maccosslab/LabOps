@@ -204,6 +204,10 @@ public sealed partial class SetupViewModel : ObservableObject
                     }
 
                     break;
+                case SetupStep.GitHubForGit:
+                    Status = "Connecting git to your GitHub sign-in...";
+                    await _setup.ConnectGitToGitHubAsync().ConfigureAwait(true);
+                    break;
                 case SetupStep.ProtocolsEngine:
                     await PrepareEngineAsync("protocol engine", p => _protocolEngine.EnsureEnvironmentAsync(p)).ConfigureAwait(true);
                     break;
