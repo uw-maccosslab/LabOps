@@ -855,6 +855,15 @@ public sealed partial class SyncService
         && (error.Contains("fetch first", StringComparison.OrdinalIgnoreCase)
             || error.Contains("non-fast-forward", StringComparison.OrdinalIgnoreCase));
 
+    /// <summary>
+    /// Whether git failed because GitHub wanted a sign-in it did not get. With prompts turned off,
+    /// git with no usable credential says it could not read a user name.
+    /// </summary>
+    internal static bool IsSignInRejected(string error) =>
+        error.Contains("Authentication failed", StringComparison.OrdinalIgnoreCase)
+        || error.Contains("could not read Username", StringComparison.OrdinalIgnoreCase)
+        || error.Contains("terminal prompts disabled", StringComparison.OrdinalIgnoreCase);
+
     private static SyncState OfflineOrError(string error) =>
         error.Contains("Could not resolve host", StringComparison.OrdinalIgnoreCase)
         || error.Contains("unable to access", StringComparison.OrdinalIgnoreCase)
@@ -871,11 +880,9 @@ public sealed partial class SyncService
             return "GitHub cannot be reached. Your work is saved on this computer and will be shared when you are back online.";
         }
 
-        if (error.Contains("Authentication failed", StringComparison.OrdinalIgnoreCase)
-            || error.Contains("could not read Username", StringComparison.OrdinalIgnoreCase)
-            || error.Contains("terminal prompts disabled", StringComparison.OrdinalIgnoreCase))
+        if (IsSignInRejected(error))
         {
-            return "GitHub did not accept your sign-in. Open Setup and sign in to GitHub again.";
+            return "GitHub did not accept your sign-in. Open Setup and complete the GitHub step it shows as not done.";
         }
 
         if (error.Contains("Please tell me who you are", StringComparison.OrdinalIgnoreCase))
