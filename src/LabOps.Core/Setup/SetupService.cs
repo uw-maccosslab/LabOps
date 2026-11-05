@@ -102,9 +102,13 @@ public sealed class SetupService
         items.Add(GitHubSignInItem(gh is not null, signedIn, user?.Login, GitHubCli.TokenVariable(Environment.GetEnvironmentVariable)));
         if (signedIn && git is not null)
         {
-            var clone = new[] { projectsPath, protocolsPath, quotesPath }
-                .FirstOrDefault(p => p is not null && Directory.Exists(Path.Combine(p, ".git")));
-            items.Add(GitHubForGitItem(await GitRejectsSignInAsync(git, clone, cancellationToken).ConfigureAwait(false)));
+            // Every clone, at once: each has its own origin, and one that works (say over SSH) says
+            // nothing about another that syncs over HTTPS.
+            var repositories = new[] { projectsPath, protocolsPath, quotesPath }
+                .Where(p => p is not null && Directory.Exists(Path.Combine(p, ".git"))).ToList();
+            var rejections = await Task.WhenAll((repositories.Count > 0 ? repositories : [null])
+                .Select(clone => GitRejectsSignInAsync(git, clone, cancellationToken))).ConfigureAwait(false);
+            items.Add(GitHubForGitItem(rejections.Any(r => r)));
         }
 
         var claude = _tools.Find(Tool.Claude);
@@ -237,8 +241,8 @@ public sealed class SetupService
         : new(SetupStep.GitHubForGit, "Syncing with GitHub", true, "Git uses your GitHub sign-in.", null);
 
     /// <summary>
-    /// Whether GitHub turns git away for want of a sign-in, asked the way a sync asks: through a
-    /// clone's origin, or the projects repository itself before there is a clone.
+    /// Whether GitHub turns git away for want of a sign-in, asked the way a sync asks: through
+    /// <paramref name="clone"/>'s origin, or the projects repository itself before there is a clone.
     /// </summary>
     /// <remarks>Any other failure, such as being offline, is not this step's to report.</remarks>
     private async Task<bool> GitRejectsSignInAsync(string git, string? clone, CancellationToken cancellationToken)
