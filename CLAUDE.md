@@ -65,6 +65,7 @@ Directory.Build.props        single <Version> (CalVer YY.feature.patch), warning
 global.json                  .NET 10 SDK; opts dotnet test into Microsoft Testing Platform
 release-notes/               one file per version; becomes the GitHub Release body
 src/LabOps.Core/     all logic, no UI types                     net10.0
+  Acquisition/               Thermo raw files read from Panorama by range requests (ThermoRawHeader, PanoramaRawReader)
   Claude/                    stream-json session, parser, in-app MCP server (AppTools), PermissionMemory
   Engines/                   what both engines share: uv run, JSON answers, EngineException
   Projects/                  ProjectEngine (runs LabOps.Engines in-process), lab, project and experiment models

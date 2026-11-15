@@ -228,6 +228,50 @@ sequenceDiagram
   `https://panoramaweb.org/MacCoss/samplemanager-app.view#/notebooks/131`. A notebook recorded by
   ID alone gets that link too.
 
+## Reading the raw files
+
+**Read raw files** (on Data acquisition, once a raw data folder is recorded) reads how the
+experiment's data were acquired from the raw files themselves, so the record holds what the
+instrument did and when, not what someone remembered. After the first read the button is **Update
+from raw files**, for files added since.
+
+```mermaid
+sequenceDiagram
+    actor You
+    participant App as LabOps
+    participant Panorama as panoramaweb.org
+    participant Engine as project engine (labops)
+
+    You->>App: Read raw files
+    App->>Panorama: GET .../@files/RawFiles/?method=json, and each subfolder
+    loop each .raw file, six at a time
+        App->>Panorama: GET Range: bytes=0-65535 (the header and the controller table)
+        App->>Panorama: GET Range: the rest of the start (the embedded method)
+        App->>Panorama: GET Range: the mass spectrometer's instrument block
+    end
+    App->>Engine: acquisition 2026-09-BioTRACK-DIA --from (folders, times, methods, serials)
+    Engine->>Engine: acquisition lines, step dates, done, instrument
+    App->>App: commit and push
+```
+
+- **About a megabyte of each file.** A Thermo raw file holds its LC and MS method near its start
+  and its instrument's name and serial number just after the mass spectrometer's run header,
+  which the start points to. LabOps reads those parts with HTTP range requests
+  (`ThermoRawHeader`, `PanoramaRawReader`); a folder of 292 Astral files of 3 to 7 GB each read in
+  about ten seconds.
+- **What is recorded.** One `acquisition:` line per folder and method: the method file, the
+  instrument's model and serial, how many files, the first and last date, and a fingerprint of the
+  method's text, the same for files acquired with the same method. File names are not recorded,
+  since they often carry sample identifiers.
+- **The step's dates.** The first file's date starts the data acquisition step and the last
+  file's finishes it, and the step is marked done. Batches each get their own folder's dates when
+  the folders are numbered like them (`RawFiles/Plate_1`, `Plate_2`, ...).
+- **The instrument.** `config/instruments.yaml` lists each instrument's serial numbers; the raw
+  files' serial names the experiment's instrument when it names none, and `check` warns when it
+  names another one, or when the serial is not listed.
+- **What cannot be read** (a file still uploading, an older raw format) is listed after the read
+  and left out; the others are recorded.
+
 ## A protocol, from upload to bench
 
 ```mermaid

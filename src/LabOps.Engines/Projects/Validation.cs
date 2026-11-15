@@ -1,6 +1,8 @@
 using System.Text.RegularExpressions;
 using LabOps.Engines.Python;
 using LabOps.Engines.Yaml;
+// Validation has a Links method of its own.
+using ProjectsLinks = LabOps.Engines.Projects.Links;
 
 namespace LabOps.Engines.Projects;
 
@@ -416,6 +418,7 @@ public static partial class Validation
                                 + $"({string.Join(", ", instruments)}); use one of those names, or add it there"));
         }
 
+        output.AddRange(AcquisitionRules(repo, e));
         var project = Path.GetDirectoryName(folder)!;
         if (!File.Exists(Path.Combine(project, "project.yaml")))
         {
@@ -432,6 +435,49 @@ public static partial class Validation
             if (File.Exists(Path.Combine(folder, misplaced)))
             {
                 output.Add(("ERROR", $"{misplaced} belongs to the project ({repo.Rel(project)}), not the experiment"));
+            }
+        }
+
+        return output;
+    }
+
+    /// <summary>
+    /// What the raw files said against the record: an instrument serial config/instruments.yaml
+    /// does not list, and an experiment naming another instrument than the one its raw files were
+    /// acquired on.
+    /// </summary>
+    private static List<(string, string)> AcquisitionRules(ProjectRepository repo, PyDict e)
+    {
+        var output = new List<(string, string)>();
+        if (e[ProjectsLinks.AcquisitionKey] is not (null or List<object?>))
+        {
+            output.Add(("WARN", "acquisition should be a list, one line per folder and method; read the raw files again"));
+            return output;
+        }
+
+        var serials = repo.InstrumentSerials();
+        var instrument = Values.Text(e["instrument"]);
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var a in Values.ListOf(e, ProjectsLinks.AcquisitionKey, ProjectsLinks.AcquisitionFields))
+        {
+            if (Values.Text(a["serial"]) is not { } serial || !seen.Add(serial))
+            {
+                continue;
+            }
+
+            var model = Values.Text(a["model"]) ?? "an instrument";
+            if (!serials.TryGetValue(serial, out var name))
+            {
+                if (repo.Instruments().Count > 0)
+                {
+                    output.Add(("WARN", $"the raw files were acquired on {model} serial {serial}, which config/instruments.yaml does not list; "
+                                        + "add it to that instrument's serials"));
+                }
+            }
+            else if (instrument is not null && !string.Equals(instrument, name, StringComparison.OrdinalIgnoreCase))
+            {
+                output.Add(("WARN", $"instrument is {PyText.ReprString(instrument)}, but the raw files were acquired on the {name} "
+                                    + $"(serial {serial})"));
             }
         }
 

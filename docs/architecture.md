@@ -85,6 +85,9 @@ flowchart LR
     eln --> browse
     creds["Windows Credential Manager<br/>PanoramaBridge's saved sign-in"] -.-> browse
     browse -->|"records your choice"| experiment["LabOps-Projects<br/>experiment.yaml"]
+    rawFiles -->|"about 1 MB of each file,<br/>by range requests"| readRaw["LabOps: Read raw files<br/>method, instrument, dates"]
+    creds -.-> readRaw
+    readRaw -->|"acquisition, step dates"| experiment
     folder -->|"Skyline documents counted"| wikiBuild["LabOps: Wiki page<br/>the projects engine builds it"]
     wikiBuild -->|"publishes"| wikiPage["Wiki page<br/>.../BioTRACK, page default"]
     creds -.-> wikiBuild
@@ -210,6 +213,7 @@ flowchart LR
 | Add a step, Remove a step | `labops projects add-step`, `remove-step` | `<item>: added step ...` |
 | Batches | `labops projects split <item> <step> --batches <n>` | `<item>: sample prep in 3 batches` |
 | Add notebook, Add raw data folder, Add results folder, Remove a link | `labops projects link`, `unlink` | `<item>: raw data on Panorama` |
+| Read raw files, Update from raw files | the app reads the raw files on Panorama, then `labops projects acquisition <experiment> --from <file>` | `<experiment>: raw files read (292)` |
 | Organize with Claude | `labops projects scan <file>`, then Claude | `<project>: updated with Claude` |
 | Wiki page (the first time: where it goes) | `labops projects link <project> wiki <folder> --page <name>` | `<project>: wiki page on Panorama` |
 | Wiki page, Publish; and after every saved change | `labops projects wiki <project> --documents <file>`, then Panorama's `wiki-saveWiki.api` | nothing in git |

@@ -136,6 +136,36 @@ public sealed record Notebook(string? Id, string? Url);
 /// <summary>A Panorama folder holding raw data or shared results.</summary>
 public sealed record PanoramaFolder(string? Folder, string? Kind);
 
+/// <summary>What one folder's raw files said about how they were acquired, with one method (Read raw files).</summary>
+/// <param name="Folder">The Panorama folder they are in.</param>
+/// <param name="MethodFile">The instrument method's file name.</param>
+/// <param name="Files">How many raw files.</param>
+/// <param name="First">The first file's acquisition date (YYYY-MM-DD).</param>
+/// <param name="Last">The last file's acquisition date.</param>
+/// <param name="Method">A fingerprint of the method's text: the same for files acquired with the same method.</param>
+public sealed record AcquisitionRead(string? Folder, string? MethodFile, string? Model, string? Serial, int? Files, string? First, string? Last, string? Method)
+{
+    /// <summary>
+    /// One line per method, across folders: "292 raw files, 2026-09-22 to 2026-09-29: Actis_DIA_24m.meth
+    /// on Orbitrap Astral Zoom (OA10308)". Dates in ISO form compare as text.
+    /// </summary>
+    public static IReadOnlyList<string> Describe(IEnumerable<AcquisitionRead> reads) =>
+    [
+        .. reads.GroupBy(r => (r.Method, r.MethodFile, r.Model, r.Serial))
+            .OrderBy(g => g.Min(r => r.First), StringComparer.Ordinal)
+            .Select(g =>
+            {
+                var files = g.Sum(r => r.Files ?? 0);
+                var first = g.Select(r => r.First).Min(StringComparer.Ordinal);
+                var last = g.Select(r => r.Last).Max(StringComparer.Ordinal);
+                var dates = first == last ? first : $"{first} to {last}";
+                var instrument = g.Key.Model is null ? null : g.Key.Serial is null ? g.Key.Model : $"{g.Key.Model} ({g.Key.Serial})";
+                var how = string.Join(" on ", new[] { g.Key.MethodFile ?? "no method file named", instrument }.OfType<string>());
+                return $"{files} raw file{(files == 1 ? "" : "s")}, {dates}: {how}";
+            }),
+    ];
+}
+
 /// <summary>Where signal processing and analysis live.</summary>
 public sealed record AnalysisLocation(string? Repo, string? Folder);
 
@@ -251,6 +281,9 @@ public sealed record ExperimentSummary : ITimeline
 
     /// <summary>The protocols its steps followed (none from an engine older than 26.3.0).</summary>
     public IReadOnlyList<ProtocolLink> Protocols { get; init; } = [];
+
+    /// <summary>What its raw files said when they were last read (none before Read raw files, or from an engine older than 26.18.0).</summary>
+    public IReadOnlyList<AcquisitionRead> Acquisition { get; init; } = [];
 
     public AnalysisLocation Analysis { get; init; } = new(null, null);
 

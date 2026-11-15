@@ -157,6 +157,38 @@ public sealed class ProjectRepository
             .Distinct(StringComparer.OrdinalIgnoreCase)];
     }
 
+    private IReadOnlyDictionary<string, string>? _serials;
+
+    /// <summary>
+    /// The serial numbers config/instruments.yaml gives each instrument (`serials: [OA10308]`),
+    /// each to its instrument's name, ignoring case: they name the instrument a raw file was
+    /// acquired on. A serial listed twice keeps its first instrument.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> InstrumentSerials()
+    {
+        if (_serials is not null)
+        {
+            return _serials;
+        }
+
+        var serials = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var entries = ReadConfig("instruments.yaml") is PyDict doc && doc["instruments"] is List<object?> list ? list : [];
+        foreach (var entry in entries.OfType<PyDict>())
+        {
+            if (Values.Text(entry["name"]) is not { } name)
+            {
+                continue;
+            }
+
+            foreach (var serial in Values.Iterate(entry["serials"]).Select(Values.Text).OfType<string>())
+            {
+                serials.TryAdd(serial.Trim(), name);
+            }
+        }
+
+        return _serials = serials;
+    }
+
     private readonly List<string> _configProblems = [];
 
     /// <summary>What was wrong with the config files read so far ("config/people.yaml: ..."); check reports them.</summary>

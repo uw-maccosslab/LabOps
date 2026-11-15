@@ -17,6 +17,13 @@ public static partial class Links
     public const string ProtocolComment = "Protocols from LabOps-Protocols, each at the version used and for its step "
                                           + "(labops projects link <item> protocol <id> --version N --step STEP [--deviation TEXT]).";
 
+    /// <summary>An experiment's record of how its data were acquired, read from its raw files.</summary>
+    public const string AcquisitionKey = "acquisition";
+
+    public static readonly string[] AcquisitionFields = ["folder", "method_file", "model", "serial", "files", "first", "last", "method"];
+
+    public const string AcquisitionComment = "How the data were acquired, from the raw files on Panorama (Read raw files in LabOps).";
+
     // A notebook ID ends in the notebook's site-wide row ID (ELN-{user}-{date}-{row}, ELN-{date}-{row}
     // or ELN-{row}), which is also where it opens.
     [GeneratedRegex(@"^ELN-(?:.*-)?(\d+)$", RegexOptions.IgnoreCase)]
