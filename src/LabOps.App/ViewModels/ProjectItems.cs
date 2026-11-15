@@ -255,6 +255,9 @@ public static class StepHomes
     /// <summary>The Panorama folder the raw files go to.</summary>
     public static IReadOnlyList<string> RawData { get; } = ["data_deposited", "data_acquisition"];
 
+    /// <summary>Read raw files, and what they said: the acquisition step, whose dates they give.</summary>
+    public static IReadOnlyList<string> RawFiles { get; } = ["data_acquisition", "data_deposited"];
+
     /// <summary>The Panorama folder with the process control (system suitability) runs, watched during acquisition.</summary>
     public static IReadOnlyList<string> ProcessControl { get; } = ["data_acquisition"];
 
@@ -275,6 +278,9 @@ public sealed record StepTool(string Label, string ToolTip, IRelayCommand Comman
 /// <summary>What Add raw data folder, Add results folder or Add notebook records, and on what.</summary>
 /// <param name="Kind">raw, results, qc or notebook.</param>
 public sealed record LinkRequest(TimelineSection Section, string Kind);
+
+/// <summary>What Read raw files reads: an experiment's raw data folders on Panorama.</summary>
+public sealed record RawFilesRequest(TimelineSection Section, IReadOnlyList<string> Folders);
 
 /// <summary>What Add protocol records a protocol for: a timeline, and the step that followed it.</summary>
 /// <param name="Step">The step's id; null for the timeline as a whole.</param>

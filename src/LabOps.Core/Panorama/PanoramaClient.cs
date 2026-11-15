@@ -115,46 +115,55 @@ public sealed partial class PanoramaClient : IPanoramaClient, IDisposable
 
         using (response)
         {
-            if (response.StatusCode == HttpStatusCode.Unauthorized || (int)response.StatusCode is >= 300 and < 400)
+            if (!await SucceededAsync(response, display, allowMissing, cancellationToken).ConfigureAwait(false))
             {
-                var typed = _credential.Source == "typed";
-                var which = typed
-                    ? _credential.IsApiKey ? "this API key" : "this user name and password"
-                    : $"the sign-in saved by {_credential.Source} ({_credential})";
-                throw new PanoramaException(
-                    $"Panorama did not accept {which}. "
-                    + (typed ? "Check it and try again." : "The API key may have expired, or the password changed."))
-                {
-                    IsSignInProblem = true,
-                };
-            }
-
-            if (response.StatusCode == HttpStatusCode.Forbidden)
-            {
-                throw new PanoramaException($"This Panorama account cannot open {display}.");
-            }
-
-            if (response.StatusCode == HttpStatusCode.NotFound)
-            {
-                if (allowMissing)
-                {
-                    return null;
-                }
-
-                throw new PanoramaException($"{display} is not on Panorama.");
-            }
-
-            if (!response.IsSuccessStatusCode)
-            {
-                // LabKey's APIs explain a refusal in JSON: {"exception": "..."}.
-                var detail = ApiError(await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false));
-                throw new PanoramaException(detail is null
-                    ? $"Panorama answered {(int)response.StatusCode} {response.ReasonPhrase} for {display}."
-                    : $"Panorama refused {display}: {detail}");
+                return null;
             }
 
             return await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
         }
+    }
+
+    /// <summary>
+    /// Turns a failed answer into a message for the person. False for a 404 when
+    /// <paramref name="allowMissing"/>; true when the answer can be read.
+    /// </summary>
+    private async Task<bool> SucceededAsync(HttpResponseMessage response, string display, bool allowMissing, CancellationToken cancellationToken)
+    {
+        if (response.StatusCode == HttpStatusCode.Unauthorized || (int)response.StatusCode is >= 300 and < 400)
+        {
+            var typed = _credential.Source == "typed";
+            var which = typed
+                ? _credential.IsApiKey ? "this API key" : "this user name and password"
+                : $"the sign-in saved by {_credential.Source} ({_credential})";
+            throw new PanoramaException(
+                $"Panorama did not accept {which}. "
+                + (typed ? "Check it and try again." : "The API key may have expired, or the password changed."))
+            {
+                IsSignInProblem = true,
+            };
+        }
+
+        if (response.StatusCode == HttpStatusCode.Forbidden)
+        {
+            throw new PanoramaException($"This Panorama account cannot open {display}.");
+        }
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            return allowMissing ? false : throw new PanoramaException($"{display} is not on Panorama.");
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            // LabKey's APIs explain a refusal in JSON: {"exception": "..."}.
+            var detail = ApiError(await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false));
+            throw new PanoramaException(detail is null
+                ? $"Panorama answered {(int)response.StatusCode} {response.ReasonPhrase} for {display}."
+                : $"Panorama refused {display}: {detail}");
+        }
+
+        return true;
     }
 
     /// <summary>Reads a <c>query-selectRows.api</c> answer for labbook.Notebook.</summary>

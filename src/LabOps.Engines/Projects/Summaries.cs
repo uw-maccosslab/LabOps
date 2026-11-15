@@ -141,7 +141,7 @@ public static class Summaries
         var own = Values.FundingOf(e["funding"]);
         var (current, stages) = Steps.Timeline(e);
         var project = Path.GetDirectoryName(folder)!;
-        return new JsonObject
+        var summary = new JsonObject
         {
             ["experiment"] = Path.GetFileName(folder),
             ["folder"] = repo.Rel(folder),
@@ -161,6 +161,25 @@ public static class Summaries
             ["stages"] = stages,
             ["issues"] = Values.Issues(issues),
         };
+
+        // Only when the raw files have been read, so an experiment without it reads as project.py
+        // wrote it (the parity tests compare the two engines' JSON).
+        if (Values.ListOf(e, Links.AcquisitionKey, Links.AcquisitionFields) is { Count: > 0 } acquisition)
+        {
+            summary["acquisition"] = new JsonArray([.. acquisition.Select(a => (JsonNode)new JsonObject
+            {
+                ["folder"] = Values.Json(Values.Text(a["folder"])),
+                ["method_file"] = Values.Json(Values.Text(a["method_file"])),
+                ["model"] = Values.Json(Values.Text(a["model"])),
+                ["serial"] = Values.Json(Values.Text(a["serial"])),
+                ["files"] = Values.JsonInt(a["files"]),
+                ["first"] = Values.Json(Values.Text(a["first"])),
+                ["last"] = Values.Json(Values.Text(a["last"])),
+                ["method"] = Values.Json(Values.Text(a["method"])),
+            })]);
+        }
+
+        return summary;
     }
 
     public static JsonObject Project(ProjectRepository repo, string folder, IEnumerable<(string, string)> issues, JsonArray experiments, PyDict p)

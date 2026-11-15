@@ -112,7 +112,7 @@ flowchart TB
     meta["metadata/samples.csv<br/>one row per sample, deidentified<br/>metadata/received/: what the collaborator sent"]
     layout["layout/<br/>the plate layout from Octopus,<br/>with the exact input that made it"]
     wiki["wiki.yaml<br/>the written parts of the wiki page"]
-    exp["2026-10-Otter-DIA/experiment.yaml<br/>one measurement: instrument, the measurement<br/>and analysis steps, Panorama folders,<br/>notebooks, protocols followed"]
+    exp["2026-10-Otter-DIA/experiment.yaml<br/>one measurement: instrument, the measurement<br/>and analysis steps, Panorama folders,<br/>notebooks, protocols followed,<br/>what its raw files said"]
     inbox["inbox/CWZ-Otter-EV/<br/>originals, ignored by git,<br/>never leave the computer"]
 
     lab --> project
@@ -134,6 +134,17 @@ numbered with `batch: 1`, `batch: 2`, and so on. Each batch starts, finishes, is
 planned on its own. `split` makes them, or changes how many there are, and `import-layout` makes
 sample prep one batch per plate. A step split after it was done keeps what is known: its start on
 the first batch and its finish on the last.
+
+An experiment's raw files are the record of its acquisition. `acquisition <experiment> --from FILE`
+takes what the app read from them on Panorama (each file's folder, acquisition time, method and
+instrument, never its name) and writes `acquisition:`, one line per folder and method, with the
+method file, the instrument's model and serial, how many files, the first and last date, and a
+fingerprint of the method's text. It gives the data acquisition step the first and last file's
+dates and marks it done, each batch from its own folder when the folders are numbered like the
+batches (`RawFiles/Plate_1`, `Plate_2`), and names the instrument when the experiment names none,
+by the serial numbers `config/instruments.yaml` lists under each instrument (`serials:`). `check`
+warns about a serial that file does not list, and about an experiment that names another
+instrument than its raw files were acquired on.
 
 The kinds fall into five phases, each with one color wherever a step is shown (defined in
 `LabOps.Engines/Projects/Phases.cs`):
@@ -173,7 +184,7 @@ work is gray, and late work has a red ring.
 flowchart TB
     subgraph commands["Commands (ProjectsEngine)"]
         read["Read<br/>list, check, scan, sheet,<br/>wiki, index"]
-        write["Write<br/>new-lab, new-project, new-experiment,<br/>stage, assign, plan, add-step, remove-step, split,<br/>link, unlink, review,<br/>octopus-input, import-layout"]
+        write["Write<br/>new-lab, new-project, new-experiment,<br/>stage, assign, plan, add-step, remove-step, split,<br/>link, unlink, review, acquisition,<br/>octopus-input, import-layout"]
     end
 
     subgraph rules["Rules"]

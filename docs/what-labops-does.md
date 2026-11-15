@@ -63,6 +63,7 @@ And some steps have the tools for their work:
 | Plate layout | **Open in Octopus**, **Import layout** | Writes the input for Octopus, the plate layout tool; keeps the layout it exports, and makes sample prep one batch per plate |
 | Sample prep, and the bench steps | **Add protocol**, **Add notebook** | Records the protocol version followed, and the ELN notebook |
 | Data deposited, data acquisition | **Add raw data folder**, **Add process control folder** | Records where the raw files and the system suitability runs are on Panorama |
+| Data acquisition, once a raw data folder is recorded | **Read raw files**, then **Update from raw files** | Reads the raw files on Panorama (about a megabyte of each, not the whole file) and records what they say: the instrument and its serial number, the method file, and the first and last file's dates, which become the step's dates, and marks it done. Each batch gets its own folder's dates when the folders are numbered like the batches |
 | Signal processing | **Add results folder** | Records the Panorama folder with the Skyline documents |
 
 Above the timelines: **Ask Claude to update it** (a conversation about this project),
@@ -150,8 +151,9 @@ do.
 
 ## Panorama
 
-LabOps reads Panorama to choose an experiment's folders and notebooks, and to count the Skyline
-documents in them, signed in the way PanoramaBridge is. It writes two kinds of page: each project's
+LabOps reads Panorama to choose an experiment's folders and notebooks, to count the Skyline
+documents in them, and to read how its raw files were acquired, signed in the way PanoramaBridge
+is. It writes two kinds of page: each project's
 wiki page, which the collaborators of that project read, and the lab dashboard. Each is read by
 whoever can open its Panorama folder; LabOps does not change those permissions.
 

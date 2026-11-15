@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 using LabOps.App.Services;
 using LabOps.App.Views;
+using LabOps.Core.Acquisition;
 using LabOps.Core.Engines;
 using LabOps.Core.Infrastructure;
 using LabOps.Core.Panorama;
@@ -421,6 +422,19 @@ public sealed partial class ProjectsViewModel : ObservableObject
             AddProtocols(section, e.Protocols, p.Folder);
             AddMetadataTools(section, orSection: false);
             section.Place(NotebookTool(section), StepHomes.Notebook);
+            foreach (var line in AcquisitionRead.Describe(e.Acquisition))
+            {
+                section.Place(new LinkItem($"From the raw files: {line}", null), StepHomes.RawFiles);
+            }
+
+            if (e.Panorama.Where(f => f.Kind == "raw" && !string.IsNullOrWhiteSpace(f.Folder)).Select(f => f.Folder!).ToList() is { Count: > 0 } rawFolders)
+            {
+                section.Place(new StepTool(e.Acquisition.Count > 0 ? "Update from raw files" : "Read raw files",
+                    "Read the raw files on Panorama for when and how they were acquired: the instrument, the method, and the first and "
+                    + "last file's dates, which become this step's dates, and mark it done. Reads about a megabyte of each file, not the whole file.",
+                    ReadRawFilesCommand, new RawFilesRequest(section, rawFolders)), StepHomes.RawFiles);
+            }
+
             section.Place(new StepTool("Add raw data folder",
                 "Record the Panorama folder the raw files go to, where PanoramaBridge uploads them. It can be recorded before acquisition starts.",
                 AddLinkCommand, new LinkRequest(section, "raw")), StepHomes.RawData);
@@ -743,6 +757,70 @@ public sealed partial class ProjectsViewModel : ObservableObject
         }).ConfigureAwait(true);
         await ReloadAsync(project).ConfigureAwait(true);
     }
+
+    /// <summary>
+    /// Reads an experiment's raw files on Panorama (about a megabyte of each, by range requests) and
+    /// records what they say: how the data were acquired, on which instrument, and the data
+    /// acquisition step's real dates, marked done. Reading again updates all of it, for files
+    /// added since.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanReadRawFiles))]
+    private async Task ReadRawFilesAsync(RawFilesRequest request)
+    {
+        var project = Selected!.Name;
+        var (item, folder) = (request.Section.Item, request.Section.Folder);
+        var owner = Application.Current.MainWindow;
+        using var client = await _panorama.SignInAsync(owner).ConfigureAwait(true);
+        if (client is null)
+        {
+            return;
+        }
+
+        RawFolderRead? read = null;
+        await _work.RunAsync("Listing the raw files on Panorama...", async () =>
+        {
+            var reader = new PanoramaRawReader(client);
+            try
+            {
+                var files = await reader.ListAsync(request.Folders).ConfigureAwait(true);
+                if (files.Count == 0)
+                {
+                    throw new InvalidOperationException($"There are no raw files in {string.Join(" or ", request.Folders)} on Panorama yet. "
+                                                        + "Read them once PanoramaBridge has uploaded some.");
+                }
+
+                var progress = new Progress<int>(done => _work.Report($"Reading raw files on Panorama: {done} of {files.Count}..."));
+                read = await reader.ReadAsync(files, progress).ConfigureAwait(true);
+            }
+            catch (PanoramaException ex)
+            {
+                throw new InvalidOperationException(ex.Message, ex);
+            }
+
+            if (read.Files.Count == 0)
+            {
+                throw new InvalidOperationException("None of the raw files could be read:\n\n" + ProblemList(read.Problems));
+            }
+
+            _work.Report("Recording what the raw files say...");
+            await PullFirstAsync().ConfigureAwait(true);
+            await _engine.RecordAcquisitionAsync(item, read, _workspace.User?.Login).ConfigureAwait(true);
+            await SaveAsync([folder], $"{item}: raw files read ({read.Files.Count})").ConfigureAwait(true);
+        }).ConfigureAwait(true);
+        await ReloadAsync(project).ConfigureAwait(true);
+
+        if (read is { Files.Count: > 0, Problems.Count: > 0 })
+        {
+            MessageBox.Show(owner, $"LabOps read {read.Files.Count} of {read.Files.Count + read.Problems.Count} raw files. "
+                                   + "These could not be read, and are left out:\n\n" + ProblemList(read.Problems),
+                AppInfo.ProductName, MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+
+        static string ProblemList(IReadOnlyList<RawFileProblem> problems) =>
+            string.Join("\n", problems.Take(10).Select(p => p.Message)) + (problems.Count > 10 ? $"\n...and {problems.Count - 10} more." : "");
+    }
+
+    private bool CanReadRawFiles(RawFilesRequest? request) => CanEditSelected() && request is not null;
 
     /// <summary>
     /// Records the protocol a step followed, at the published version used, chosen from the lab
@@ -1091,7 +1169,7 @@ public sealed partial class ProjectsViewModel : ObservableObject
                  {
                      NewProjectCommand, NewExperimentCommand, AskClaudeCommand, StartStageCommand, FinishStageCommand,
                      SkipStageCommand, ReopenStageCommand, AssignCommand, PlanCommand, SplitStepCommand, AddStepCommand, RemoveStepCommand,
-                     AddLinkCommand, RemoveLinkCommand, AddProtocolCommand, OrganizeMetadataCommand,
+                     AddLinkCommand, RemoveLinkCommand, AddProtocolCommand, ReadRawFilesCommand, OrganizeMetadataCommand,
                      OpenInOctopusCommand, ImportLayoutCommand, OpenFolderCommand, OpenOnGitHubCommand, ViewSamplesCommand, ViewWikiCommand,
                  })
         {

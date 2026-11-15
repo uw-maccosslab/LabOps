@@ -153,6 +153,34 @@ public sealed class ProjectEngine : IPreCommitCheck
             .ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Records what an experiment's raw files said (Read raw files): the acquisition lines, the
+    /// data acquisition step's dates and done, and the instrument when none is named.
+    /// </summary>
+    /// <param name="experiment">The experiment, by name.</param>
+    /// <param name="read">The raw files as PanoramaRawReader read them.</param>
+    /// <param name="by">GitHub login of who read them.</param>
+    public async Task RecordAcquisitionAsync(string experiment, Acquisition.RawFolderRead read, string? by, CancellationToken cancellationToken = default)
+    {
+        // The engine takes the list as a file, as the labops tool would; it holds no file names.
+        var input = Path.Combine(Path.GetTempPath(), $"labops-raw-files-{Guid.NewGuid():N}.json");
+        await File.WriteAllTextAsync(input, read.ToEngineJson(), cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var args = new List<string> { "acquisition", experiment, "--from", input };
+            if (!string.IsNullOrWhiteSpace(by))
+            {
+                args.AddRange(["--by", by.Trim()]);
+            }
+
+            using var doc = await RunAsync(args, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            File.Delete(input);
+        }
+    }
+
     /// <summary>Records a project's or an experiment's ELN notebook: its link, its ID, or both.</summary>
     public async Task LinkNotebookAsync(string item, string? url, string? id, CancellationToken cancellationToken = default)
     {

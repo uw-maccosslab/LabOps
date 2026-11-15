@@ -32,6 +32,15 @@ public sealed partial class WorkTracker(ILogger<WorkTracker> log) : ObservableOb
     /// </summary>
     public static readonly TimeSpan RecentSync = TimeSpan.FromSeconds(60);
 
+    /// <summary>Says how the work in progress is going ("Reading raw files: 37 of 292..."); only while it runs.</summary>
+    public void Report(string text)
+    {
+        if (IsWorking)
+        {
+            WorkingText = text;
+        }
+    }
+
     /// <summary>Runs <paramref name="work"/>, showing <paramref name="text"/>, and reports failures to the user.</summary>
     public async Task RunAsync(string text, Func<Task> work)
     {
