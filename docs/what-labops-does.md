@@ -64,6 +64,7 @@ And some steps have the tools for their work:
 | Sample prep, and the bench steps | **Add protocol**, **Add notebook** | Records the protocol version followed, and the ELN notebook |
 | Data deposited, data acquisition | **Add raw data folder**, **Add process control folder** | Records where the raw files and the system suitability runs are on Panorama |
 | Data acquisition, once a raw data folder is recorded | **Read raw files**, then **Update from raw files** | Reads the raw files on Panorama (about a megabyte of each, not the whole file) and records what they say: the instrument and its serial number, the method file, and the first and last file's dates, which become the step's dates, and marks it done. Each batch gets its own folder's dates when the folders are numbered like the batches |
+| Data acquisition, once its raw files are read | **Record protocol** *name* **v**N, or **Write a protocol from this method** | Records the LC-MS protocol version whose instrument method is exactly the one the raw files were acquired with; when no published protocol holds it, takes the method out of one raw file and writes a protocol from its settings with Claude, as a new protocol or the next version of one |
 | Signal processing | **Add results folder** | Records the Panorama folder with the Skyline documents |
 
 Above the timelines: **Ask Claude to update it** (a conversation about this project),

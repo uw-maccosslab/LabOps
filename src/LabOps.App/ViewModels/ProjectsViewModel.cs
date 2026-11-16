@@ -85,6 +85,13 @@ public sealed partial class ProjectsViewModel : ObservableObject
     /// <summary>Someone opened a protocol a step followed: show it, at that version, in the Protocols area.</summary>
     public event Action<string, int?>? ProtocolRequested;
 
+    /// <summary>Someone asked for a protocol from the instrument method raw files were acquired with: write it in the Protocols area.</summary>
+    public event Action<MethodDraft>? MethodProtocolRequested;
+
+    // Which published protocol version holds each instrument method, and what it was read from.
+    private ProtocolMethodIndex _methodIndex = ProtocolMethodIndex.Empty;
+    private string? _methodIndexKey;
+
     public ChatViewModel Chat { get; }
 
     public ObservableCollection<ProjectRow> Projects { get; } = [];
@@ -188,6 +195,7 @@ public sealed partial class ProjectsViewModel : ObservableObject
             }
 
             var modified = await ItemHistory.LastModifiedAsync(repository).ConfigureAwait(true);
+            await RefreshMethodIndexAsync().ConfigureAwait(true);
             _people = list.People;
             _list = list;
             Overview.Update(list, _workspace.User?.Login);
@@ -435,6 +443,8 @@ public sealed partial class ProjectsViewModel : ObservableObject
                     ReadRawFilesCommand, new RawFilesRequest(section, rawFolders)), StepHomes.RawFiles);
             }
 
+            AddMethodProtocolTools(section, e);
+
             section.Place(new StepTool("Add raw data folder",
                 "Record the Panorama folder the raw files go to, where PanoramaBridge uploads them. It can be recorded before acquisition starts.",
                 AddLinkCommand, new LinkRequest(section, "raw")), StepHomes.RawData);
@@ -490,6 +500,143 @@ public sealed partial class ProjectsViewModel : ObservableObject
             "Record the protocol from the lab protocols that this step followed, at the version used.",
             AddProtocolCommand, new ProtocolRequest(section, home?.Stage)), StepHomes.Protocol);
     }
+
+    /// <summary>
+    /// For each method the raw files were acquired with: Record the LC-MS protocol version that
+    /// holds exactly that method, when one does and the step does not record it yet; otherwise
+    /// Write a protocol from it. Any change to a method is a new protocol or version, so there is
+    /// nothing in between.
+    /// </summary>
+    private void AddMethodProtocolTools(TimelineSection section, ExperimentSummary e)
+    {
+        var step = section.Home(StepHomes.RawFiles)?.Stage;
+        var methods = e.Acquisition.Where(a => !string.IsNullOrEmpty(a.Method)).GroupBy(a => a.Method!).ToList();
+        foreach (var method in methods)
+        {
+            var line = method.First();
+            var which = methods.Count == 1 ? "this method" : line.MethodFile ?? $"method {method.Key}";
+            if (_methodIndex.Find(method.Key) is { } match)
+            {
+                if (!e.Protocols.Any(l => l.Id == match.Protocol.Id && l.Version == match.Version))
+                {
+                    section.Place(new StepTool($"Record protocol {match.Protocol.ShortTitle ?? match.Protocol.DisplayTitle} v{match.Version}",
+                        $"The raw files were acquired with exactly the instrument method ({match.MethodFile}) that version {match.Version} of "
+                        + $"{match.Protocol.DisplayTitle} holds. Record that this step followed it.",
+                        RecordMethodProtocolCommand, new MethodProtocolRequest(section, step, line, match)), StepHomes.RawFiles);
+                }
+            }
+            else if (_workspace.Protocols is not null)
+            {
+                section.Place(new StepTool($"Write a protocol from {which}",
+                    "No published lab protocol holds the instrument method these raw files were acquired with. Take the method out of one "
+                    + "of them and write an LC-MS protocol from its settings with Claude, as a new protocol or the next version of one.",
+                    WriteMethodProtocolCommand, new MethodProtocolRequest(section, step, line, null)), StepHomes.RawFiles);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Reads which published protocol version holds each instrument method, again only when a
+    /// protocol's record has changed since (a version published, a sync), since it reads every
+    /// published method file.
+    /// </summary>
+    private async Task RefreshMethodIndexAsync()
+    {
+        if (_workspace.Protocols is not { } protocols)
+        {
+            _methodIndex = ProtocolMethodIndex.Empty;
+            return;
+        }
+
+        try
+        {
+            var records = new DirectoryInfo(Path.Combine(protocols.Path, "protocols")) is { Exists: true } folder
+                ? folder.EnumerateFiles("protocol.yaml", SearchOption.AllDirectories).ToList()
+                : [];
+            var key = $"{protocols.Path}|{records.Count}|{(records.Count == 0 ? 0 : records.Max(f => f.LastWriteTimeUtc.Ticks))}";
+            if (key == _methodIndexKey)
+            {
+                return;
+            }
+
+            var list = await _protocols.ListAsync().ConfigureAwait(true);
+            _methodIndex = await Task.Run(() => ProtocolMethodIndex.Build(protocols.Path, list.Protocols)).ConfigureAwait(true);
+            _methodIndexKey = key;
+        }
+        catch (Exception ex) when (ex is EngineException or ToolMissingException or IOException or UnauthorizedAccessException)
+        {
+            // Matching is a help, not a requirement: without it the step offers to write a protocol.
+            _log.LogWarning(ex, "Could not read the protocols' instrument methods.");
+        }
+    }
+
+    /// <summary>Records the LC-MS protocol version whose instrument method the raw files were acquired with.</summary>
+    [RelayCommand(CanExecute = nameof(CanUseMethodProtocol))]
+    private async Task RecordMethodProtocolAsync(MethodProtocolRequest request)
+    {
+        var project = Selected!.Name;
+        var (item, folder) = (request.Section.Item, request.Section.Folder);
+        var match = request.Match!;
+        await _work.RunAsync("Recording the protocol...", async () =>
+        {
+            await PullFirstAsync().ConfigureAwait(true);
+            // An exact match: nothing was done differently, so no deviations.
+            await _engine.LinkProtocolAsync(item, match.Protocol.Id, match.Version, request.Step, match.Protocol.Title, []).ConfigureAwait(true);
+            await SaveAsync([folder], $"{item}: protocol {match.Protocol.Id} version {match.Version} for data acquisition, from the raw files")
+                .ConfigureAwait(true);
+        }).ConfigureAwait(true);
+        await ReloadAsync(project).ConfigureAwait(true);
+    }
+
+    /// <summary>
+    /// Takes the instrument method out of one of the raw files acquired with it (about a megabyte
+    /// read from Panorama) and hands it, with its settings, to the Protocols area, where Claude
+    /// writes an LC-MS protocol from it.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanUseMethodProtocol))]
+    private async Task WriteMethodProtocolAsync(MethodProtocolRequest request)
+    {
+        var line = request.Line;
+        if (line.Folder is null || line.Method is null)
+        {
+            return;
+        }
+
+        var owner = Application.Current.MainWindow;
+        using var client = await _panorama.SignInAsync(owner).ConfigureAwait(true);
+        if (client is null)
+        {
+            return;
+        }
+
+        MethodDraft? draft = null;
+        await _work.RunAsync("Taking the method out of a raw file on Panorama...", async () =>
+        {
+            RawMethodCapture? capture;
+            try
+            {
+                capture = await new PanoramaRawReader(client).FindMethodAsync(line.Folder, line.Method).ConfigureAwait(true);
+            }
+            catch (PanoramaException ex)
+            {
+                throw new InvalidOperationException(ex.Message, ex);
+            }
+
+            if (capture is null)
+            {
+                throw new InvalidOperationException($"No raw file in {line.Folder} has this method any more. Read the raw files again, then try again.");
+            }
+
+            draft = MethodDraft.Write(capture, line.MethodFile, line.Model);
+        }).ConfigureAwait(true);
+
+        if (draft is not null)
+        {
+            MethodProtocolRequested?.Invoke(draft);
+        }
+    }
+
+    private bool CanUseMethodProtocol(MethodProtocolRequest? request) => CanEditSelected() && request is not null;
 
     /// <summary>A person's name from config/people.yaml, or the login when they are not listed.</summary>
     private string NameOf(string login) =>
@@ -1184,7 +1331,8 @@ public sealed partial class ProjectsViewModel : ObservableObject
                  {
                      NewProjectCommand, NewExperimentCommand, AskClaudeCommand, StartStageCommand, FinishStageCommand,
                      SkipStageCommand, ReopenStageCommand, AssignCommand, PlanCommand, SplitStepCommand, AddStepCommand, RemoveStepCommand,
-                     AddLinkCommand, RemoveLinkCommand, AddProtocolCommand, ReadRawFilesCommand, OrganizeMetadataCommand,
+                     AddLinkCommand, RemoveLinkCommand, AddProtocolCommand, ReadRawFilesCommand, RecordMethodProtocolCommand,
+                     WriteMethodProtocolCommand, OrganizeMetadataCommand,
                      OpenInOctopusCommand, ImportLayoutCommand, OpenFolderCommand, OpenOnGitHubCommand, ViewSamplesCommand, ViewWikiCommand,
                  })
         {

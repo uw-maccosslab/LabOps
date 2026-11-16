@@ -70,7 +70,7 @@ src/LabOps.Core/     all logic, no UI types                     net10.0
   Claude/                    stream-json session, parser, in-app MCP server (AppTools), PermissionMemory
   Engines/                   what both engines share: uv run, JSON answers, EngineException
   Projects/                  ProjectEngine (runs LabOps.Engines in-process), lab, project and experiment models
-  Protocols/                 ProtocolEngine (protocol.py), protocol models
+  Protocols/                 ProtocolEngine (protocol.py), protocol models; ProtocolMethodIndex (raw files to LC-MS protocol versions)
   Panorama/                  read-only Panorama client, sign-in (PanoramaBridge's, then ours)
   Quotes/                    QuoteEngine (quote.py), RepoConfig, QuoteSearch
   Repositories/              RepositoryProfile, Repository, RepositoryFactory

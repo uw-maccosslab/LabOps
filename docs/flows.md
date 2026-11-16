@@ -275,6 +275,38 @@ sequenceDiagram
   after the read and left out; the others are recorded. So is a recorded raw data folder that is
   not on Panorama yet.
 
+### The LC-MS protocol the raw files followed
+
+An LC-MS protocol in LabOps-Protocols keeps its instrument method (`.meth`) in its `methods/`
+folder, frozen with each version that links it. The method a raw file was acquired with is
+embedded in it, so the two can be compared exactly, by the fingerprint each `acquisition:` line
+already records. Any setting that differs is another method, and so another protocol or version:
+LC-MS protocols have no deviations.
+
+```mermaid
+flowchart TB
+    line["acquisition: line<br/>method fingerprint"] --> find{"a published version<br/>holds that method?"}
+    find -- yes --> record["Record protocol X vN<br/>(linked to Data acquisition, no deviations)"]
+    find -- no --> take["Write a protocol from this method:<br/>the method taken out of one raw file<br/>(about a megabyte from Panorama)"]
+    take --> inbox["LabOps-Protocols inbox/:<br/>the .meth and its settings as Markdown"]
+    inbox --> claude["Claude writes the protocol<br/>(format-protocol), asks: new protocol<br/>or next version of one?"]
+    claude --> publish["You publish it;<br/>the step then offers Record"]
+```
+
+- **Matching** (`ProtocolMethodIndex`) reads each published version's `.meth` files, which
+  `protocol.py list` names per version (protocol engine 26.5.0 and later), and fingerprints them
+  the way a raw file's method is fingerprinted. It is read again only when a protocol's record
+  changes.
+- **The settings Claude writes from** (`MethodSummary`) are every setting the method holds: the LC
+  system, columns, temperatures, solvent labels and gradient, the mass spectrometer's global
+  settings, and each experiment's scans and filters with their mass lists (DIA windows, PRM
+  targets), with each device's method text. The lines naming who saved the method or which
+  computer ran the LC are left out.
+- **One thing not yet checked against a real one:** that a `.meth` copied from an instrument
+  computer by hand holds the same text as the method a raw file embeds. A method written into a
+  protocol through Write a protocol from this method is the one taken out of the raw file, so it
+  always matches.
+
 ## A protocol, from upload to bench
 
 ```mermaid

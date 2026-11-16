@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
 using LabOps.Core.Projects;
+using LabOps.Core.Protocols;
 using CommunityToolkit.Mvvm.Input;
 
 namespace LabOps.App.ViewModels;
@@ -281,6 +282,10 @@ public sealed record LinkRequest(TimelineSection Section, string Kind);
 
 /// <summary>What Read raw files reads: an experiment's raw data folders on Panorama.</summary>
 public sealed record RawFilesRequest(TimelineSection Section, IReadOnlyList<string> Folders);
+
+/// <summary>A method the raw files were acquired with: the protocol version holding it (Match), or none yet.</summary>
+/// <param name="Step">The data acquisition step to record the protocol on.</param>
+public sealed record MethodProtocolRequest(TimelineSection Section, string? Step, AcquisitionRead Line, MethodMatch? Match);
 
 /// <summary>What Add protocol records a protocol for: a timeline, and the step that followed it.</summary>
 /// <param name="Step">The step's id; null for the timeline as a whole.</param>
