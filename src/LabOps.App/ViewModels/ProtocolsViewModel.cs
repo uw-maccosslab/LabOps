@@ -790,14 +790,17 @@ public sealed partial class ProtocolsViewModel : ObservableObject
         }
 
         var published = 0;
+        var saved = false;
         await _work.RunAsync($"Publishing version {number}...", async () =>
         {
             await PullFirstAsync().ConfigureAwait(true);
             published = await _engine.PublishAsync(p.Id, summary, login).ConfigureAwait(true);
-            await SaveAsync([p.Folder], $"{p.Id}: version {published}").ConfigureAwait(true);
+            saved = await SaveAsync([p.Folder], $"{p.Id}: version {published}").ConfigureAwait(true);
         }).ConfigureAwait(true);
         await ReloadAsync(p.Id, published == 0 ? null : published).ConfigureAwait(true);
-        if (published > 0)
+        // Only a committed version exists for anyone else: recording one the check refused would
+        // put a version on experiments that LabOps-Protocols never gets.
+        if (published > 0 && saved)
         {
             VersionPublished?.Invoke(p.Id, published);
         }
@@ -997,18 +1000,23 @@ public sealed partial class ProtocolsViewModel : ObservableObject
     }
 
     /// <summary>Commits the change on this computer and shares it with GitHub in the background.</summary>
-    private async Task SaveAsync(IReadOnlyList<string> paths, string message)
+    /// <summary>Commits the change and shares it in the background; false when it could not be committed.</summary>
+    private async Task<bool> SaveAsync(IReadOnlyList<string> paths, string message)
     {
         var repository = Repository!;
         var result = await repository.Sync.SaveLocallyAsync(paths, message).ConfigureAwait(true);
         if (!result.Succeeded)
         {
             await HandleSaveResultAsync(result).ConfigureAwait(true);
+            return false;
         }
-        else if (result.Committed)
+
+        if (result.Committed)
         {
             _ = ShareAsync(repository);
         }
+
+        return true;
     }
 
     private async Task ShareAsync(Repository repository)

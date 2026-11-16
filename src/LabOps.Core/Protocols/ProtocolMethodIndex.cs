@@ -73,17 +73,39 @@ public sealed class ProtocolMethodIndex
     /// <summary>
     /// The experiments to record a just-published version on: those whose raw files were acquired
     /// with exactly a method this index holds for that version, and that do not record that
-    /// version yet, each with its first data acquisition step (null when it has none). An exact
-    /// match leaves nothing for a person to judge, so publishing records it.
+    /// protocol yet, each with the step to record it on (<see cref="RecordStep"/>). An exact match
+    /// leaves nothing for a person to judge, so publishing records it. An experiment that records
+    /// another version of the protocol is left alone: a link replaces the one for the same protocol
+    /// and step, so a version that only rewords the text would otherwise rewrite what every past
+    /// experiment followed and drop its deviations.
     /// </summary>
     public IReadOnlyList<MethodRecording> ToRecord(ProjectList projects, string protocolId, int version) =>
     [
         .. projects.Labs.SelectMany(l => l.Projects).SelectMany(p => p.Experiments.Select(e => (Project: p, Experiment: e)))
             .Where(x => x.Experiment.Acquisition.Any(a => Find(a.Method) is { } m && m.Protocol.Id == protocolId && m.Version == version)
-                        && !x.Experiment.Protocols.Any(l => l.Id == protocolId && l.Version == version))
-            .Select(x => new MethodRecording(x.Project, x.Experiment,
-                x.Experiment.Stages.FirstOrDefault(s => s.Kind == "data_acquisition")?.Stage)),
+                        && !x.Experiment.Protocols.Any(l => l.Id == protocolId))
+            .Select(x => new MethodRecording(x.Project, x.Experiment, RecordStep(x.Experiment))),
     ];
+
+    /// <summary>
+    /// Whether an experiment already records a protocol version holding this method, so there is
+    /// nothing for Record protocol to do. Any version counts: a later version that only rewords
+    /// the text holds the same method, and the version recorded is the one that was followed.
+    /// </summary>
+    public bool IsRecorded(ExperimentSummary experiment, string fingerprint) =>
+        _byFingerprint.TryGetValue(fingerprint, out var matches)
+        && experiment.Protocols.Any(l => matches.Any(m => m.Protocol.Id == l.Id && m.Version == l.Version));
+
+    /// <summary>
+    /// The kinds of step an LC-MS protocol is recorded on, in order of preference: the step the raw
+    /// files were acquired in, else the one they were deposited in. Read raw files and Record
+    /// protocol sit on the same step.
+    /// </summary>
+    public static IReadOnlyList<string> RecordStepKinds { get; } = ["data_acquisition", "data_deposited"];
+
+    /// <summary>The step to record an LC-MS protocol on (see <see cref="RecordStepKinds"/>), or null when the experiment has none.</summary>
+    public static string? RecordStep(ExperimentSummary experiment) =>
+        RecordStepKinds.Select(k => experiment.Stages.FirstOrDefault(s => (s.Kind ?? s.Stage) == k)?.Stage).FirstOrDefault(s => s is not null);
 
     /// <summary>An instrument method file's fingerprint, or null when it cannot be read as one.</summary>
     public static string? FingerprintOf(string path)

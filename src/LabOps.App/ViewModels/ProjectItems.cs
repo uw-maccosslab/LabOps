@@ -257,7 +257,7 @@ public static class StepHomes
     public static IReadOnlyList<string> RawData { get; } = ["data_deposited", "data_acquisition"];
 
     /// <summary>Read raw files, and what they said: the acquisition step, whose dates they give.</summary>
-    public static IReadOnlyList<string> RawFiles { get; } = ["data_acquisition", "data_deposited"];
+    public static IReadOnlyList<string> RawFiles => ProtocolMethodIndex.RecordStepKinds;
 
     /// <summary>The Panorama folder with the process control (system suitability) runs, watched during acquisition.</summary>
     public static IReadOnlyList<string> ProcessControl { get; } = ["data_acquisition"];
