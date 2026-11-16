@@ -301,10 +301,11 @@ flowchart TB
   records it on every experiment whose raw files were acquired with exactly that method and that
   does not record that protocol yet (`ProtocolMethodIndex.ToRecord`), so the protocol's Used by
   lists them at once. An exact match leaves nothing to judge. An experiment that records another
-  version is left alone: a link replaces the one for the same protocol and step, so a version that
-  only rewords the text would otherwise rewrite what past experiments followed. It goes on the
-  Data acquisition step, else Data deposited, where Record protocol puts it too, and it is
-  recorded on all of them or none. Only a version that was committed is recorded. Raw files read
+  version of the protocol, or another protocol holding the same method, is left alone: a link
+  replaces the one for the same protocol and step, so a version that only rewords the text would
+  otherwise rewrite what past experiments followed. It goes on the Data acquisition step, else
+  Data deposited, where Record protocol puts it too, and it is recorded on all of them or none.
+  Publishing waits for the version to reach GitHub before recording it. Raw files read
   after the publish get the Record button instead.
 - **The settings Claude writes from** (`MethodSummary`) are every setting the method holds: the LC
   system, columns, temperatures, solvent labels and gradient, the mass spectrometer's global

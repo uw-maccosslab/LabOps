@@ -96,14 +96,19 @@ public sealed class MethodProtocolTests : IDisposable
         var fingerprint = ThermoRawHeader.Fingerprint(ThermoRawHeader.ReadMethods(dia, layout));
         var method = ThermoRawHeader.ExtractMethod(dia, layout)!;
         // Version 2 only rewords the text: it holds the same method as version 1.
-        var index = ProtocolMethodIndex.Build(_root, [Protocol("astral-dia-24m", "active", (1, "Astral_DIA_24m.meth", method), (2, "Astral_DIA_24m-2.meth", method))]);
-        ExperimentSummary Experiment(string name, string? method, int? recorded = null, string? step = "data_acquisition") => new()
+        // A retired protocol held it first.
+        var index = ProtocolMethodIndex.Build(_root,
+        [
+            Protocol("astral-dia-24m", "active", (1, "Astral_DIA_24m.meth", method), (2, "Astral_DIA_24m-2.meth", method)),
+            Protocol("old-astral-dia", "retired", (1, "dia.meth", method)),
+        ]);
+        ExperimentSummary Experiment(string name, string? method, int? recorded = null, string? step = "data_acquisition", string protocol = "astral-dia-24m") => new()
         {
             Experiment = name,
             Folder = $"projects/Lab/Pilot/{name}",
             Acquisition = method is null ? [] : [new AcquisitionRead("/x/RawFiles", "DIA.meth", "Orbitrap Astral Zoom", "OA10308", 3, "2026-10-01", "2026-10-03", method)],
             Protocols = recorded is { } v
-                ? [new ProtocolLink("astral-dia-24m", v, "Title", "data_acquisition_batch1", ["Ran at 45 C"])]
+                ? [new ProtocolLink(protocol, v, "Title", "data_acquisition_batch1", ["Ran at 45 C"])]
                 : [],
             Stages = step is null
                 ? [new StageEntry { Stage = "sample_prep", Kind = "sample_prep" }]
@@ -119,6 +124,7 @@ public sealed class MethodProtocolTests : IDisposable
                 Experiment("2026-10-Pilot-DIA", fingerprint),
                 Experiment("2026-10-Recorded-DIA", fingerprint, recorded: 2),
                 Experiment("2026-10-Earlier-DIA", fingerprint, recorded: 1),
+                Experiment("2026-10-Retired-DIA", fingerprint, recorded: 1, protocol: "old-astral-dia"),
                 Experiment("2026-10-Other-DIA", "000000000000"),
                 Experiment("2026-10-Unread-DIA", null),
                 Experiment("2026-10-Deposited-DIA", fingerprint, step: "data_deposited"),
@@ -129,8 +135,8 @@ public sealed class MethodProtocolTests : IDisposable
 
         var pending = index.ToRecord(list, "astral-dia-24m", 2);
 
-        // An experiment that records version 1 keeps it, with its deviations: the link would
-        // replace it. Without an acquisition step, the protocol goes where the raw files were deposited.
+        // An experiment that records version 1, or the retired protocol with the same method, keeps
+        // it, with its deviations: the link would replace it. Without an acquisition step, the protocol goes where the raw files were deposited.
         pending.Select(r => (r.Experiment.Experiment, r.Step)).ShouldBe(
         [
             ("2026-10-Pilot-DIA", "data_acquisition_batch1"),
@@ -145,6 +151,7 @@ public sealed class MethodProtocolTests : IDisposable
         // Record protocol is not offered where a version holding the method is recorded already.
         index.IsRecorded(project.Experiments[1], fingerprint).ShouldBeTrue();
         index.IsRecorded(project.Experiments[2], fingerprint).ShouldBeTrue();
+        index.IsRecorded(project.Experiments[3], fingerprint).ShouldBeTrue();
         index.IsRecorded(project.Experiments[0], fingerprint).ShouldBeFalse();
         index.IsRecorded(project.Experiments[2], "000000000000").ShouldBeFalse();
     }
