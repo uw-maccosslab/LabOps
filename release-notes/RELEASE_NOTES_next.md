@@ -22,6 +22,9 @@ the GitHub Release description and fails if it is missing.
 
 ## Bug Fixes
 
+- Fixed the status bar showing "UpToDate" instead of "Up to date" after a save that had nothing
+  new to record, such as **Update from raw files** when no files had been added.
+
 ## Performance
 
 ## Breaking Changes

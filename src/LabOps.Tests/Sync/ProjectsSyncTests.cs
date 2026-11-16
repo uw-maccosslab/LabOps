@@ -134,6 +134,23 @@ public sealed class ProjectsSyncTests : IDisposable
     }
 
     [Fact]
+    public async Task Saving_with_nothing_changed_keeps_the_status_in_words()
+    {
+        var alice = _git.Clone("Alice");
+        var sync = _git.ProjectsSyncFor(alice, new MarkerCheck(alice));
+        GitFixture.Write(alice, "projects/Lab/2026-10-Pilot/experiment.yaml", "experiment: 2026-10-Pilot\nsamples: 10\n");
+        (await sync.SaveAsync(["projects/Lab/2026-10-Pilot"], "2026-10-Pilot: raw files read (2)")).Pushed.ShouldBeTrue();
+
+        // Reading the raw files again with none added rewrites the record unchanged.
+        var saved = await sync.SaveLocallyAsync(["projects/Lab/2026-10-Pilot"], "2026-10-Pilot: raw files read (2)");
+
+        saved.Committed.ShouldBeFalse();
+        sync.Status.State.ShouldBe(SyncState.UpToDate);
+        // Not null, which the status bar would show as the state's code name, "UpToDate".
+        sync.Status.Message.ShouldBe("Up to date");
+    }
+
+    [Fact]
     public async Task Shares_run_one_after_another_and_idle_waits_for_all_of_them()
     {
         var alice = _git.Clone("Alice");
