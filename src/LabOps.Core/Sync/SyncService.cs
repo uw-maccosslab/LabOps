@@ -223,9 +223,13 @@ public sealed partial class SyncService
         {
             Publish(Status with { State = SyncState.Syncing, Message = "Saving..." });
             var committed = await CommitAsync(paths.ToList(), message, cancellationToken).ConfigureAwait(false);
-            Publish((await ReadStatusAsync(cancellationToken).ConfigureAwait(false)) with
+            var status = await ReadStatusAsync(cancellationToken).ConfigureAwait(false);
+
+            // With nothing committed the status keeps its own words ("Up to date"); clearing them
+            // left the status bar showing the state's code name, "UpToDate".
+            Publish(status with
             {
-                Message = committed ? "Saved; sharing with GitHub..." : null,
+                Message = committed ? "Saved; sharing with GitHub..." : status.Message,
                 LastSynced = Status.LastSynced,
             });
             return new SaveResult(committed, false);
