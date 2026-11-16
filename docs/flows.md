@@ -290,13 +290,18 @@ flowchart TB
     find -- no --> take["Write a protocol from this method:<br/>the method taken out of one raw file<br/>(about a megabyte from Panorama)"]
     take --> inbox["LabOps-Protocols inbox/:<br/>the .meth and its settings as Markdown"]
     inbox --> claude["Claude writes the protocol<br/>(format-protocol), asks: new protocol<br/>or next version of one?"]
-    claude --> publish["You publish it;<br/>the step then offers Record"]
+    claude --> publish["You publish it; LabOps records it on<br/>every experiment acquired with that method"]
 ```
 
 - **Matching** (`ProtocolMethodIndex`) reads each published version's `.meth` files, which
   `protocol.py list` names per version (protocol engine 26.5.0 and later), and fingerprints them
   the way a raw file's method is fingerprinted. It is read again only when a protocol's record
   changes.
+- **Publishing records it.** When a version holding an instrument method is published, LabOps
+  records it on every experiment whose raw files were acquired with exactly that method and that
+  does not record it yet (`ProtocolMethodIndex.ToRecord`), so the protocol's Used by lists them
+  at once. An exact match leaves nothing to judge. Raw files read after the publish get the
+  Record button instead.
 - **The settings Claude writes from** (`MethodSummary`) are every setting the method holds: the LC
   system, columns, temperatures, solvent labels and gradient, the mass spectrometer's global
   settings, and each experiment's scans and filters with their mass lists (DIA windows, PRM
