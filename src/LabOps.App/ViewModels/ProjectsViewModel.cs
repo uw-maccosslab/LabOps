@@ -570,6 +570,65 @@ public sealed partial class ProjectsViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// After a protocol version is published: records it on every experiment whose raw files were
+    /// acquired with exactly an instrument method it holds and that does not record it yet, so the
+    /// protocol's Used by shows them at once. Nothing to record, or no instrument method in the
+    /// version, does nothing.
+    /// </summary>
+    public async Task RecordPublishedMethodAsync(string protocolId, int version)
+    {
+        // A version was published: the methods are read again on the next reload.
+        _methodIndexKey = null;
+        if (_workspace.Protocols is not { } protocols || !CanEdit())
+        {
+            return;
+        }
+
+        try
+        {
+            var protocol = (await _protocols.ListAsync().ConfigureAwait(true)).Protocols.FirstOrDefault(p => p.Id == protocolId);
+            if (protocol?.Versions.FirstOrDefault(v => v.Version == version) is not { } published
+                || !published.Methods.Any(m => m.EndsWith(".meth", StringComparison.OrdinalIgnoreCase)))
+            {
+                return;
+            }
+
+            var index = await Task.Run(() => ProtocolMethodIndex.Build(protocols.Path, [protocol with { Versions = [published] }])).ConfigureAwait(true);
+            if (index.Count == 0)
+            {
+                return;
+            }
+
+            await _work.RunAsync($"Recording {protocol.DisplayTitle} on the experiments acquired with its method...", async () =>
+            {
+                await PullFirstAsync().ConfigureAwait(true);
+                var pending = index.ToRecord(await _engine.ListAsync(includeClosed: true).ConfigureAwait(true), protocolId, version);
+                if (pending.Count == 0)
+                {
+                    return;
+                }
+
+                foreach (var r in pending)
+                {
+                    // An exact match: nothing was done differently, so no deviations.
+                    await _engine.LinkProtocolAsync(r.Experiment.Experiment, protocolId, version, r.Step, protocol.Title, []).ConfigureAwait(true);
+                }
+
+                await SaveAsync([.. pending.Select(r => r.Project.Folder).Distinct()],
+                    $"{protocolId} version {version} recorded on {string.Join(", ", pending.Select(r => r.Experiment.Experiment))}: "
+                    + "their raw files were acquired with its method").ConfigureAwait(true);
+            }).ConfigureAwait(true);
+        }
+        catch (Exception ex) when (ex is EngineException or ToolMissingException or IOException or UnauthorizedAccessException)
+        {
+            // The Record protocol button on each experiment does the same by hand.
+            _log.LogWarning(ex, "Could not record {Protocol} version {Version} on the experiments acquired with its method.", protocolId, version);
+        }
+
+        await ReloadAsync(Selected?.Name).ConfigureAwait(true);
+    }
+
     /// <summary>Records the LC-MS protocol version whose instrument method the raw files were acquired with.</summary>
     [RelayCommand(CanExecute = nameof(CanUseMethodProtocol))]
     private async Task RecordMethodProtocolAsync(MethodProtocolRequest request)

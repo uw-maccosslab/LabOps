@@ -797,7 +797,14 @@ public sealed partial class ProtocolsViewModel : ObservableObject
             await SaveAsync([p.Folder], $"{p.Id}: version {published}").ConfigureAwait(true);
         }).ConfigureAwait(true);
         await ReloadAsync(p.Id, published == 0 ? null : published).ConfigureAwait(true);
+        if (published > 0)
+        {
+            VersionPublished?.Invoke(p.Id, published);
+        }
     }
+
+    /// <summary>A version was published: experiments acquired with an instrument method it holds can record it.</summary>
+    public event Action<string, int>? VersionPublished;
 
     private bool CanPublish() => CanEditSelected() && Selected!.Protocol is { DraftChanges: true, HasErrors: false, IsRetired: false };
 

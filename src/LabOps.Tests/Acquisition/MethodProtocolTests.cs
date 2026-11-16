@@ -1,6 +1,7 @@
 using System.Text.Json;
 using LabOps.Core.Acquisition;
 using LabOps.Core.Engines;
+using LabOps.Core.Projects;
 using LabOps.Core.Protocols;
 
 namespace LabOps.Tests.Acquisition;
@@ -86,6 +87,45 @@ public sealed class MethodProtocolTests : IDisposable
         index.Find(ThermoRawHeader.Fingerprint(ThermoRawHeader.ReadMethods(prm, prmLayout))).ShouldBeNull();
         index.Find(null).ShouldBeNull();
         index.Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public void Publishing_records_the_version_on_experiments_acquired_with_its_method_that_do_not_record_it_yet()
+    {
+        var (dia, layout) = Raw(Fixture("astral-zoom-dia.ms.txt"));
+        var fingerprint = ThermoRawHeader.Fingerprint(ThermoRawHeader.ReadMethods(dia, layout));
+        var index = ProtocolMethodIndex.Build(_root, [Protocol("astral-dia-24m", "active", (1, "Astral_DIA_24m.meth", ThermoRawHeader.ExtractMethod(dia, layout)!))]);
+        ExperimentSummary Experiment(string name, string? method, bool recorded = false, bool acquisitionStep = true) => new()
+        {
+            Experiment = name,
+            Acquisition = method is null ? [] : [new AcquisitionRead("/x/RawFiles", "DIA.meth", "Orbitrap Astral Zoom", "OA10308", 3, "2026-10-01", "2026-10-03", method)],
+            Protocols = recorded ? [new ProtocolLink("astral-dia-24m", 1, "Title", "data_acquisition")] : [],
+            Stages = acquisitionStep
+                ? [new StageEntry { Stage = "sample_prep", Kind = "sample_prep" }, new StageEntry { Stage = "data_acquisition_batch1", Kind = "data_acquisition" }]
+                : [new StageEntry { Stage = "sample_prep", Kind = "sample_prep" }],
+        };
+        var project = new ProjectSummary
+        {
+            Project = "Pilot",
+            Folder = "projects/Lab/Pilot",
+            Experiments =
+            [
+                Experiment("2026-10-Pilot-DIA", fingerprint),
+                Experiment("2026-10-Recorded-DIA", fingerprint, recorded: true),
+                Experiment("2026-10-Other-DIA", "000000000000"),
+                Experiment("2026-10-Unread-DIA", null),
+                Experiment("2026-10-NoStep-DIA", fingerprint, acquisitionStep: false),
+            ],
+        };
+        var list = new ProjectList([new LabSummary { Lab = "Lab", Projects = [project] }], [], []);
+
+        var pending = index.ToRecord(list, "astral-dia-24m", 1);
+
+        pending.Select(r => (r.Experiment.Experiment, r.Step)).ShouldBe([("2026-10-Pilot-DIA", "data_acquisition_batch1"), ("2026-10-NoStep-DIA", (string?)null)]);
+        pending.ShouldAllBe(r => r.Project.Folder == "projects/Lab/Pilot");
+        // Another protocol, or another version, records nothing.
+        index.ToRecord(list, "other-protocol", 1).ShouldBeEmpty();
+        index.ToRecord(list, "astral-dia-24m", 2).ShouldBeEmpty();
     }
 
     [Fact]

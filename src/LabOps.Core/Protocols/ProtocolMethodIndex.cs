@@ -1,9 +1,13 @@
 using LabOps.Core.Acquisition;
+using LabOps.Core.Projects;
 
 namespace LabOps.Core.Protocols;
 
 /// <summary>A published protocol version whose instrument method is exactly the one the raw files were acquired with.</summary>
 public sealed record MethodMatch(ProtocolSummary Protocol, int Version, string MethodFile);
+
+/// <summary>An experiment to record a protocol version on, at its data acquisition step (null when it has none).</summary>
+public sealed record MethodRecording(ProjectSummary Project, ExperimentSummary Experiment, string? Step);
 
 /// <summary>
 /// Which published protocol version holds each instrument method, by the method's fingerprint
@@ -65,6 +69,21 @@ public sealed class ProtocolMethodIndex
         fingerprint is not null && _byFingerprint.TryGetValue(fingerprint, out var matches)
             ? matches.OrderBy(m => m.Protocol.IsRetired).ThenByDescending(m => m.Version).First()
             : null;
+
+    /// <summary>
+    /// The experiments to record a just-published version on: those whose raw files were acquired
+    /// with exactly a method this index holds for that version, and that do not record that
+    /// version yet, each with its first data acquisition step (null when it has none). An exact
+    /// match leaves nothing for a person to judge, so publishing records it.
+    /// </summary>
+    public IReadOnlyList<MethodRecording> ToRecord(ProjectList projects, string protocolId, int version) =>
+    [
+        .. projects.Labs.SelectMany(l => l.Projects).SelectMany(p => p.Experiments.Select(e => (Project: p, Experiment: e)))
+            .Where(x => x.Experiment.Acquisition.Any(a => Find(a.Method) is { } m && m.Protocol.Id == protocolId && m.Version == version)
+                        && !x.Experiment.Protocols.Any(l => l.Id == protocolId && l.Version == version))
+            .Select(x => new MethodRecording(x.Project, x.Experiment,
+                x.Experiment.Stages.FirstOrDefault(s => s.Kind == "data_acquisition")?.Stage)),
+    ];
 
     /// <summary>An instrument method file's fingerprint, or null when it cannot be read as one.</summary>
     public static string? FingerprintOf(string path)
