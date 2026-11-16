@@ -162,7 +162,10 @@ public sealed class RawFileTests
             f.ReadExactly(block);
 
             ThermoRawHeader.ReadInstrument(block).Serial.ShouldNotBeNull(path);
-            ThermoRawHeader.ReadMethods(all, layout).ShouldNotBeEmpty(path);
+            var methods = ThermoRawHeader.ReadMethods(all, layout);
+            methods.ShouldNotBeEmpty(path);
+            // The MS method summary parses into its experiments, as RawMethodCheck parses it.
+            ThermoMethod.Read(methods).Ms.ShouldNotBeNull(path).Experiments.ShouldNotBeEmpty(path);
             ThermoRawHeader.ReadMethodFile(all, layout).ShouldNotBeNull(path);
             layout.Acquired.Year.ShouldBeInRange(2010, DateTime.Now.Year, path);
         }

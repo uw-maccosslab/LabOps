@@ -1,0 +1,107 @@
+Orbitrap Eclipse Method Summary
+  
+Creator: INSTRUMENT-PC\Thermo          Last Modified: 01/31/2023 14:55:16 by INSTRUMENT-PC\Thermo
+  
+Global Settings
+	Use Ion Source Settings from Tune = False
+	Method Duration (min)= 60
+	Ion Source Type = NSI
+	Spray Voltage: Positive Ion (V) = 2000
+	Spray Voltage: Negative Ion (V) = 1600
+	Infusion Mode (LC)= False
+	Sweep Gas (Arb) = 0
+	Ion Transfer Tube Temp (°C) = 300
+	APPI Lamp = Not in use
+	FAIMS Mode = Not Installed
+	Application Mode = Peptide
+	Pressure Mode = Standard
+	Default Charge State = 2
+	Advanced Peak Determination = True
+	Xcalibur AcquireX enabled for method modifications = False
+Experiment 1
+	Experiment Name = Orbitrap HCD - High Load (greater than 500 ng)
+	Start Time (min) = 0
+	End Time (min) = 60
+	Cycle Time (sec) = 3
+		
+
+
+		Scan MasterScan
+			Desired minimum points across the peak = 6
+			MSn Level = 1
+			Use Wide Quad Isolation = True
+			Detector Type = Orbitrap
+			Orbitrap Resolution = 60K
+			Mass Range = Normal
+			Scan Range (m/z) = 395-1650
+			Maximum Injection Time (ms) = 50
+			AGC Target = 400000
+			Normalized AGC Target = 100%
+			Microscans = 1
+			Maximum Injection Time Type = Auto
+			RF Lens (%) = 40
+			Use ETD Internal Calibration = False
+			DataType = Centroid
+			Polarity = Positive
+			Source Fragmentation = False
+			Scan Description = 
+			Enhanced Resolution Mode = Off
+
+		Filter MIPS
+			Relax Restrictions when too few Precursors are Found = True
+			MIPS Mode = Peptide
+
+		Filter ChargeState
+			Include charge state(s) = 2-7
+			Include undetermined charge states = False
+
+		Filter DynamicExclusion
+			Exclude after n times = 1
+			Exclusion duration (s) = 15
+			Mass Tolerance = ppm
+			Mass tolerance low = 10
+			Mass tolerance high = 10
+			Use Common Settings = False
+			Exclude isotopes = True
+			Perform dependent scan on single charge state per precursor only = False
+
+		Filter IntensityThreshold
+			Maximum Intensity = 1E+20
+			Minimum Intensity = 20000
+			Relative Intensity Threshold = 0
+			Intensity Filter Type = IntensityThreshold
+
+		Data Dependent Properties
+			Data Dependent Mode= Cycle Time
+Scan Event 1
+		
+
+
+		Scan ddMSnScan
+			MSn Level = 2
+			Desired minimum points across the peak = 6
+			Isolation Mode = Quadrupole
+			Isolation Window = 1.4
+			Isolation Offset = Off
+			Enable Auto PTR Windows = False
+			Reported Mass = Original Mass
+			Multi-notch Isolation = False
+			Scan Range Mode = Auto
+			Scan Priority= 1
+			Collision Energy Mode = Fixed
+			ActivationType = HCD
+			Collision Energy (%) = 27
+			Detector Type = Orbitrap
+			Orbitrap Resolution = 30K
+			Maximum Injection Time (ms) = 54
+			AGC Target = 50000
+			Normalized AGC Target = 100%
+			Inject ions for all available parallelizable time = False
+			Microscans = 1
+			Maximum Injection Time Type = Auto
+			Use ETD Internal Calibration = False
+			DataType = Centroid
+			Polarity = Positive
+			Source Fragmentation = False
+			Scan Description = 
+			Enhanced Resolution Mode = Off

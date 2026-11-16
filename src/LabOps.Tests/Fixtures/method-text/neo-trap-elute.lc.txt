@@ -1,0 +1,110 @@
+---- Overview ----
+Name: New Instrument Method
+Comment: 
+Run time: 24.000 [min]
+Instrument: Vanquish_Neo on instrument-pc
+Description: 
+---- Script ----
+initial     Instrument Setup
+            Neo.SamplerModule.Sampler.LoadingVolume: Automatic
+            Neo.SamplerModule.Sampler.FastLoadingWanted: Yes
+            Neo.SamplerModule.Sampler.LoadingFlow: 20.000 [µl/min]
+            Neo.SamplerModule.Sampler.LoadingMode: CombinedControl
+            Neo.SamplerModule.Sampler.LoadingPressure: 500.0 [bar]
+            Neo.SamplerModule.Sampler.TrapZebraWashCycles: 4
+            Neo.SamplerModule.Sampler.TrapZebraWashWanted: Yes
+            Neo.PumpModule.Pump.FastColumnEquilibrationWanted: Yes
+            Neo.PumpModule.Pump.ColumnEquilibrationFactor: 6.0
+            Neo.PumpModule.Pump.ColumnEquilibrationMode: PressureControl
+            Neo.PumpModule.Pump.ColumnEquilibrationPressure: 750.0 [bar]
+            Neo.SamplerModule.Sampler.FastTrapWashWanted: Yes
+            Neo.SamplerModule.Sampler.TrapWashFactorStrong: Automatic
+            Neo.SamplerModule.Sampler.TrapWashFactorWeak: Automatic
+            Neo.SamplerModule.Sampler.TrapWashMode: PressureControl
+            Neo.SamplerModule.Sampler.TrapWashPressure: 800.0 [bar]
+            Neo.PumpModule.Pump.%B.Equate: "%B"
+            Neo.PumpModule.Pump.%A.Equate: "%A"
+            Neo.PumpModule.Pump.%A_Solvent: H2O
+            Neo.PumpModule.Pump.%B_Solvent: ACN80
+            Neo.SamplerModule.Sampler.SolventWeakWpName: "Solvent WWP"
+            Neo.SamplerModule.Sampler.SolventStrongWpName: "Solvent SWP"
+            Neo.SamplerModule.Sampler.SolventWeakName: "Solvent W"
+            Neo.SamplerModule.Sampler.SolventStrongName: "Solvent S"
+            Neo.SamplerModule.TempCtrl: On
+            Neo.SamplerModule.Temperature.Nominal: 7.0 [°C]
+            Neo.SamplerModule.Sampler.PunctureOffset: NoOffset
+            Neo.SamplerModule.Sampler.VialBottomDetection: On
+            Neo.SamplerModule.Sampler.DispenseSpeed: 5.000 [µl/s]
+            Neo.SamplerModule.Sampler.DrawDelay: 2.0 [s]
+            Neo.SamplerModule.Sampler.DrawSpeed: 0.200 [µl/s]
+            Neo.SamplerModule.Sampler.AirGapEnable: Off
+            Neo.SamplerModule.Sampler.OuterNeedleWashCycleTime: Default
+            Neo.SamplerModule.Sampler.InjectWashWeakTime: 5.0 [s]
+            Neo.SamplerModule.Sampler.InjectWashWeakSpeed: 80.0 [µl/s]
+            Neo.SamplerModule.Sampler.InjectWashStrongSpeed: 80.0 [µl/s]
+            Neo.SamplerModule.Sampler.InjectWashStrongTime: 3.0 [s]
+            Neo.SamplerModule.Sampler.InjectWashMode: AfterDraw
+            Neo.SamplerModule.Sampler.TrapColumnFlushDirection: Backward
+            Neo.SystemControllerModule.SeparationColumn1.Diameter: 150 [µm]
+            Neo.SystemControllerModule.SeparationColumn1.Length: 15.0 [cm]
+            Neo.SystemControllerModule.SeparationColumn1.MaximumPressure: 1000 [bar]
+            Neo.SystemControllerModule.SeparationColumn1.MaximumFlow: 100.0 [µl/min]
+            Neo.SystemControllerModule.SeparationColumn1.MaximumTemperature: 20.0 [°C]
+            Neo.SystemControllerModule.SeparationColumn1.MaximumPressureChangeDown: 300 [bar/min]
+            Neo.SystemControllerModule.SeparationColumn1.MaximumPressureChangeUp: 300 [bar/min]
+            Neo.SystemControllerModule.TrapColumn1.Diameter: 300 [µm]
+            Neo.SystemControllerModule.TrapColumn1.Length: 0.5 [cm]
+            Neo.SystemControllerModule.TrapColumn1.MaximumPressure: 1200 [bar]
+            Neo.SystemControllerModule.TrapColumn1.MaximumFlow: 200.0 [µl/min]
+            Neo.SystemControllerModule.TrapColumn1.MaximumTemperature: 60.0 [°C]
+            Neo.SystemControllerModule.TrapColumn1.MaximumPressureChangeDown: 300 [bar/min]
+            Neo.SystemControllerModule.TrapColumn1.MaximumPressureChangeUp: 300 [bar/min]
+            Neo.SystemControllerModule.TrapColumn1.BackwardFlushSupported: Yes
+            Neo.SystemControllerModule.InjectionWorkflow: TrapAndElute
+            Neo.SystemControllerModule.FlowRegime: NanoCap
+            Neo.SystemControllerModule.SystemSetup: VanquishNeo
+0.000 [min] Equilibration
+            Neo.PumpModule.Pump.Flow.Nominal: 1.300 [µl/min]
+            Neo.PumpModule.Pump.%B.Value: 4.0 [%]
+            Neo.PumpModule.Pump.Curve: 5
+0.000 [min] Inject Preparation
+            Wait Neo.SamplerModule.Sampler.Ready And Neo.PumpModule.Pump.Ready And Neo.SystemControllerModule.Ready
+0.000 [min] Inject
+            Neo.SamplerModule.Sampler.Inject 
+0.000 [min] Start Run
+            Neo.PumpModule.Pump.Pump_Pressure.AcqOn 
+            Neo.SamplerModule.Sampler.Sampler_Pressure.AcqOn 
+0.000 [min] Run
+            Neo.PumpModule.Pump.Flow.Nominal: 1.300 [µl/min]
+            Neo.PumpModule.Pump.%B.Value: 4.0 [%]
+            Neo.PumpModule.Pump.Curve: 5
+0.700 [min]
+            Neo.PumpModule.Pump.Flow.Nominal: 1.300 [µl/min]
+            Neo.PumpModule.Pump.%B.Value: 6.0 [%]
+            Neo.PumpModule.Pump.Curve: 5
+1.000 [min]
+            Neo.PumpModule.Pump.Flow.Nominal: 1.000 [µl/min]
+            Neo.PumpModule.Pump.%B.Value: 6.5 [%]
+            Neo.PumpModule.Pump.Curve: 5
+21.000 [min]
+            Neo.PumpModule.Pump.Flow.Nominal: 1.000 [µl/min]
+            Neo.PumpModule.Pump.%B.Value: 40.0 [%]
+            Neo.PumpModule.Pump.Curve: 5
+21.500 [min]
+            Neo.PumpModule.Pump.Flow.Nominal: 1.300 [µl/min]
+            Neo.PumpModule.Pump.%B.Value: 55.0 [%]
+            Neo.PumpModule.Pump.Curve: 5
+            Neo.PumpModule.Pump.StartColumnWash 
+22.000 [min]
+            Neo.PumpModule.Pump.Flow.Nominal: 1.300 [µl/min]
+            Neo.PumpModule.Pump.%B.Value: 99.0 [%]
+            Neo.PumpModule.Pump.Curve: 5
+24.000 [min]
+            Neo.PumpModule.Pump.Flow.Nominal: 1.300 [µl/min]
+            Neo.PumpModule.Pump.%B.Value: 99.0 [%]
+            Neo.PumpModule.Pump.Curve: 5
+24.000 [min] Stop Run
+            Neo.PumpModule.Pump.Pump_Pressure.AcqOff 
+            Neo.SamplerModule.Sampler.Sampler_Pressure.AcqOff 
+24.000 [min] Post Run
+            Neo.PumpModule.Pump.StartColumnEquilibration 

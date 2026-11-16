@@ -1,0 +1,202 @@
+Stellar Method Summary
+  
+Creator: INSTRUMENT-PC\Thermo          Last Modified: 12/02/2024 14:37:30 by INSTRUMENT-PC\Thermo
+  
+Global Settings
+	Use Ion Source Settings from Tune = Not Checked
+	Method Duration (min) = 24
+	Collision Gas pressure (mTorr) = 8
+	Ion Source Type = NSI
+	Spray Voltage = Static
+	Spray Voltage: Positive Ion (V) = 2500
+	Spray Voltage: Negative Ion (V) = 1500
+	Gas Mode = Static
+	Infusion Mode (LC) = Liquid Chromatography
+	Sweep Gas (Arb) = 2
+	Ion Transfer Tube Temp (°C) = 300
+	APPI Lamp = Not in use
+	Total Carrier Gas Flow Type = Static
+	FAIMS Mode = Not Installed
+	Application Mode = Peptide
+	Chromatographic Peak Width (s) = 12
+	Default Charge State = 2
+Experiment 1
+	Experiment Name = MS
+	Time Range (min) = 0 - 24
+	IsRTNavigator = False
+		
+
+
+		Scan MasterScan
+			Use Chromatographic Filter = False
+			Use Quadrupole Isolation = True 
+			Scan Rate (kDa/s) = 67
+			Scan Range (m/z) = 350-1250
+			Absolute AGC Target = 30000
+			RF Lens (%) = 30
+			Maximum Injection Time Mode = Auto
+			Data Type = Centroid
+			Polarity = Positive
+			Source Fragmentation (V) = 0
+			AGC Target = Standard
+			Scan Description = 
+Experiment 2
+	Experiment Name = DIA
+	Time Range (min) = 0 - 24
+	Cycle Time (sec) = 1.71
+	IsRTNavigator = False
+		
+
+
+		Scan DIAScan
+			HCD Collision Energy Type = Normalized
+			Window Overlap (m/z) = 0
+			Isolation Window (m/z) = 4
+			Window Placement Optimization = On
+			Number of Scan Events = 125
+			Scan Range Mode = Define m/z range
+			Loop Control = All
+			ActivationType = HCD
+			HCD Collision Energy/Energies (%) = 30
+			Scan Rate (kDa/s) = 125
+			Precursor Mass Range (m/z) = 400-900.5
+			Scan Range (m/z) = 200-1500
+			Absolute AGC Target = 10000
+			Maximum Injection Time Mode = Dynamic
+			RF Lens (%) = 30
+			Data Type = Centroid
+			Polarity = Positive
+			Source Fragmentation (V) = 0
+			AGC Target = Standard
+			Scan Description = 
+			DIA Window Type = Auto
+			DIA Window Mode = m/z Range
+			Use Chromatographic Filter = False
+>>>>>>>>>>>>> Mass List Table <<<<<<<<<<<<<<
+                        m/z Range|
+                400.4319-404.4337|
+                404.4337-408.4355|
+                408.4355-412.4374|
+                412.4374-416.4392|
+                 416.4392-420.441|
+                 420.441-424.4428|
+                424.4428-428.4446|
+                428.4446-432.4465|
+                432.4465-436.4483|
+                436.4483-440.4501|
+                440.4501-444.4519|
+                444.4519-448.4537|
+                448.4537-452.4555|
+                452.4555-456.4574|
+                456.4574-460.4592|
+                 460.4592-464.461|
+                 464.461-468.4628|
+                468.4628-472.4646|
+                472.4646-476.4665|
+                476.4665-480.4683|
+                480.4683-484.4701|
+                484.4701-488.4719|
+                488.4719-492.4737|
+                492.4737-496.4756|
+                496.4756-500.4774|
+                500.4774-504.4792|
+                 504.4792-508.481|
+                 508.481-512.4828|
+                512.4828-516.4847|
+                516.4847-520.4865|
+                520.4865-524.4883|
+                524.4883-528.4901|
+                528.4901-532.4919|
+                532.4919-536.4937|
+                536.4937-540.4956|
+                540.4956-544.4974|
+                544.4974-548.4992|
+                 548.4992-552.501|
+                 552.501-556.5028|
+                556.5028-560.5047|
+                560.5047-564.5065|
+                564.5065-568.5083|
+                568.5083-572.5101|
+                572.5101-576.5119|
+                576.5119-580.5138|
+                580.5138-584.5156|
+                584.5156-588.5174|
+                588.5174-592.5192|
+                 592.5192-596.521|
+                 596.521-600.5229|
+                600.5229-604.5247|
+                604.5247-608.5265|
+                608.5265-612.5283|
+                612.5283-616.5301|
+                616.5301-620.5319|
+                620.5319-624.5338|
+                624.5338-628.5356|
+                628.5356-632.5374|
+                632.5374-636.5392|
+                 636.5392-640.541|
+                 640.541-644.5429|
+                644.5429-648.5447|
+                648.5447-652.5465|
+                652.5465-656.5483|
+                656.5483-660.5501|
+                 660.5501-664.552|
+                 664.552-668.5538|
+                668.5538-672.5556|
+                672.5556-676.5574|
+                676.5574-680.5592|
+                 680.5592-684.561|
+                 684.561-688.5629|
+                688.5629-692.5647|
+                692.5647-696.5665|
+                696.5665-700.5683|
+                700.5683-704.5701|
+                 704.5701-708.572|
+                 708.572-712.5738|
+                712.5738-716.5756|
+                716.5756-720.5774|
+                720.5774-724.5792|
+                724.5792-728.5811|
+                728.5811-732.5829|
+                732.5829-736.5847|
+                736.5847-740.5865|
+                740.5865-744.5883|
+                744.5883-748.5902|
+                 748.5902-752.592|
+                 752.592-756.5938|
+                756.5938-760.5956|
+                760.5956-764.5974|
+                764.5974-768.5992|
+                768.5992-772.6011|
+                772.6011-776.6029|
+                776.6029-780.6047|
+                780.6047-784.6065|
+                784.6065-788.6083|
+                788.6083-792.6102|
+                 792.6102-796.612|
+                 796.612-800.6138|
+                800.6138-804.6156|
+                804.6156-808.6174|
+                808.6174-812.6193|
+                812.6193-816.6211|
+                816.6211-820.6229|
+                820.6229-824.6247|
+                824.6247-828.6265|
+                828.6265-832.6284|
+                832.6284-836.6302|
+                 836.6302-840.632|
+                 840.632-844.6338|
+                844.6338-848.6356|
+                848.6356-852.6374|
+                852.6374-856.6393|
+                856.6393-860.6411|
+                860.6411-864.6429|
+                864.6429-868.6447|
+                868.6447-872.6465|
+                872.6465-876.6484|
+                876.6484-880.6502|
+                 880.6502-884.652|
+                 884.652-888.6538|
+                888.6538-892.6556|
+                892.6556-896.6575|
+                896.6575-900.6593|
+>>>>>>>>>>>>> End Mass List Table <<<<<<<<<<<<<<
