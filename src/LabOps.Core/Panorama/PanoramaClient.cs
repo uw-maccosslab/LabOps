@@ -71,12 +71,17 @@ public sealed partial class PanoramaClient : IPanoramaClient, IDisposable
         _http.DefaultRequestHeaders.UserAgent.ParseAdd($"{AppInfo.ProductName}/{AppInfo.Version}");
     }
 
-    public async Task<IReadOnlyList<PanoramaEntry>> ListAsync(string path, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<PanoramaEntry>> ListAsync(string path, CancellationToken cancellationToken = default) =>
+        await TryListAsync(path, cancellationToken).ConfigureAwait(false)
+        ?? throw new PanoramaException($"{PanoramaPaths.ToFolder(PanoramaPaths.AsFolder(path))} is not on Panorama.");
+
+    /// <summary>A folder's files and subfolders, or null when the folder is not on Panorama.</summary>
+    public async Task<IReadOnlyList<PanoramaEntry>?> TryListAsync(string path, CancellationToken cancellationToken = default)
     {
         var folder = PanoramaPaths.AsFolder(path);
-        var body = await GetAsync(PanoramaPaths.Encode(folder) + "?method=json", PanoramaPaths.ToFolder(folder), cancellationToken)
-            .ConfigureAwait(false);
-        return Parse(body, folder);
+        var body = await SendAsync(new HttpRequestMessage(HttpMethod.Get, PanoramaPaths.Encode(folder) + "?method=json"), PanoramaPaths.ToFolder(folder),
+            allowMissing: true, cancellationToken).ConfigureAwait(false);
+        return body is null ? null : Parse(body, folder);
     }
 
     /// <summary>The lab's notebooks, newest first; templates are left out.</summary>

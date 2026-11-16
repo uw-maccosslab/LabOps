@@ -777,20 +777,23 @@ public sealed partial class ProjectsViewModel : ObservableObject
         }
 
         RawFolderRead? read = null;
+        IReadOnlyList<string> missing = [];
+        var saved = false;
         await _work.RunAsync("Listing the raw files on Panorama...", async () =>
         {
             var reader = new PanoramaRawReader(client);
             try
             {
-                var files = await reader.ListAsync(request.Folders).ConfigureAwait(true);
-                if (files.Count == 0)
+                var listing = await reader.ListAsync(request.Folders).ConfigureAwait(true);
+                if (listing.Files.Count == 0)
                 {
                     throw new InvalidOperationException($"There are no raw files in {string.Join(" or ", request.Folders)} on Panorama yet. "
                                                         + "Read them once PanoramaBridge has uploaded some.");
                 }
 
-                var progress = new Progress<int>(done => _work.Report($"Reading raw files on Panorama: {done} of {files.Count}..."));
-                read = await reader.ReadAsync(files, progress).ConfigureAwait(true);
+                missing = listing.Missing;
+                var progress = new Progress<int>(done => _work.Report($"Reading raw files on Panorama: {done} of {listing.Files.Count}..."));
+                read = await reader.ReadAsync(listing.Files, progress).ConfigureAwait(true);
             }
             catch (PanoramaException ex)
             {
@@ -806,14 +809,26 @@ public sealed partial class ProjectsViewModel : ObservableObject
             await PullFirstAsync().ConfigureAwait(true);
             await _engine.RecordAcquisitionAsync(item, read, _workspace.User?.Login).ConfigureAwait(true);
             await SaveAsync([folder], $"{item}: raw files read ({read.Files.Count})").ConfigureAwait(true);
+            saved = true;
         }).ConfigureAwait(true);
         await ReloadAsync(project).ConfigureAwait(true);
 
-        if (read is { Files.Count: > 0, Problems.Count: > 0 })
+        // What was left out, said only once the rest is saved; a failure has already been reported.
+        var notes = new List<string>();
+        if (saved && read is { Problems.Count: > 0 })
         {
-            MessageBox.Show(owner, $"LabOps read {read.Files.Count} of {read.Files.Count + read.Problems.Count} raw files. "
-                                   + "These could not be read, and are left out:\n\n" + ProblemList(read.Problems),
-                AppInfo.ProductName, MessageBoxButton.OK, MessageBoxImage.Warning);
+            notes.Add($"LabOps read {read.Files.Count} of {read.Files.Count + read.Problems.Count} raw files. "
+                      + "These could not be read, and are left out:\n\n" + ProblemList(read.Problems));
+        }
+
+        if (saved && missing.Count > 0)
+        {
+            notes.Add("These raw data folders are not on Panorama yet, so they were not read:\n\n" + string.Join("\n", missing));
+        }
+
+        if (notes.Count > 0)
+        {
+            MessageBox.Show(owner, string.Join("\n\n", notes), AppInfo.ProductName, MessageBoxButton.OK, MessageBoxImage.Warning);
         }
 
         static string ProblemList(IReadOnlyList<RawFileProblem> problems) =>

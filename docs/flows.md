@@ -265,12 +265,15 @@ sequenceDiagram
   since they often carry sample identifiers.
 - **The step's dates.** The first file's date starts the data acquisition step and the last
   file's finishes it, and the step is marked done. Batches each get their own folder's dates when
-  the folders are numbered like them (`RawFiles/Plate_1`, `Plate_2`, ...).
+  the folders are numbered like them (`RawFiles/Plate_1`, `Plate_2`, ...). Otherwise the first
+  batch starts with the first file and the last finishes with the last, and a remembered batch
+  date outside that span is dropped, since no batch can have been acquired outside it.
 - **The instrument.** `config/instruments.yaml` lists each instrument's serial numbers; the raw
   files' serial names the experiment's instrument when it names none, and `check` warns when it
   names another one, or when the serial is not listed.
-- **What cannot be read** (a file still uploading, an older raw format) is listed after the read
-  and left out; the others are recorded.
+- **What cannot be read** (a file still uploading, an older raw format, a damaged file) is listed
+  after the read and left out; the others are recorded. So is a recorded raw data folder that is
+  not on Panorama yet.
 
 ## A protocol, from upload to bench
 

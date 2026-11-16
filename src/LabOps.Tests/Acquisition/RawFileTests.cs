@@ -29,7 +29,7 @@ public sealed class RawFileTests
     /// spectrometer's run headers with the instrument block 7,588 bytes into the latter.
     /// </summary>
     internal static byte[] MakeRawFile(DateTime acquired, string lcText = LcText, string msText = MsText, int version = 66,
-        string serial = "OA10308", long length = 400_000)
+        string serial = "OA10308", long length = 400_000, int methodAt = 4096)
     {
         var file = new byte[length];
         BinaryPrimitives.WriteUInt16LittleEndian(file, 0xA101);
@@ -42,7 +42,6 @@ public sealed class RawFileTests
         WriteString(file, at + 20, @"C:\Methods\Zoom\Astral_DIA_24m.meth");
 
         var method = Method(lcText, msText);
-        const int methodAt = 4096;
         method.CopyTo(file, methodAt);
         long dataAt = methodAt + method.Length;
         long pumpHeader = length - 30_000;
@@ -224,9 +223,10 @@ public sealed class RawFileTests
 
         var listed = await reader.ListAsync([Folder], TestContext.Current.CancellationToken);
         var progress = new List<int>();
-        var read = await reader.ReadAsync(listed, new SyncProgress(progress), TestContext.Current.CancellationToken);
+        var read = await reader.ReadAsync(listed.Files, new SyncProgress(progress), TestContext.Current.CancellationToken);
 
-        listed.Select(f => f.Name).ShouldBe(["S1-001.raw", "S1-002.raw", "S2-001.raw"]);
+        listed.Files.Select(f => f.Name).ShouldBe(["S1-001.raw", "S1-002.raw", "S2-001.raw"]);
+        listed.Missing.ShouldBeEmpty();
         read.Files.Select(f => (f.Folder, f.Acquired, f.MethodFile, f.Instrument.Serial)).ShouldBe(
         [
             ($"{Folder}/Plate_1", new DateTime(2026, 10, 1, 9, 0, 0), "Astral_DIA_24m.meth", "OA10308"),
@@ -234,7 +234,8 @@ public sealed class RawFileTests
         ]);
         read.Files.Select(f => f.Method).Distinct().ShouldHaveSingleItem();
         read.Problems.ShouldHaveSingleItem().Message.ShouldBe("S2-001.raw is not a Thermo raw file.");
-        progress.Order().ShouldBe([1, 2, 3]);
+        // In order, though six files are read at once.
+        progress.ShouldBe([1, 2, 3]);
         // Every file request asks for a part, and none asks for a whole file.
         var reads = handler.Requests.Where(r => r.RequestUri!.Query.Length == 0).ToList();
         reads.ShouldAllBe(r => r.Headers.Range != null);
@@ -247,7 +248,7 @@ public sealed class RawFileTests
         var files = Files();
         using var client = new PanoramaClient(Server, PanoramaCredential.ApiKey("key"), new StubHandler(r => Answer(r, files)));
         var reader = new PanoramaRawReader(client);
-        var read = await reader.ReadAsync(await reader.ListAsync([Folder], TestContext.Current.CancellationToken), null, TestContext.Current.CancellationToken);
+        var read = await reader.ReadAsync((await reader.ListAsync([Folder], TestContext.Current.CancellationToken)).Files, null, TestContext.Current.CancellationToken);
 
         var json = read.ToEngineJson();
 
@@ -266,7 +267,7 @@ public sealed class RawFileTests
         using (var client = new PanoramaClient(Server, PanoramaCredential.ApiKey("key"), new StubHandler(r => Answer(r, files, ignoreRange: true))))
         {
             var reader = new PanoramaRawReader(client);
-            var read = await reader.ReadAsync(await reader.ListAsync([Folder], TestContext.Current.CancellationToken), null, TestContext.Current.CancellationToken);
+            var read = await reader.ReadAsync((await reader.ListAsync([Folder], TestContext.Current.CancellationToken)).Files, null, TestContext.Current.CancellationToken);
             read.Files.ShouldBeEmpty();
             read.Problems[0].Message.ShouldBe($"Panorama sent the whole of {Folder}/Plate_1/S1-001.raw instead of part of it, so LabOps did not read it.");
         }
@@ -275,7 +276,7 @@ public sealed class RawFileTests
             new StubHandler(r => r.RequestUri!.Query == "?method=json" ? Answer(r, files) : new HttpResponseMessage(HttpStatusCode.Unauthorized)));
         var refusedReader = new PanoramaRawReader(refused);
         var listed = await refusedReader.ListAsync([Folder], TestContext.Current.CancellationToken);
-        (await Should.ThrowAsync<PanoramaException>(() => refusedReader.ReadAsync(listed, null, TestContext.Current.CancellationToken)))
+        (await Should.ThrowAsync<PanoramaException>(() => refusedReader.ReadAsync(listed.Files, null, TestContext.Current.CancellationToken)))
             .IsSignInProblem.ShouldBeTrue();
     }
 
@@ -294,6 +295,64 @@ public sealed class RawFileTests
             "1 raw file, 2026-09-21: GPF.meth on Orbitrap Astral Zoom (OA10308)",
             "196 raw files, 2026-09-22 to 2026-09-27: DIA.meth on Orbitrap Astral Zoom (OA10308)",
         ]);
+    }
+
+    [Fact]
+    public void An_instrument_known_only_by_its_serial_is_named_by_it()
+    {
+        AcquisitionRead[] reads = [new("/x", "DIA.meth", null, "OA10308", 2, "2026-09-21", "2026-09-22", "aaa")];
+
+        AcquisitionRead.Describe(reads).ShouldBe(["2 raw files, 2026-09-21 to 2026-09-22: DIA.meth on serial OA10308"]);
+    }
+
+    [Fact]
+    public async Task A_method_past_the_first_read_is_found_in_the_rest()
+    {
+        // The method usually starts 4 KB in; here a long header puts it past the first 64 KB.
+        var files = new Dictionary<string, byte[]>
+        {
+            ["/_webdav/MacCoss/Lab/Pilot/@files/RawFiles/Plate_1/S1-001.raw"] = MakeRawFile(new DateTime(2026, 10, 1, 9, 0, 0)),
+            ["/_webdav/MacCoss/Lab/Pilot/@files/RawFiles/Plate_1/S1-002.raw"] = MakeRawFile(new DateTime(2026, 10, 2, 9, 0, 0), methodAt: 70_000),
+        };
+        using var client = new PanoramaClient(Server, PanoramaCredential.ApiKey("key"), new StubHandler(r => Answer(r, files)));
+        var reader = new PanoramaRawReader(client);
+        PanoramaEntry[] entries = [.. files.Keys.Select(path => new PanoramaEntry(path[(path.LastIndexOf('/') + 1)..], path, false))];
+
+        var read = await reader.ReadAsync(entries, null, TestContext.Current.CancellationToken);
+
+        read.Problems.ShouldBeEmpty();
+        read.Files.Count.ShouldBe(2);
+        // The same method, so the same fingerprint, not the empty method's.
+        read.Files.Select(f => f.Method).Distinct().ShouldHaveSingleItem().ShouldNotBe(ThermoRawHeader.Fingerprint([]));
+        read.Files.ShouldAllBe(f => f.MethodFile == "Astral_DIA_24m.meth");
+    }
+
+    [Fact]
+    public async Task A_folder_not_on_Panorama_yet_is_missing_and_the_others_are_listed()
+    {
+        var files = Files();
+        using var client = new PanoramaClient(Server, PanoramaCredential.ApiKey("key"), new StubHandler(r =>
+            r.RequestUri!.AbsolutePath.Contains("/Later/", StringComparison.Ordinal) ? new HttpResponseMessage(HttpStatusCode.NotFound) : Answer(r, files)));
+        var reader = new PanoramaRawReader(client);
+
+        var listed = await reader.ListAsync([Folder, "/MacCoss/Lab/Pilot/@files/Later"], TestContext.Current.CancellationToken);
+
+        listed.Files.Count.ShouldBe(3);
+        listed.Missing.ShouldBe(["/MacCoss/Lab/Pilot/@files/Later"]);
+    }
+
+    [Fact]
+    public async Task A_file_that_fails_in_an_unexpected_way_is_a_problem_and_the_others_are_read()
+    {
+        var files = Files();
+        using var client = new PanoramaClient(Server, PanoramaCredential.ApiKey("key"), new StubHandler(r =>
+            r.RequestUri!.AbsolutePath.EndsWith("S1-002.raw", StringComparison.Ordinal) ? throw new InvalidOperationException("damaged") : Answer(r, files)));
+        var reader = new PanoramaRawReader(client);
+
+        var read = await reader.ReadAsync((await reader.ListAsync([Folder], TestContext.Current.CancellationToken)).Files, null, TestContext.Current.CancellationToken);
+
+        read.Files.ShouldHaveSingleItem().Acquired.ShouldBe(new DateTime(2026, 10, 1, 9, 0, 0));
+        read.Problems.Select(p => p.Message).ShouldBe(["S1-002.raw could not be read (damaged).", "S2-001.raw is not a Thermo raw file."]);
     }
 
     /// <summary>Reports at once, on the calling thread, unlike Progress&lt;T&gt;.</summary>

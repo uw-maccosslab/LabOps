@@ -146,14 +146,8 @@ public sealed class ProjectRepository
             return _instruments;
         }
 
-        var entries = ReadConfig("instruments.yaml") switch
-        {
-            PyDict doc => doc["instruments"] as List<object?> ?? [],
-            List<object?> list => list,
-            _ => [],
-        };
         // Distinct as they are matched, ignoring case, keeping the first spelling.
-        return _instruments = [.. entries.Select(e => Values.Text(e is PyDict d ? d["name"] : e)).OfType<string>()
+        return _instruments = [.. InstrumentEntries().Select(e => Values.Text(e is PyDict d ? d["name"] : e)).OfType<string>()
             .Distinct(StringComparer.OrdinalIgnoreCase)];
     }
 
@@ -172,8 +166,7 @@ public sealed class ProjectRepository
         }
 
         var serials = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        var entries = ReadConfig("instruments.yaml") is PyDict doc && doc["instruments"] is List<object?> list ? list : [];
-        foreach (var entry in entries.OfType<PyDict>())
+        foreach (var entry in InstrumentEntries().OfType<PyDict>())
         {
             if (Values.Text(entry["name"]) is not { } name)
             {
@@ -188,6 +181,18 @@ public sealed class ProjectRepository
 
         return _serials = serials;
     }
+
+    /// <summary>
+    /// config/instruments.yaml's entries, written either under `instruments:` or as a list of its
+    /// own; Instruments() and InstrumentSerials() read both, so a serial is never missed for the
+    /// way the file is written.
+    /// </summary>
+    private List<object?> InstrumentEntries() => ReadConfig("instruments.yaml") switch
+    {
+        PyDict doc => doc["instruments"] as List<object?> ?? [],
+        List<object?> list => list,
+        _ => [],
+    };
 
     private readonly List<string> _configProblems = [];
 

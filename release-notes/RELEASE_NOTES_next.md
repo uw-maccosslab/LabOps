@@ -12,8 +12,9 @@ the GitHub Release description and fails if it is missing.
   each read in about 10 seconds), and records the instrument and its serial number, the method
   file, how many files used each method, and the first and last file's dates. Those dates become
   the step's dates and the step is marked done; a step in batches gets each batch's dates from its
-  own folder when the folders are numbered like the batches (RawFiles/Plate_1, Plate_2, ...). The
-  experiment's instrument is filled in from the serial when it names none. Afterwards the button
+  own folder when the folders are numbered like the batches (RawFiles/Plate_1, Plate_2, ...). A
+  raw file that cannot be read, or a recorded folder not on Panorama yet, is listed afterwards and
+  the rest are still recorded. The experiment's instrument is filled in from the serial when it names none. Afterwards the button
   is **Update from raw files**, for files added since.
 - `config/instruments.yaml` in LabOps-Projects can list each instrument's serial numbers
   (`serials: [OA10308]`). The check warns when raw files were acquired on a serial it does not
