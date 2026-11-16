@@ -20,6 +20,15 @@ the GitHub Release description and fails if it is missing.
   (`serials: [OA10308]`). The check warns when raw files were acquired on a serial it does not
   list, and when an experiment names another instrument than its raw files were acquired on.
 
+- Added **Record protocol** and **Write a protocol from this method** to the Data acquisition step,
+  after the raw files are read. When a published LC-MS protocol version holds exactly the
+  instrument method the raw files were acquired with, one click records it on the step. When none
+  does, LabOps takes the method out of one raw file on Panorama (about a megabyte) and opens a
+  chat in Protocols where Claude writes the protocol from every setting in it (LC system, columns,
+  gradient, source, scans, DIA windows or PRM targets), as a new protocol or the next version of
+  one; you review and publish it. Any change to an LC-MS method is a new protocol or version,
+  never a deviation. Needs the protocol engine 26.5.0 in LabOps-Protocols.
+
 ## Bug Fixes
 
 - Fixed the status bar showing "UpToDate" instead of "Up to date" after a save that had nothing

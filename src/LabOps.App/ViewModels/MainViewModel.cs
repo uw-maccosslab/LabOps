@@ -83,6 +83,11 @@ public sealed partial class MainViewModel : ObservableObject
             Area = AppArea.Protocols;
             await Protocols.ShowAsync(id, version).ConfigureAwait(true);
         });
+        Projects.MethodProtocolRequested += draft => _dispatcher.InvokeAsync(async () =>
+        {
+            Area = AppArea.Protocols;
+            await Protocols.WriteFromMethodAsync(draft).ConfigureAwait(true);
+        });
         Protocols.ProjectRequested += item =>
         {
             Area = AppArea.Projects;

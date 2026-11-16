@@ -155,9 +155,29 @@ public static class ThermoRawHeader
         }
 
         var end = (int)Math.Min(MethodEnd(layout), start.Length);
+        return ReadCompoundMethods(start, layout.MethodOffset, end - layout.MethodOffset);
+    }
+
+    /// <summary>
+    /// The embedded method as a file of its own: the compound file between the header and the
+    /// spectra, which is the instrument method (.meth) the file was acquired with. Null when the
+    /// file has none.
+    /// </summary>
+    /// <param name="start">The file from its first byte to at least <see cref="MethodEnd"/>.</param>
+    public static byte[]? ExtractMethod(byte[] start, RawLayout layout) =>
+        layout.MethodOffset < 0 ? null : start[layout.MethodOffset..(int)Math.Min(MethodEnd(layout), start.Length)];
+
+    /// <summary>
+    /// Each device's method text in an instrument method file (.meth), as <see cref="ReadMethods"/>
+    /// reads them from a raw file, so the two fingerprint alike.
+    /// </summary>
+    public static IReadOnlyList<RawMethodText> ReadMethodFileText(byte[] method) => ReadCompoundMethods(method, 0, method.Length);
+
+    private static List<RawMethodText> ReadCompoundMethods(byte[] bytes, int offset, int count)
+    {
         try
         {
-            using var stream = new MemoryStream(start, layout.MethodOffset, end - layout.MethodOffset, writable: false);
+            using var stream = new MemoryStream(bytes, offset, count, writable: false);
             using var root = RootStorage.Open(stream, StorageModeFlags.LeaveOpen);
             var methods = new List<RawMethodText>();
             foreach (var entry in root.EnumerateEntries().Where(e => e.Type == EntryType.Storage))

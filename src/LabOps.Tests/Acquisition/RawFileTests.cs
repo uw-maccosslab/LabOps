@@ -309,6 +309,37 @@ public sealed class RawFileTests
     }
 
     [Fact]
+    public async Task A_folders_method_is_taken_out_of_the_first_raw_file_acquired_with_it()
+    {
+        var files = new Dictionary<string, byte[]>
+        {
+            // Another method first, then a file that is not a raw file, then the one.
+            ["/_webdav/MacCoss/Lab/Pilot/@files/RawFiles/Plate_1/S1-001.raw"] = MakeRawFile(new DateTime(2026, 10, 1, 9, 0, 0), msText: MsText.Replace("24", "60", StringComparison.Ordinal)),
+            ["/_webdav/MacCoss/Lab/Pilot/@files/RawFiles/Plate_1/S1-002.raw"] = new byte[100_000],
+            ["/_webdav/MacCoss/Lab/Pilot/@files/RawFiles/Plate_1/S1-003.raw"] = MakeRawFile(new DateTime(2026, 10, 2, 9, 0, 0)),
+        };
+        var handler = new StubHandler(r => r.RequestUri!.Query == "?method=json"
+            ? new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(new JsonObject
+                {
+                    ["files"] = new JsonArray([.. files.Keys.Select(k => (JsonNode)new JsonObject { ["text"] = k[(k.LastIndexOf('/') + 1)..], ["collection"] = false })]),
+                }.ToJsonString()),
+            }
+            : Answer(r, files));
+        using var client = new PanoramaClient(Server, PanoramaCredential.ApiKey("key"), handler);
+        var wanted = ThermoRawHeader.Fingerprint([new("SiiXcalibur", LcText), new("TNG-Merkur", MsText)]);
+
+        var capture = (await new PanoramaRawReader(client).FindMethodAsync($"{Folder}/Plate_1", wanted, TestContext.Current.CancellationToken)).ShouldNotBeNull();
+
+        capture.MethodFile.ShouldBe("Astral_DIA_24m.meth");
+        ThermoRawHeader.Fingerprint(ThermoRawHeader.ReadMethodFileText(capture.Method)).ShouldBe(wanted);
+        (await new PanoramaRawReader(client).FindMethodAsync($"{Folder}/Plate_1", "000000000000", TestContext.Current.CancellationToken)).ShouldBeNull();
+        // Every request asked for a part of a file, never a whole one.
+        handler.Requests.Where(r => r.RequestUri!.Query.Length == 0).ShouldAllBe(r => r.Headers.Range != null);
+    }
+
+    [Fact]
     public async Task A_method_past_the_first_read_is_found_in_the_rest()
     {
         // The method usually starts 4 KB in; here a long header puts it past the first 64 KB.

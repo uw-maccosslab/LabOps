@@ -5,7 +5,14 @@ namespace LabOps.Core.Protocols;
 /// <summary>One published version of a protocol: frozen, with when, who and what changed.</summary>
 /// <param name="Date">YYYY-MM-DD; an imported version may have only a month or year, or none.</param>
 /// <param name="Imported">History brought in from an older record rather than published in LabOps.</param>
-public sealed record ProtocolVersion(int Version, string? Date, string? By, string? Summary, bool Imported);
+public sealed record ProtocolVersion(int Version, string? Date, string? By, string? Summary, bool Imported)
+{
+    /// <summary>
+    /// The method files (in methods/) this version's text links, frozen with it: a KingFisher
+    /// program, an instrument method. Empty from a protocol engine older than 26.5.0.
+    /// </summary>
+    public IReadOnlyList<string> Methods { get; init; } = [];
+}
 
 /// <summary>What a protocol is for.</summary>
 public sealed record ProtocolAppliesTo

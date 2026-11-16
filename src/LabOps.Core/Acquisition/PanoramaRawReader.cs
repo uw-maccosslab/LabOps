@@ -147,8 +147,7 @@ public sealed class PanoramaRawReader(PanoramaClient client)
     {
         var first = await client.ReadRangeAsync(file.Path, 0, ThermoRawHeader.StartLength, cancellationToken).ConfigureAwait(false);
         var layout = ThermoRawHeader.ReadLayout(first.Bytes, first.FileLength);
-        var start = first.Bytes;
-        var methodEnd = ThermoRawHeader.MethodEnd(layout);
+        _ = ThermoRawHeader.MethodEnd(layout);
         var blockAt = layout.MassSpectrometer!.RunHeader + ThermoRawHeader.InstrumentOffset;
         if (blockAt >= layout.FileLength)
         {
@@ -158,26 +157,67 @@ public sealed class PanoramaRawReader(PanoramaClient client)
         // The rest of the start and the instrument block do not depend on each other, so both
         // are asked for at once: two waits per file instead of three.
         var blockRead = client.ReadRangeAsync(file.Path, blockAt, (int)Math.Min(ThermoRawHeader.InstrumentLength, layout.FileLength - blockAt), cancellationToken);
-        var restRead = methodEnd > start.Length
-            ? client.ReadRangeAsync(file.Path, start.Length, (int)(methodEnd - start.Length), cancellationToken)
-            : null;
-        await Task.WhenAll(restRead is null ? new[] { blockRead } : new[] { blockRead, restRead }).ConfigureAwait(false);
-        if (restRead is not null)
-        {
-            start = [.. start, .. (await restRead.ConfigureAwait(false)).Bytes];
+        var restRead = RestOfStartAsync(file, first.Bytes, layout, cancellationToken);
+        await Task.WhenAll(blockRead, restRead).ConfigureAwait(false);
+        var (start, full) = await restRead.ConfigureAwait(false);
+        var block = await blockRead.ConfigureAwait(false);
+        var methods = ThermoRawHeader.ReadMethods(start, full);
+        return new RawFileFacts(folder, file.Name, full.Acquired, ThermoRawHeader.ReadMethodFile(start, full),
+            ThermoRawHeader.Fingerprint(methods), ThermoRawHeader.ReadInstrument(block.Bytes));
+    }
 
-            // The method starts a few KB in on every file seen, but a long header could push it
-            // past the first read; it is then found in the rest, rather than taken as missing,
-            // which would give every such file the same empty fingerprint.
-            if (layout.MethodOffset < 0)
+    /// <summary>The file's start through its embedded method, given its first part, and the layout read from it.</summary>
+    private async Task<(byte[] Start, RawLayout Layout)> RestOfStartAsync(PanoramaEntry file, byte[] start, RawLayout layout, CancellationToken cancellationToken)
+    {
+        var methodEnd = ThermoRawHeader.MethodEnd(layout);
+        if (methodEnd <= start.Length)
+        {
+            return (start, layout);
+        }
+
+        var rest = await client.ReadRangeAsync(file.Path, start.Length, (int)(methodEnd - start.Length), cancellationToken).ConfigureAwait(false);
+        start = [.. start, .. rest.Bytes];
+
+        // The method starts a few KB in on every file seen, but a long header could push it past
+        // the first read; it is then found in the rest, rather than taken as missing, which would
+        // give every such file the same empty fingerprint.
+        return (start, layout.MethodOffset < 0 ? ThermoRawHeader.ReadLayout(start, layout.FileLength) : layout);
+    }
+
+    /// <summary>
+    /// The instrument method a folder's raw files were acquired with, taken out of the first file
+    /// (by name) whose method has this fingerprint, for writing a protocol from it; null when no
+    /// file has it. Each file tried costs about a megabyte, and the first one usually matches.
+    /// </summary>
+    /// <param name="folder">The Panorama folder, as an acquisition line records it.</param>
+    /// <param name="fingerprint">The method's fingerprint (<see cref="ThermoRawHeader.Fingerprint"/>).</param>
+    public async Task<RawMethodCapture?> FindMethodAsync(string folder, string fingerprint, CancellationToken cancellationToken = default)
+    {
+        var entries = await client.TryListAsync(PanoramaPaths.ToWebDav(folder), cancellationToken).ConfigureAwait(false) ?? [];
+        foreach (var file in entries.Where(e => !e.IsFolder && e.Name.EndsWith(".raw", StringComparison.OrdinalIgnoreCase))
+                     .OrderBy(e => e.Name, StringComparer.Ordinal))
+        {
+            try
             {
-                layout = ThermoRawHeader.ReadLayout(start, layout.FileLength);
+                var first = await client.ReadRangeAsync(file.Path, 0, ThermoRawHeader.StartLength, cancellationToken).ConfigureAwait(false);
+                var (start, layout) = await RestOfStartAsync(file, first.Bytes, ThermoRawHeader.ReadLayout(first.Bytes, first.FileLength), cancellationToken)
+                    .ConfigureAwait(false);
+                var methods = ThermoRawHeader.ReadMethods(start, layout);
+                if (ThermoRawHeader.Fingerprint(methods) == fingerprint && ThermoRawHeader.ExtractMethod(start, layout) is { } method)
+                {
+                    return new RawMethodCapture(method, methods, ThermoRawHeader.ReadMethodFile(start, layout));
+                }
+            }
+            catch (RawFormatException)
+            {
+                // A file that cannot be read cannot be the one; the next may be.
             }
         }
 
-        var block = await blockRead.ConfigureAwait(false);
-        var methods = ThermoRawHeader.ReadMethods(start, layout);
-        return new RawFileFacts(folder, file.Name, layout.Acquired, ThermoRawHeader.ReadMethodFile(start, layout),
-            ThermoRawHeader.Fingerprint(methods), ThermoRawHeader.ReadInstrument(block.Bytes));
+        return null;
     }
 }
+
+/// <summary>An instrument method taken out of a raw file: the .meth file's bytes and each device's text.</summary>
+/// <param name="MethodFile">The name the raw file gives its method (Actis_DIA_24m.meth), or null.</param>
+public sealed record RawMethodCapture(byte[] Method, IReadOnlyList<RawMethodText> Texts, string? MethodFile);
