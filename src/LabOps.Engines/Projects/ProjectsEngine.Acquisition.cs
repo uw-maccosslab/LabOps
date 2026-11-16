@@ -8,7 +8,20 @@ using LabOps.Engines.Yaml;
 namespace LabOps.Engines.Projects;
 
 /// <summary>One raw file as LabOps read it on Panorama: what the engine's acquisition command takes.</summary>
-public sealed record RawFileRead(string Folder, DateTime Acquired, string? MethodFile, string Method, string? Model, string? Serial);
+public sealed record RawFileRead(string Folder, DateTime Acquired, string? MethodFile, string Method, string? Model, string? Serial)
+{
+    /// <summary>
+    /// How the engine and the app name the instrument a raw file was acquired on: "Orbitrap Astral
+    /// Zoom (OA10308)", the model or the serial alone when only one is known, or null.
+    /// </summary>
+    public static string? Instrument(string? model, string? serial) => (model, serial) switch
+    {
+        (null, null) => null,
+        (_, null) => model,
+        (null, _) => $"serial {serial}",
+        _ => $"{model} ({serial})",
+    };
+}
 
 public sealed partial class ProjectsEngine
 {
@@ -65,7 +78,7 @@ public sealed partial class ProjectsEngine
         YamlText.WriteText(t.Path, RecordEdits.WriteSteps(raw, t.Steps));
 
         var methods = files.Select(f => f.Method).Distinct(StringComparer.Ordinal).Count();
-        var models = string.Join(", ", files.Select(f => f.Serial is null ? f.Model : $"{f.Model} ({f.Serial})").OfType<string>().Distinct(StringComparer.Ordinal));
+        var models = string.Join(", ", files.Select(f => RawFileRead.Instrument(f.Model, f.Serial)).OfType<string>().Distinct(StringComparer.Ordinal));
         return Report(t.Kind, t.Folder, t.Path,
             $"{name}: raw files read: {files.Count} file{(files.Count == 1 ? "" : "s")}, {methods} method{(methods == 1 ? "" : "s")}"
             + (models.Length > 0 ? $", {models}" : "")
@@ -154,29 +167,49 @@ public sealed partial class ProjectsEngine
             return $"{Steps.Label(first[0])} done, each batch from its folder";
         }
 
+        // Every batch was acquired between the first file and the last, so a remembered date outside
+        // that span is wrong and is dropped. Keeping it could leave the first batch finished before
+        // its new start (or the last started after its new finish), which check refuses as an
+        // error, and then the read could not be saved.
+        var (start, end) = (DateOnly.FromDateTime(files.Min(f => f.Acquired)), DateOnly.FromDateTime(files.Max(f => f.Acquired)));
         foreach (var step in first)
         {
-            step["status"] = "done";
-            if (!string.IsNullOrEmpty(by))
+            MarkDone(step);
+            foreach (var key in (string[])["started", "finished"])
             {
-                step["by"] = by;
+                if (DateOf(step[key]) is { } date && (date < start || date > end))
+                {
+                    step[key] = null;
+                }
             }
         }
 
-        first[0]["started"] = DateOnly.FromDateTime(files.Min(f => f.Acquired));
-        first[^1]["finished"] = DateOnly.FromDateTime(files.Max(f => f.Acquired));
+        first[0]["started"] = start;
+        first[^1]["finished"] = end;
         return $"{Steps.Label(first[0])} done (the folders are not numbered like its {first.Count} batches, "
                + "so only the first batch's start and the last one's finish are from the raw files)";
 
         void Done(PyDict step, IReadOnlyList<RawFileRead> some)
         {
-            step["status"] = "done";
+            MarkDone(step);
             step["started"] = DateOnly.FromDateTime(some.Min(f => f.Acquired));
             step["finished"] = DateOnly.FromDateTime(some.Max(f => f.Acquired));
+        }
+
+        void MarkDone(PyDict step)
+        {
+            step["status"] = "done";
             if (!string.IsNullOrEmpty(by))
             {
                 step["by"] = by;
             }
         }
+
+        static DateOnly? DateOf(object? value) => value switch
+        {
+            DateOnly date => date,
+            PyDateTime moment => DateOnly.FromDateTime(moment.Value),
+            _ => null,
+        };
     }
 }

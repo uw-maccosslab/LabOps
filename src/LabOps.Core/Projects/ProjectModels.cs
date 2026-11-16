@@ -159,7 +159,7 @@ public sealed record AcquisitionRead(string? Folder, string? MethodFile, string?
                 var first = g.Select(r => r.First).Min(StringComparer.Ordinal);
                 var last = g.Select(r => r.Last).Max(StringComparer.Ordinal);
                 var dates = first == last ? first : $"{first} to {last}";
-                var instrument = g.Key.Model is null ? null : g.Key.Serial is null ? g.Key.Model : $"{g.Key.Model} ({g.Key.Serial})";
+                var instrument = LabOps.Engines.Projects.RawFileRead.Instrument(g.Key.Model, g.Key.Serial);
                 var how = string.Join(" on ", new[] { g.Key.MethodFile ?? "no method file named", instrument }.OfType<string>());
                 return $"{files} raw file{(files == 1 ? "" : "s")}, {dates}: {how}";
             }),

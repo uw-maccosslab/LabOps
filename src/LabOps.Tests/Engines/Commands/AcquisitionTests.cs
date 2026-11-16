@@ -117,6 +117,46 @@ public sealed class AcquisitionTests
     }
 
     [Fact]
+    public void Remembered_batch_dates_outside_the_raw_files_are_dropped_so_the_record_still_checks()
+    {
+        using var repo = TestRepo.Create();
+        var experiment = repo.NewExperiment("2026-10-Pilot-DIA", "Pilot-Project");
+        repo.Ok("split", "2026-10-Pilot-DIA", "data_acquisition", "--batches", "3");
+        // Remembered wrong: the first batch "finished" before the first raw file was acquired.
+        repo.Ok("stage", "2026-10-Pilot-DIA", "data_acquisition_batch1", "start", "--date", "2026-09-20");
+        repo.Ok("stage", "2026-10-Pilot-DIA", "data_acquisition_batch1", "done", "--date", "2026-09-21");
+        repo.Ok("stage", "2026-10-Pilot-DIA", "data_acquisition_batch2", "start", "--date", "2026-10-02");
+        repo.Ok("stage", "2026-10-Pilot-DIA", "data_acquisition_batch2", "done", "--date", "2026-10-03");
+        var input = Input(repo,
+            (Raw, "2026-10-01T10:00:00", "aaaaaaaaaaaa", "OA10308"),
+            (Raw, "2026-10-05T10:00:00", "aaaaaaaaaaaa", "OA10308"));
+
+        repo.Ok("acquisition", "2026-10-Pilot-DIA", "--from", input);
+
+        var steps = TestRepo.Steps(experiment);
+        steps["data_acquisition_batch1"]["started"].ShouldBe(new DateOnly(2026, 10, 1));
+        steps["data_acquisition_batch1"]["finished"].ShouldBeNull();
+        // Within the raw files' span, so kept.
+        steps["data_acquisition_batch2"]["started"].ShouldBe(new DateOnly(2026, 10, 2));
+        steps["data_acquisition_batch2"]["finished"].ShouldBe(new DateOnly(2026, 10, 3));
+        steps["data_acquisition_batch3"]["finished"].ShouldBe(new DateOnly(2026, 10, 5));
+        repo.Problems().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Serials_are_read_from_an_instruments_file_written_as_a_list()
+    {
+        using var repo = TestRepo.Create();
+        WriteInstruments(repo, "- name: Orbitrap Astral\n  serials: [OA10308]\n- name: Stellar\n");
+        var experiment = repo.NewExperiment("2026-10-Pilot-DIA", "Pilot-Project");
+
+        repo.Ok("acquisition", "2026-10-Pilot-DIA", "--from", Input(repo, (Raw, "2026-10-01T10:00:00", "aaaaaaaaaaaa", "OA10308")));
+
+        TestRepo.Yaml(experiment)["instrument"].ShouldBe("Orbitrap Astral");
+        repo.Problems().ShouldBeEmpty();
+    }
+
+    [Fact]
     public void Reading_again_replaces_what_the_files_said_before()
     {
         using var repo = TestRepo.Create();

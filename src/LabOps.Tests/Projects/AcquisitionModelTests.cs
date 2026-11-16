@@ -22,6 +22,8 @@ public sealed class AcquisitionModelTests
             new RawFileFacts("/MacCoss/Lab/@files/RawFiles", "S-002.raw", new DateTime(2026, 10, 3, 9, 0, 0), "DIA.meth", "aaaaaaaaaaaa", instrument),
         ], []);
 
+        // Only files this call made count: another run on the machine may have its own input there.
+        var before = Directory.GetFiles(Path.GetTempPath(), "labops-raw-files-*.json").ToHashSet(StringComparer.OrdinalIgnoreCase);
         await engine.RecordAcquisitionAsync("2026-10-Pilot-DIA", read, "maccoss", TestContext.Current.CancellationToken);
         var list = await engine.ListAsync(cancellationToken: TestContext.Current.CancellationToken);
 
@@ -31,6 +33,6 @@ public sealed class AcquisitionModelTests
         var step = experiment.Stages.Single(s => s.Stage == "data_acquisition");
         (step.Status, step.Started, step.Finished, step.By).ShouldBe(("done", "2026-10-01", "2026-10-03", "maccoss"));
         // The input file is gone once the engine has read it.
-        Directory.GetFiles(Path.GetTempPath(), "labops-raw-files-*.json").ShouldBeEmpty();
+        Directory.GetFiles(Path.GetTempPath(), "labops-raw-files-*.json").Where(f => !before.Contains(f)).ShouldBeEmpty();
     }
 }

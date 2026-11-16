@@ -38,6 +38,9 @@ public sealed record RawFolderRead(IReadOnlyList<RawFileFacts> Files, IReadOnlyL
         }.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
 }
 
+/// <summary>The raw files found in an experiment's raw data folders, and the folders not on Panorama yet.</summary>
+public sealed record RawFolderListing(IReadOnlyList<PanoramaEntry> Files, IReadOnlyList<string> Missing);
+
 /// <summary>
 /// Reads every Thermo .raw file in a raw data folder on Panorama, and its subfolders, for when
 /// and how it was acquired, without downloading it: about a megabyte of each, by range requests
@@ -52,27 +55,39 @@ public sealed class PanoramaRawReader(PanoramaClient client)
     /// <summary>How deep subfolders are followed (RawFiles/Plate_1 is one level).</summary>
     public const int MaxDepth = 3;
 
-    /// <summary>The raw files in the folders and their subfolders.</summary>
+    /// <summary>
+    /// The raw files in the folders and their subfolders. A recorded folder that is not on
+    /// Panorama yet (it can be recorded before acquisition starts) is reported as missing rather
+    /// than failing the others.
+    /// </summary>
     /// <param name="folders">Panorama folders as an experiment records them (/MacCoss/.../@files/RawFiles).</param>
-    public async Task<IReadOnlyList<PanoramaEntry>> ListAsync(IEnumerable<string> folders, CancellationToken cancellationToken = default)
+    public async Task<RawFolderListing> ListAsync(IEnumerable<string> folders, CancellationToken cancellationToken = default)
     {
         var files = new List<PanoramaEntry>();
+        var missing = new List<string>();
         foreach (var folder in folders)
         {
-            await WalkAsync(PanoramaPaths.ToWebDav(folder), 0).ConfigureAwait(false);
+            var entries = await client.TryListAsync(PanoramaPaths.ToWebDav(folder), cancellationToken).ConfigureAwait(false);
+            if (entries is null)
+            {
+                missing.Add(folder);
+                continue;
+            }
+
+            await WalkAsync(entries, 0).ConfigureAwait(false);
         }
 
-        return files;
+        return new RawFolderListing(files, missing);
 
-        async Task WalkAsync(string path, int depth)
+        async Task WalkAsync(IReadOnlyList<PanoramaEntry> entries, int depth)
         {
-            foreach (var entry in await client.ListAsync(path, cancellationToken).ConfigureAwait(false))
+            foreach (var entry in entries)
             {
                 if (entry.IsFolder)
                 {
                     if (depth < MaxDepth)
                     {
-                        await WalkAsync(entry.Path, depth + 1).ConfigureAwait(false);
+                        await WalkAsync(await client.ListAsync(entry.Path, cancellationToken).ConfigureAwait(false), depth + 1).ConfigureAwait(false);
                     }
                 }
                 else if (entry.Name.EndsWith(".raw", StringComparison.OrdinalIgnoreCase))
@@ -92,6 +107,9 @@ public sealed class PanoramaRawReader(PanoramaClient client)
         var read = new ConcurrentBag<RawFileFacts>();
         var problems = new ConcurrentBag<RawFileProblem>();
         var done = 0;
+        // Counting and reporting under one lock, so the counts reach the person in order (with
+        // six files at once, a later count could otherwise be reported before an earlier one).
+        var gate = new Lock();
         await System.Threading.Tasks.Parallel.ForEachAsync(files, new ParallelOptions { MaxDegreeOfParallelism = Parallel, CancellationToken = cancellationToken },
             async (file, token) =>
             {
@@ -108,8 +126,18 @@ public sealed class PanoramaRawReader(PanoramaClient client)
                 {
                     problems.Add(new RawFileProblem(folder, file.Name, ex.Message));
                 }
+                catch (Exception ex) when (ex is not (OperationCanceledException or PanoramaException))
+                {
+                    // The bytes are a file's, not ours: a damaged or half-uploaded one can trip the
+                    // compound file reader in ways no list of exception types covers, and one such
+                    // file must not stop the reading of the hundreds beside it.
+                    problems.Add(new RawFileProblem(folder, file.Name, $"{file.Name} could not be read ({ex.Message})."));
+                }
 
-                progress?.Report(Interlocked.Increment(ref done));
+                lock (gate)
+                {
+                    progress?.Report(++done);
+                }
             }).ConfigureAwait(false);
 
         return new RawFolderRead([.. read.OrderBy(f => f.Acquired)], [.. problems.OrderBy(p => p.Folder, StringComparer.Ordinal).ThenBy(p => p.Name, StringComparer.Ordinal)]);
@@ -121,21 +149,33 @@ public sealed class PanoramaRawReader(PanoramaClient client)
         var layout = ThermoRawHeader.ReadLayout(first.Bytes, first.FileLength);
         var start = first.Bytes;
         var methodEnd = ThermoRawHeader.MethodEnd(layout);
-        if (layout.MethodOffset >= 0 && methodEnd > start.Length)
-        {
-            var rest = await client.ReadRangeAsync(file.Path, start.Length, (int)(methodEnd - start.Length), cancellationToken).ConfigureAwait(false);
-            start = [.. start, .. rest.Bytes];
-        }
-
-        var ms = layout.MassSpectrometer!;
-        var blockAt = ms.RunHeader + ThermoRawHeader.InstrumentOffset;
+        var blockAt = layout.MassSpectrometer!.RunHeader + ThermoRawHeader.InstrumentOffset;
         if (blockAt >= layout.FileLength)
         {
             throw new RawFormatException("ends before its instrument description; it may still be uploading");
         }
 
-        var block = await client.ReadRangeAsync(file.Path, blockAt, (int)Math.Min(ThermoRawHeader.InstrumentLength, layout.FileLength - blockAt), cancellationToken)
-            .ConfigureAwait(false);
+        // The rest of the start and the instrument block do not depend on each other, so both
+        // are asked for at once: two waits per file instead of three.
+        var blockRead = client.ReadRangeAsync(file.Path, blockAt, (int)Math.Min(ThermoRawHeader.InstrumentLength, layout.FileLength - blockAt), cancellationToken);
+        var restRead = methodEnd > start.Length
+            ? client.ReadRangeAsync(file.Path, start.Length, (int)(methodEnd - start.Length), cancellationToken)
+            : null;
+        await Task.WhenAll(restRead is null ? new[] { blockRead } : new[] { blockRead, restRead }).ConfigureAwait(false);
+        if (restRead is not null)
+        {
+            start = [.. start, .. (await restRead.ConfigureAwait(false)).Bytes];
+
+            // The method starts a few KB in on every file seen, but a long header could push it
+            // past the first read; it is then found in the rest, rather than taken as missing,
+            // which would give every such file the same empty fingerprint.
+            if (layout.MethodOffset < 0)
+            {
+                layout = ThermoRawHeader.ReadLayout(start, layout.FileLength);
+            }
+        }
+
+        var block = await blockRead.ConfigureAwait(false);
         var methods = ThermoRawHeader.ReadMethods(start, layout);
         return new RawFileFacts(folder, file.Name, layout.Acquired, ThermoRawHeader.ReadMethodFile(start, layout),
             ThermoRawHeader.Fingerprint(methods), ThermoRawHeader.ReadInstrument(block.Bytes));
