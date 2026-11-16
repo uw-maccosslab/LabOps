@@ -44,8 +44,8 @@ public sealed partial class ProjectsViewModel : ObservableObject
     private readonly DashboardPublisher _dashboard;
     // The list last loaded, which the dashboard is drawn from.
     private ProjectList? _list;
-    // The project whose change was just saved: its wiki page is updated once the list has it.
-    private string? _wikiAfterReload;
+    // The projects whose Panorama wiki pages are updated once the next reload has read what was saved.
+    private readonly HashSet<string> _wikiAfterReload = [];
     private List<ProjectRow> _all = [];
     private bool _allHasClosed;
     private IReadOnlyList<Person> _people = [];
@@ -231,14 +231,12 @@ public sealed partial class ProjectsViewModel : ObservableObject
 
         ShowSelected();
         RefreshCommands();
-        if (_wikiAfterReload is { } saved)
+        foreach (var changed in _all.Where(r => _wikiAfterReload.Contains(r.Name)).ToList())
         {
-            _wikiAfterReload = null;
-            if (_all.FirstOrDefault(r => r.Name == saved) is { } changed)
-            {
-                _wiki.UpdateInBackground(changed.Project);
-            }
+            _wiki.UpdateInBackground(changed.Project);
         }
+
+        _wikiAfterReload.Clear();
     }
 
     partial void OnQueryChanged(string value) => ApplyFilter();
@@ -517,7 +515,7 @@ public sealed partial class ProjectsViewModel : ObservableObject
             var which = methods.Count == 1 ? "this method" : line.MethodFile ?? $"method {method.Key}";
             if (_methodIndex.Find(method.Key) is { } match)
             {
-                if (!e.Protocols.Any(l => l.Id == match.Protocol.Id && l.Version == match.Version))
+                if (!_methodIndex.IsRecorded(e, method.Key))
                 {
                     section.Place(new StepTool($"Record protocol {match.Protocol.ShortTitle ?? match.Protocol.DisplayTitle} v{match.Version}",
                         $"The raw files were acquired with exactly the instrument method ({match.MethodFile}) that version {match.Version} of "
@@ -609,15 +607,33 @@ public sealed partial class ProjectsViewModel : ObservableObject
                     return;
                 }
 
-                foreach (var r in pending)
+                // All or none: a link that fails partway would leave the earlier ones as edits
+                // nobody made, to be committed later under another change's message.
+                var records = pending
+                    .Select(r => Path.Combine(Repository!.Path, r.Experiment.Folder.Replace('/', Path.DirectorySeparatorChar), "experiment.yaml"))
+                    .Distinct().ToDictionary(p => p, File.ReadAllBytes);
+                try
                 {
-                    // An exact match: nothing was done differently, so no deviations.
-                    await _engine.LinkProtocolAsync(r.Experiment.Experiment, protocolId, version, r.Step, protocol.Title, []).ConfigureAwait(true);
+                    foreach (var r in pending)
+                    {
+                        // An exact match: nothing was done differently, so no deviations.
+                        await _engine.LinkProtocolAsync(r.Experiment.Experiment, protocolId, version, r.Step, protocol.Title, []).ConfigureAwait(true);
+                    }
+                }
+                catch
+                {
+                    foreach (var (path, bytes) in records)
+                    {
+                        File.WriteAllBytes(path, bytes);
+                    }
+
+                    throw;
                 }
 
                 await SaveAsync([.. pending.Select(r => r.Project.Folder).Distinct()],
                     $"{protocolId} version {version} recorded on {string.Join(", ", pending.Select(r => r.Experiment.Experiment))}: "
-                    + "their raw files were acquired with its method").ConfigureAwait(true);
+                    + "their raw files were acquired with its method",
+                    pending.Select(r => r.Project.Project).Distinct()).ConfigureAwait(true);
             }).ConfigureAwait(true);
         }
         catch (Exception ex) when (ex is EngineException or ToolMissingException or IOException or UnauthorizedAccessException)
@@ -1455,7 +1471,10 @@ public sealed partial class ProjectsViewModel : ObservableObject
             else if (result is { Succeeded: true })
             {
                 Chat.Items.Add(new NoticeItem("Saved and shared.", isError: false));
-                _wikiAfterReload = item;
+                if (item is not null)
+                {
+                    _wikiAfterReload.Add(item);
+                }
             }
             else if (result is not null)
             {
@@ -1467,7 +1486,7 @@ public sealed partial class ProjectsViewModel : ObservableObject
         var newText = item is not null && changed.Any(c => c.EndsWith("/" + item + "/wiki.yaml", StringComparison.Ordinal));
         if (newText)
         {
-            _wikiAfterReload = null;
+            _wikiAfterReload.Remove(item!);
         }
 
         await ReloadAsync(item).ConfigureAwait(true);
@@ -1496,7 +1515,8 @@ public sealed partial class ProjectsViewModel : ObservableObject
     /// Commits the change on this computer, so the screen can show it right away, and shares it
     /// with GitHub in the background.
     /// </summary>
-    private async Task SaveAsync(IReadOnlyList<string> paths, string message)
+    /// <param name="projects">The projects the change is in, whose wiki pages are updated; the selected one when not given.</param>
+    private async Task SaveAsync(IReadOnlyList<string> paths, string message, IEnumerable<string>? projects = null)
     {
         var repository = Repository!;
         var result = await repository.Sync.SaveLocallyAsync(paths, message).ConfigureAwait(true);
@@ -1507,7 +1527,10 @@ public sealed partial class ProjectsViewModel : ObservableObject
         else if (result.Committed)
         {
             _ = ShareAsync(repository);
-            _wikiAfterReload = Selected?.Name;
+            foreach (var project in projects ?? (Selected is { } selected ? [selected.Name] : []))
+            {
+                _wikiAfterReload.Add(project);
+            }
         }
     }
 
