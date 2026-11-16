@@ -1,0 +1,77 @@
+Stellar Method Summary
+  
+Creator: INSTRUMENT-PC\Thermo          Last Modified: 06/22/2026 11:26:08 by INSTRUMENT-PC\Thermo
+  
+Global Settings
+	Use Ion Source Settings from Tune = Not Checked
+	Method Duration (min) = 24
+	Collision Gas pressure (mTorr) = 8
+	Ion Source Type = NSI
+	Spray Voltage = Static
+	Spray Voltage: Positive Ion (V) = 2500
+	Spray Voltage: Negative Ion (V) = 1500
+	Gas Mode = Static
+	Infusion Mode (LC) = Liquid Chromatography
+	Sweep Gas (Arb) = 2
+	Ion Transfer Tube Temp (°C) = 300
+	APPI Lamp = Not in use
+	Total Carrier Gas Flow Type = Static
+	FAIMS Mode = Not Installed
+	Application Mode = Peptide
+	Chromatographic Peak Width (s) = 6
+	Default Charge State = 2
+Experiment 1
+	Experiment Name = MS
+	Time Range (min) = 0 - 24
+	IsRTNavigator = False
+		
+
+
+		Scan MasterScan
+			Use Chromatographic Filter = False
+			Use Quadrupole Isolation = True 
+			Scan Rate (kDa/s) = 67
+			Scan Range (m/z) = 350-1250
+			Absolute AGC Target = 30000
+			RF Lens (%) = 40
+			Maximum Injection Time Mode = Auto
+			Data Type = Centroid
+			Polarity = Positive
+			Source Fragmentation (V) = 0
+			AGC Target = Standard
+			Scan Description = 
+Experiment 2
+	Experiment Name = tMSn
+	Time Range (min) = 0 - 24
+	Cycle Time (sec) = 1.2
+	IsRTNavigator = False
+		
+
+
+		Scan tMSn
+			ActivationType = HCD
+			HCD Collision Energy Type = Normalized
+			HCD Collision Energy/Energies (%) = 22
+			Use Multi-Stage Fragmentation = False
+			Scan Rate (kDa/s) = 67
+			Scan Range Mode = Define m/z range
+			Scan Range (m/z) = 200-1500
+			RF Lens (%) = 30
+			AGC Target = Standard
+			Absolute AGC Target = 10000
+			Maximum Injection Time Mode = Dynamic
+			Data Type = Centroid
+			Polarity = Positive
+			Source Fragmentation (V) = 0
+			Use Chromatographic Filter = False
+			Scan Description = 
+			Loop Control = All
+			Dynamic Time Scheduling = Off
+			Time Mode = Start/End Time
+
+>>>>>>>>>>>>> Mass List Table <<<<<<<<<<<<<<
+                         Compound|                          Formula|                           Adduct|                              m/z|                                Z|                    t start (min)|                     t stop (min)|           Isolation Window (m/z)|
+                       PEPTIDEAK+2|                                 |                      (no adduct)|                         500.2500|                                2|                             1.00|                             2.60|                              0.7|
+                       PEPTIDEBK+2|                                 |                      (no adduct)|                         600.3000|                                2|                             5.00|                             6.60|                              0.7|
+                       PEPTIDECK+3|                                 |                      (no adduct)|                         450.2000|                                3|                            10.00|                            11.60|                              0.7|
+>>>>>>>>>>>>> End Mass List Table <<<<<<<<<<<<<<

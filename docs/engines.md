@@ -146,6 +146,15 @@ by the serial numbers `config/instruments.yaml` lists under each instrument (`se
 warns about a serial that file does not list, and about an experiment that names another
 instrument than its raw files were acquired on.
 
+The method text itself is parsed in the app, not the engine: `MethodTextParser` (in
+`LabOps.Core/Acquisition`, read through `ThermoMethod.Read`) turns the MS method summary into its
+global settings, experiments, scans and mass lists (DIA windows, PRM targets), and the LC's SII
+script into its system, columns, solvents, temperatures and gradient. It is a port of
+maccosslab-raw-method-check's parser, kept here so LabOps needs neither RawMethodCheck nor
+ProteoWizard nor Thermo's RawFileReader; the two copies are tested on the same method texts
+(`Fixtures/method-text`), so a fix to one belongs in the other. What only the scans or the tune
+file hold (observed cycle times, source settings taken from the tune file) is not read.
+
 The kinds fall into five phases, each with one color wherever a step is shown (defined in
 `LabOps.Engines/Projects/Phases.cs`):
 
