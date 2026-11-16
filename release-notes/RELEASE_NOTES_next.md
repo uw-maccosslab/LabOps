@@ -8,13 +8,6 @@ the GitHub Release description and fails if it is missing.
 
 ## Bug Fixes
 
-- Fixed an LC-MS protocol's **Used by** staying empty after it was published. Publishing a
-  version now records it on every experiment whose raw files were acquired with exactly the
-  instrument method it holds, at the Data acquisition step, so **Used by** lists them at once.
-  An experiment whose raw files are read later still gets the **Record protocol** button, which
-  now appears right after a publish instead of after the next sync or **Reload**
-  (`src/LabOps.Core/Protocols/ProtocolMethodIndex.cs`).
-
 ## Performance
 
 ## Breaking Changes
