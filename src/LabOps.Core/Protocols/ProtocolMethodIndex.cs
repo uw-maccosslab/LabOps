@@ -72,20 +72,26 @@ public sealed class ProtocolMethodIndex
 
     /// <summary>
     /// The experiments to record a just-published version on: those whose raw files were acquired
-    /// with exactly a method this index holds for that version, and that do not record that
-    /// protocol yet, each with the step to record it on (<see cref="RecordStep"/>). An exact match
-    /// leaves nothing for a person to judge, so publishing records it. An experiment that records
-    /// another version of the protocol is left alone: a link replaces the one for the same protocol
-    /// and step, so a version that only rewords the text would otherwise rewrite what every past
-    /// experiment followed and drop its deviations.
+    /// with exactly a method that version holds, each with the step to record it on
+    /// (<see cref="RecordStep"/>). An exact match leaves nothing for a person to judge, so
+    /// publishing records it. Build the index from every published version: an experiment that
+    /// records the protocol at another version, or another protocol holding the same method (a
+    /// retired one the new protocol replaces), is left alone. A link replaces the one for the same
+    /// protocol and step, so a version that only rewords the text would otherwise rewrite what
+    /// every past experiment followed and drop its deviations.
     /// </summary>
     public IReadOnlyList<MethodRecording> ToRecord(ProjectList projects, string protocolId, int version) =>
     [
         .. projects.Labs.SelectMany(l => l.Projects).SelectMany(p => p.Experiments.Select(e => (Project: p, Experiment: e)))
-            .Where(x => x.Experiment.Acquisition.Any(a => Find(a.Method) is { } m && m.Protocol.Id == protocolId && m.Version == version)
-                        && !x.Experiment.Protocols.Any(l => l.Id == protocolId))
+            .Where(x => !x.Experiment.Protocols.Any(l => l.Id == protocolId)
+                        && x.Experiment.Acquisition.Any(a => a.Method is { } fingerprint
+                                                             && Holds(fingerprint, protocolId, version)
+                                                             && !IsRecorded(x.Experiment, fingerprint)))
             .Select(x => new MethodRecording(x.Project, x.Experiment, RecordStep(x.Experiment))),
     ];
+
+    private bool Holds(string fingerprint, string protocolId, int version) =>
+        _byFingerprint.TryGetValue(fingerprint, out var matches) && matches.Any(m => m.Protocol.Id == protocolId && m.Version == version);
 
     /// <summary>
     /// Whether an experiment already records a protocol version holding this method, so there is

@@ -795,11 +795,12 @@ public sealed partial class ProtocolsViewModel : ObservableObject
         {
             await PullFirstAsync().ConfigureAwait(true);
             published = await _engine.PublishAsync(p.Id, summary, login).ConfigureAwait(true);
-            saved = await SaveAsync([p.Folder], $"{p.Id}: version {published}").ConfigureAwait(true);
+            saved = await SaveAsync([p.Folder], $"{p.Id}: version {published}", waitForShare: true).ConfigureAwait(true);
         }).ConfigureAwait(true);
         await ReloadAsync(p.Id, published == 0 ? null : published).ConfigureAwait(true);
-        // Only a committed version exists for anyone else: recording one the check refused would
-        // put a version on experiments that LabOps-Protocols never gets.
+        // Only a version on GitHub exists for anyone else: recording one the check refused, or one
+        // set aside after a conflict, would put a version on experiments that LabOps-Protocols
+        // never gets. Offline, nothing is recorded now; Record protocol does it later.
         if (published > 0 && saved)
         {
             VersionPublished?.Invoke(p.Id, published);
@@ -1000,8 +1001,9 @@ public sealed partial class ProtocolsViewModel : ObservableObject
     }
 
     /// <summary>Commits the change on this computer and shares it with GitHub in the background.</summary>
-    /// <summary>Commits the change and shares it in the background; false when it could not be committed.</summary>
-    private async Task<bool> SaveAsync(IReadOnlyList<string> paths, string message)
+    /// <summary>Commits the change and shares it, in the background unless <paramref name="waitForShare"/>.</summary>
+    /// <returns>False when it could not be committed or, waiting, did not reach GitHub.</returns>
+    private async Task<bool> SaveAsync(IReadOnlyList<string> paths, string message, bool waitForShare = false)
     {
         var repository = Repository!;
         var result = await repository.Sync.SaveLocallyAsync(paths, message).ConfigureAwait(true);
@@ -1011,12 +1013,25 @@ public sealed partial class ProtocolsViewModel : ObservableObject
             return false;
         }
 
-        if (result.Committed)
+        if (!result.Committed)
         {
-            _ = ShareAsync(repository);
+            return true;
         }
 
-        return true;
+        if (!waitForShare)
+        {
+            _ = ShareAsync(repository);
+            return true;
+        }
+
+        // Null means offline: the commit waits on this computer and is shared later.
+        var shared = await WorkTracker.ShareInBackgroundAsync(repository).ConfigureAwait(true);
+        if (shared is { Succeeded: false })
+        {
+            await HandleSaveResultAsync(shared).ConfigureAwait(true);
+        }
+
+        return shared is { Succeeded: true };
     }
 
     private async Task ShareAsync(Repository repository)

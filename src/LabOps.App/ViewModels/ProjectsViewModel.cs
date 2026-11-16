@@ -585,18 +585,17 @@ public sealed partial class ProjectsViewModel : ObservableObject
 
         try
         {
-            var protocol = (await _protocols.ListAsync().ConfigureAwait(true)).Protocols.FirstOrDefault(p => p.Id == protocolId);
+            var all = (await _protocols.ListAsync().ConfigureAwait(true)).Protocols;
+            var protocol = all.FirstOrDefault(p => p.Id == protocolId);
             if (protocol?.Versions.FirstOrDefault(v => v.Version == version) is not { } published
                 || !published.Methods.Any(m => m.EndsWith(".meth", StringComparison.OrdinalIgnoreCase)))
             {
                 return;
             }
 
-            var index = await Task.Run(() => ProtocolMethodIndex.Build(protocols.Path, [protocol with { Versions = [published] }])).ConfigureAwait(true);
-            if (index.Count == 0)
-            {
-                return;
-            }
+            // Every published version, so an experiment that records another one holding the same
+            // method is left alone (the fingerprints are kept, so this reads only the new files).
+            var index = await Task.Run(() => ProtocolMethodIndex.Build(protocols.Path, all)).ConfigureAwait(true);
 
             await _work.RunAsync($"Recording {protocol.DisplayTitle} on the experiments acquired with its method...", async () =>
             {
@@ -612,6 +611,14 @@ public sealed partial class ProjectsViewModel : ObservableObject
                 var records = pending
                     .Select(r => Path.Combine(Repository!.Path, r.Experiment.Folder.Replace('/', Path.DirectorySeparatorChar), "experiment.yaml"))
                     .Distinct().ToDictionary(p => p, File.ReadAllBytes);
+                void PutBack()
+                {
+                    foreach (var (path, bytes) in records)
+                    {
+                        File.WriteAllBytes(path, bytes);
+                    }
+                }
+
                 try
                 {
                     foreach (var r in pending)
@@ -622,18 +629,20 @@ public sealed partial class ProjectsViewModel : ObservableObject
                 }
                 catch
                 {
-                    foreach (var (path, bytes) in records)
-                    {
-                        File.WriteAllBytes(path, bytes);
-                    }
-
+                    PutBack();
                     throw;
                 }
 
-                await SaveAsync([.. pending.Select(r => r.Project.Folder).Distinct()],
-                    $"{protocolId} version {version} recorded on {string.Join(", ", pending.Select(r => r.Experiment.Experiment))}: "
-                    + "their raw files were acquired with its method",
-                    pending.Select(r => r.Project.Project).Distinct()).ConfigureAwait(true);
+                // The projects come from a list with the closed ones, so a closed project's wiki
+                // page is updated too; its page is built from the records, which now hold the link.
+                var changed = pending.Select(r => r.Project).DistinctBy(p => p.Project).ToList();
+                if (!await SaveAsync([.. changed.Select(p => p.Folder)],
+                        $"{protocolId} version {version} recorded on {string.Join(", ", pending.Select(r => r.Experiment.Experiment))}: "
+                        + "their raw files were acquired with its method",
+                        changed).ConfigureAwait(true))
+                {
+                    PutBack();
+                }
             }).ConfigureAwait(true);
         }
         catch (Exception ex) when (ex is EngineException or ToolMissingException or IOException or UnauthorizedAccessException)
@@ -1515,8 +1524,12 @@ public sealed partial class ProjectsViewModel : ObservableObject
     /// Commits the change on this computer, so the screen can show it right away, and shares it
     /// with GitHub in the background.
     /// </summary>
-    /// <param name="projects">The projects the change is in, whose wiki pages are updated; the selected one when not given.</param>
-    private async Task SaveAsync(IReadOnlyList<string> paths, string message, IEnumerable<string>? projects = null)
+    /// <param name="projects">
+    /// The projects the change is in, whose wiki pages are updated now; when not given, the selected
+    /// project's is updated once the reload has read the change.
+    /// </param>
+    /// <returns>False when the change could not be committed.</returns>
+    private async Task<bool> SaveAsync(IReadOnlyList<string> paths, string message, IReadOnlyList<ProjectSummary>? projects = null)
     {
         var repository = Repository!;
         var result = await repository.Sync.SaveLocallyAsync(paths, message).ConfigureAwait(true);
@@ -1527,11 +1540,23 @@ public sealed partial class ProjectsViewModel : ObservableObject
         else if (result.Committed)
         {
             _ = ShareAsync(repository);
-            foreach (var project in projects ?? (Selected is { } selected ? [selected.Name] : []))
+            if (projects is null)
             {
-                _wikiAfterReload.Add(project);
+                if (Selected is { } selected)
+                {
+                    _wikiAfterReload.Add(selected.Name);
+                }
+            }
+            else
+            {
+                foreach (var project in projects)
+                {
+                    _wiki.UpdateInBackground(project);
+                }
             }
         }
+
+        return result.Succeeded;
     }
 
     private async Task ShareAsync(Repository repository)
